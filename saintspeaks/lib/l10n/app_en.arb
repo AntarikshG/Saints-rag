@@ -2,7 +2,7 @@
   "appTitle": "Motivational Saints",
   "inspiringSaints": "Inspiring Saints of India",
   "contact": "Contact",
-  "contactUs": "Contact us at: example@email.com",
+  "contactUs": "Antarikshverse is dedicated to spreading spiritual awareness and fostering meaningful interaction with inspiring saints and their timeless literature. Through this app, we aim to help the younger generation connect with the wisdom of saints, find clarity in their doubts, and develop a deeper understanding of spiritual teachings. Our goal is to encourage more time spent in swadhyaya (self-study) and the study of sacred texts. \n\n For feedback or suggestions, please reach out to us at antarikshverse@gmail.com.';",
   "selectTheme": "Select Theme",
   "chooseTheme": "Choose Theme",
   "system": "System",
@@ -22,6 +22,6 @@
   "menu": "Menu",
   "language": "Language",
   "english": "English",
-  "hindi": "Hindi"
+  "hindi": "Hindi",
+  "spiritualDiary": "Spiritual diary"
 }
-

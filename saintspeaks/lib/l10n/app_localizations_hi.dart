@@ -79,4 +79,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get hindi => 'हिंदी';
+
+  @override
+  String get spiritualDiary => 'आध्यात्मिक डायरी';
 }
