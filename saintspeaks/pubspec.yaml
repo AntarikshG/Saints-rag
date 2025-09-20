@@ -51,6 +51,7 @@ dependencies:
     sdk: flutter
   intl: any
   google_fonts: ^6.1.0
+  shared_preferences: ^2.2.2
 
 
 dev_dependencies:
@@ -60,6 +61,3 @@ flutter_icons:
   android: true
   ios: true
   image_path: "assets/images/apppic.png"
-
-
-
