@@ -10,10 +10,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+
 void main() {
   //var db = await openDatabase('my_db.db');
   runApp(MyApp());
 }
+
 
 class ArticlePage extends StatelessWidget {
   final String heading;
