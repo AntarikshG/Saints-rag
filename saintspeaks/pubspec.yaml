@@ -32,6 +32,7 @@ flutter:
     - assets/images/raman.jpg
     - assets/images/apppic.png
     - assets/images/antarikshverse.png
+  uses-material-design: true
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -42,6 +43,7 @@ flutter:
 dependencies:
   flutter:
     sdk: flutter
+
   sqflite: ^2.3.0
   path: ^1.8.3
   http: ^1.2.0
@@ -50,6 +52,7 @@ dependencies:
   intl: any
   google_fonts: ^6.1.0
 
+
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
 
@@ -57,3 +60,6 @@ flutter_icons:
   android: true
   ios: true
   image_path: "assets/images/apppic.png"
+
+
+
