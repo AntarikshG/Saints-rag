@@ -357,7 +357,34 @@ class ContactPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(loc.contact)),
       body: Center(
-        child: Text(loc.contactUs),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 32.0, bottom: 24.0),
+                child: Image.asset(
+                  'assets/images/antarikshverse.png',
+                  width: 120,
+                  height: 120,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  loc.contactUs,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
