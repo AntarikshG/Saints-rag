@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'config_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 void main() {
@@ -27,10 +28,15 @@ class ArticlePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(heading)),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: Text(body, style: TextStyle(fontSize: 18)),
-      ),
+        body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+                child: SelectableText(
+                  body,
+                  style: TextStyle(fontSize: 16),
+                ),
+    ),
+        ),
     );
   }
 }
@@ -106,6 +112,35 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   ThemeMode _themeMode = ThemeMode.system;
   Locale _locale = const Locale('en');
+  String _userName = 'Seeker';
+  bool _prefsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrefs();
+  }
+
+  Future<void> _loadPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final langCode = prefs.getString('locale');
+    final userName = prefs.getString('userName');
+    setState(() {
+      if (langCode != null) _locale = Locale(langCode);
+      if (userName != null && userName.isNotEmpty) _userName = userName;
+      _prefsLoaded = true;
+    });
+  }
+
+  Future<void> _saveLocale(Locale locale) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('locale', locale.languageCode);
+  }
+
+  Future<void> _saveUserName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userName', name);
+  }
 
   void _changeTheme(ThemeMode mode) {
     setState(() {
@@ -117,17 +152,23 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _locale = locale;
     });
+    _saveLocale(locale);
   }
 
-  String _userName = 'Seeker';
   void _setUserName(String name) {
     setState(() {
       _userName = name;
     });
+    _saveUserName(name);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_prefsLoaded) {
+      return MaterialApp(
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Motivational Saints',
@@ -638,13 +679,14 @@ class _AskTabState extends State<AskTab> {
     try {
       print('AskTab: Starting to fetch config...');
       final config = await ConfigService.fetchConfig();
-      print('AskTab: Config fetched. gradioServerRunning: \'${config.gradioServerRunning}\', gradioServerLink: \'${config.gradioServerLink}\'');
+      if (!mounted) return;
       setState(() {
         _config = config;
         _configLoading = false;
       });
     } catch (e) {
       print('AskTab: Error fetching config: ' + e.toString());
+      if (!mounted) return;
       setState(() {
         _configError = 'Failed to load configuration.';
         _configLoading = false;
@@ -655,12 +697,14 @@ class _AskTabState extends State<AskTab> {
   Future<void> _askQuestion() async {
     if (_config == null || !_config!.gradioServerRunning) {
       print('AskTab: Gradio server is not running or config not loaded.');
+      if (!mounted) return;
       setState(() {
         _lines.clear();
         _lines.add('Gradio server is not running. Please try again later.');
       });
       return;
     }
+    if (!mounted) return;
     setState(() {
       _lines.clear();
       _loading = true;
@@ -668,25 +712,26 @@ class _AskTabState extends State<AskTab> {
     final question = _controller.text;
     _client = http.Client();
     final String gradioStreamUrl = _config!.gradioServerLink + '/gradio_api/call/query_rag_stream';
+    final String language = Localizations.localeOf(context).languageCode;
     print('AskTab: Using Gradio link: ' + gradioStreamUrl);
-
+    print('AskTab: Sending language context: ' + language);
     try {
       final postResponse = await _client!.post(
         Uri.parse(gradioStreamUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "data": [
-            widget.userName + ": " + question ,
-            widget.saint
-
-            // Pass userName to backend
+            widget.userName + ": " + question,
+            widget.saint,
+            language // Pass language context to backend
           ]
         }),
       );
 
+      if (!mounted) return;
       if (postResponse.statusCode != 200) {
         setState(() {
-          _lines.add('POST failed: ${postResponse.statusCode}');
+          _lines.add('POST failed: {postResponse.statusCode}');
           _loading = false;
         });
         return;
@@ -694,6 +739,7 @@ class _AskTabState extends State<AskTab> {
 
       final eventId = jsonDecode(postResponse.body)['event_id'] ?? '';
       if (eventId.isEmpty) {
+        if (!mounted) return;
         setState(() {
           _lines.add('No event_id in response');
           _loading = false;
@@ -731,6 +777,7 @@ class _AskTabState extends State<AskTab> {
             displayLine = displayLine.replaceAll('[', '');
             displayLine = displayLine.replaceAll('",', '\n');
           }
+          if (!mounted) return;
           setState(() {
             _lines
               ..clear()
@@ -738,7 +785,8 @@ class _AskTabState extends State<AskTab> {
             _answer = displayLine;
           });
         }
-      },onDone: () {
+      }, onDone: () {
+        if (!mounted) return;
         setState(() {
           _loading = false;
         });
@@ -746,12 +794,14 @@ class _AskTabState extends State<AskTab> {
           widget.onSubmit(question, _answer!);
         }
       }, onError: (e) {
+        if (!mounted) return;
         setState(() {
           _lines.add('Error: Server seems to be down. Please try later.');
           _loading = false;
         });
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _lines.add('Error: Server seems to be down. Please try later. Details: $e');
         _loading = false;
@@ -763,6 +813,7 @@ class _AskTabState extends State<AskTab> {
   void dispose() {
     _subscription?.cancel();
     _controller.dispose();
+    _client?.close();
     super.dispose();
   }
 
