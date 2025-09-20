@@ -18,7 +18,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contact => 'Contact';
 
   @override
-  String get contactUs => 'Antarikshverse is dedicated to spreading spiritual awareness and fostering meaningful interaction with inspiring saints and their timeless literature. Through this app, we aim to help the younger generation connect with the wisdom of saints, find clarity in their doubts, and develop a deeper understanding of spiritual teachings. Our goal is to encourage more time spent in swadhyaya (self-study) and the study of sacred texts. \n\n For feedback or suggestions, please reach out to us at antarikshverse@gmail.com.';
+  String get contactUs => 'Contact us at: example@email.com';
 
   @override
   String get selectTheme => 'Select Theme';
@@ -79,4 +79,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hindi => 'Hindi';
+
+  @override
+  String get spiritualDiary => 'Spiritual diary';
 }

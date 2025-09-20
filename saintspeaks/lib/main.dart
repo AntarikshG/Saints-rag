@@ -316,6 +316,17 @@ class HomePage extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              leading: Icon(Icons.note),
+              title: Text('Spiritual diary'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SpiritualDiaryPage()),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -813,6 +824,101 @@ class HistoryTab extends StatelessWidget {
         title: Text('Q: \'${history[i]['question']}\''),
         subtitle: Text('${loc.answer}: ${history[i]['answer']}'),
       ),
+    );
+  }
+}
+
+class SpiritualDiaryPage extends StatefulWidget {
+  @override
+  _SpiritualDiaryPageState createState() => _SpiritualDiaryPageState();
+}
+
+class _SpiritualDiaryPageState extends State<SpiritualDiaryPage> {
+  final TextEditingController _controller = TextEditingController();
+  bool _loading = true;
+  Database? _db;
+
+  @override
+  void initState() {
+    super.initState();
+    _initDbAndLoadNote();
+  }
+
+  Future<void> _initDbAndLoadNote() async {
+    final db = await openDatabase(
+      p.join(await getDatabasesPath(), 'notepad.db'),
+      onCreate: (db, version) async {
+        await db.execute(
+          'CREATE TABLE IF NOT EXISTS notepad(id INTEGER PRIMARY KEY, content TEXT, updated_at TEXT)'
+        );
+        await db.insert('notepad', {'id': 1, 'content': '', 'updated_at': DateTime.now().toIso8601String()});
+      },
+      version: 1,
+    );
+    _db = db;
+    final List<Map<String, dynamic>> notes = await db.query('notepad', where: 'id = ?', whereArgs: [1]);
+    if (notes.isNotEmpty) {
+      _controller.text = notes.first['content'] ?? '';
+    }
+    setState(() {
+      _loading = false;
+    });
+  }
+
+  Future<void> _saveNote() async {
+    if (_db == null) return;
+    await _db!.update(
+      'notepad',
+      {
+        'content': _controller.text,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [1],
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Note saved!')),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _db?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(loc.spiritualDiary)),
+      body: _loading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      maxLines: null,
+                      expands: true,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: loc.spiritualDiary,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _saveNote,
+                    icon: Icon(Icons.save),
+                    label: Text(loc.save),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
