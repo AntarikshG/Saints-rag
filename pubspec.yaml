@@ -24,9 +24,12 @@ environment:
 flutter:
   # Add this line to enable the generation of localization files
   generate: true
-  # ...existing code...
   assets:
-    # ...existing code...
+    - assets/images/vivekananda.jpg
+    - assets/images/sivananda.jpg
+    - assets/images/foursaints.jpg
+    - assets/images/paramhansa.jpg
+    - assets/images/raman.jpg
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -38,9 +41,9 @@ dependencies:
   flutter:
     sdk: flutter
   sqflite: ^2.3.0
-  sqflite_common_ffi: ^2.3.0
   path: ^1.8.3
   http: ^1.2.0
   flutter_localizations:
     sdk: flutter
   intl: any
+  google_fonts: ^6.1.0
