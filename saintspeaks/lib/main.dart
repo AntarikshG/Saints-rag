@@ -9,6 +9,7 @@ import 'articlesquotes_hi.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'config_service.dart';
 
 
 void main() {
@@ -581,16 +582,55 @@ class _AskTabState extends State<AskTab> {
   bool _loading = false;
   StreamSubscription<String>? _subscription;
   http.Client? _client;
+  AppConfig? _config;
+  bool _configLoading = true;
+  String? _configError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchConfig();
+  }
+
+  Future<void> _fetchConfig() async {
+    setState(() {
+      _configLoading = true;
+      _configError = null;
+    });
+    try {
+      print('AskTab: Starting to fetch config...');
+      final config = await ConfigService.fetchConfig();
+      print('AskTab: Config fetched. gradioServerRunning: \'${config.gradioServerRunning}\', gradioServerLink: \'${config.gradioServerLink}\'');
+      setState(() {
+        _config = config;
+        _configLoading = false;
+      });
+    } catch (e) {
+      print('AskTab: Error fetching config: ' + e.toString());
+      setState(() {
+        _configError = 'Failed to load configuration.';
+        _configLoading = false;
+      });
+    }
+  }
 
   Future<void> _askQuestion() async {
+    if (_config == null || !_config!.gradioServerRunning) {
+      print('AskTab: Gradio server is not running or config not loaded.');
+      setState(() {
+        _lines.clear();
+        _lines.add('Gradio server is not running. Please try again later.');
+      });
+      return;
+    }
     setState(() {
       _lines.clear();
       _loading = true;
     });
     final question = _controller.text;
     _client = http.Client();
-
-    final String gradioStreamUrl = 'https://nonobserving-unoceanic-jean.ngrok-free.app/gradio_api/call/query_rag_stream';
+    final String gradioStreamUrl = _config!.gradioServerLink + '/gradio_api/call/query_rag_stream';
+    print('AskTab: Using Gradio link: ' + gradioStreamUrl);
 
     try {
       final postResponse = await _client!.post(
@@ -691,6 +731,15 @@ class _AskTabState extends State<AskTab> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    if (_configLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+    if (_configError != null) {
+      return Center(child: Text(_configError!));
+    }
+    if (_config == null || !_config!.gradioServerRunning) {
+      return Center(child: Text('Gradio server is not running. Please try again later.'));
+    }
     return Padding(
       padding: EdgeInsets.all(16),
       child: SingleChildScrollView(

@@ -30,6 +30,7 @@ flutter:
     - assets/images/foursaints.jpg
     - assets/images/paramhansa.jpg
     - assets/images/raman.jpg
+    - assets/images/apppic.png
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -47,3 +48,11 @@ dependencies:
     sdk: flutter
   intl: any
   google_fonts: ^6.1.0
+
+dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/apppic.png"
