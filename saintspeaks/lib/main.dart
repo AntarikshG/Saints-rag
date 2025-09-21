@@ -16,10 +16,11 @@ import 'package:flutter/gestures.dart';
 import 'dart:math';
 
 
-void main() {
-  //var db = await openDatabase('my_db.db');
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
+
 
 
 class ArticlePage extends StatelessWidget {
@@ -36,7 +37,7 @@ class ArticlePage extends StatelessWidget {
             child: SingleChildScrollView(
                 child: SelectableText(
                   body,
-                  style: TextStyle(fontSize: 16),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
                 ),
     ),
         ),
@@ -904,7 +905,17 @@ class _AskTabState extends State<AskTab> {
           if (!mounted) return;
           setState(() {
             _lines.clear(); // Clear error lines on success
-            _answer = displayLine;
+            // Remove the question if it appears at the start of the answer
+            String answerText = displayLine;
+            final question = _controller.text.trim();
+            final idx = answerText.indexOf(question);
+            if (idx != -1) {
+              // Take everything after the question
+              answerText = answerText.substring(idx + question.length).trim();
+              // Optionally, remove leading punctuation or newlines
+              answerText = answerText.replaceFirst(RegExp(r'^[:\-\s]+'), '');
+            }
+            _answer = answerText;
           });
         }
       }, onDone: () {
@@ -958,7 +969,7 @@ class _AskTabState extends State<AskTab> {
               child: Text(
                 loc.askDisclaimer,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 13, // Revert disclaimer font size to original
                   color: Colors.orange[800],
                   fontStyle: FontStyle.italic,
                 ),
@@ -982,7 +993,7 @@ class _AskTabState extends State<AskTab> {
             if (_answer != null)
               Padding(
                 padding: EdgeInsets.only(top: 20),
-                child: SelectableText('${loc.answer}: $_answer'),
+                child: SelectableText('${loc.answer}: $_answer', style: TextStyle(fontSize: 20)), // Make only output answer larger
               ),
           ],
         ),
