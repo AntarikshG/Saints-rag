@@ -13,6 +13,7 @@ import 'config_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
+import 'dart:math';
 
 
 void main() {
@@ -378,6 +379,17 @@ class HomePage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => AboutAppPage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.format_quote),
+              title: Text(loc.quoteOfTheDay),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()),
                 );
               },
             ),
@@ -1120,6 +1132,76 @@ class AboutAppPage extends StatelessWidget {
               Text(
                 loc.aboutAppInstructions,
                 style: TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class QuoteOfTheDayPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final random = Random();
+    String quote = '';
+    String saintName = '';
+    String saintImage = '';
+    if (isHindi) {
+      final allSaints = saintsHi;
+      final allQuotes = <Map<String, String>>[];
+      for (final s in allSaints) {
+        for (final q in s.quotes) {
+          allQuotes.add({'quote': q, 'saint': s.name, 'image': s.image});
+        }
+      }
+      if (allQuotes.isNotEmpty) {
+        final picked = allQuotes[random.nextInt(allQuotes.length)];
+        quote = picked['quote']!;
+        saintName = picked['saint']!;
+        saintImage = picked['image']!;
+      }
+    } else {
+      final allSaints = saints;
+      final allQuotes = <Map<String, String>>[];
+      for (final s in allSaints) {
+        for (final q in s.quotes) {
+          allQuotes.add({'quote': q, 'saint': s.name, 'image': s.image});
+        }
+      }
+      if (allQuotes.isNotEmpty) {
+        final picked = allQuotes[random.nextInt(allQuotes.length)];
+        quote = picked['quote']!;
+        saintName = picked['saint']!;
+        saintImage = picked['image']!;
+      }
+    }
+    return Scaffold(
+      appBar: AppBar(title: Text(loc.quoteOfTheDay)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (saintImage.isNotEmpty)
+                CircleAvatar(
+                  backgroundImage: AssetImage(saintImage),
+                  radius: 60,
+                ),
+              SizedBox(height: 24),
+              Text(
+                '"$quote"',
+                style: TextStyle(fontSize: 22, fontStyle: FontStyle.italic),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 24),
+              Text(
+                '- $saintName',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ],
           ),

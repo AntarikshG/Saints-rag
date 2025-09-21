@@ -262,6 +262,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Disclaimer: Answers are based on the books of the author and AI can make mistakes. Use AI as a tool, not a master.'**
   String get askDisclaimer;
+
+  /// No description provided for @quoteOfTheDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote of the Day'**
+  String get quoteOfTheDay;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -91,4 +91,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get askDisclaimer => 'Disclaimer: Answers are based on the books of the author and AI can make mistakes. Use AI as a tool, not a master.';
+
+  @override
+  String get quoteOfTheDay => 'Quote of the Day';
 }

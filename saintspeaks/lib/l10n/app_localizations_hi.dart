@@ -91,4 +91,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get askDisclaimer => 'अस्वीकरण: उत्तर लेखक की पुस्तकों पर आधारित हैं और एआई गलतियाँ कर सकता है। एआई को एक उपकरण के रूप में उपयोग करें, स्वामी के रूप में नहीं।';
+
+  @override
+  String get quoteOfTheDay => 'आज का उद्धरण';
 }
