@@ -54,7 +54,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get articles => 'Articles';
 
   @override
-  String get ask => 'Ask';
+  String get ask => 'Ask - AI Powered';
 
   @override
   String get history => 'History';

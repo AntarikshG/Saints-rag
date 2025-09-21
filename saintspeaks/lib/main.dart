@@ -445,6 +445,13 @@ class ContactPage extends StatelessWidget {
                   ),
                 ),
               ),
+              SizedBox(height: 32),
+              Image.asset(
+                'assets/images/Antariksh.jpg',
+                width: 140,
+                height: 140,
+                fit: BoxFit.contain,
+              ),
             ],
           ),
         ),
@@ -997,6 +1004,15 @@ class AboutAppPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Image.asset(
+                  'assets/images/apppic.png', // Use your available image as aboutapp.jpg is not present
+                  width: 180,
+                  height: 180,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              SizedBox(height: 20),
               Text(
                 loc.aboutApp,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),

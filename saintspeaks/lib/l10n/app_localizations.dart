@@ -188,7 +188,7 @@ abstract class AppLocalizations {
   /// No description provided for @ask.
   ///
   /// In en, this message translates to:
-  /// **'Ask'**
+  /// **'Ask - AI Powered'**
   String get ask;
 
   /// No description provided for @history.

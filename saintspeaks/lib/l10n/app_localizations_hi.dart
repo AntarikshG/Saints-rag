@@ -54,7 +54,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get articles => 'लेख';
 
   @override
-  String get ask => 'प्रश्न पूछें';
+  String get ask => 'प्रश्न पूछें - एआई संचालित';
 
   @override
   String get history => 'इतिहास';
