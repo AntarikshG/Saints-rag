@@ -905,7 +905,17 @@ class _AskTabState extends State<AskTab> {
           if (!mounted) return;
           setState(() {
             _lines.clear(); // Clear error lines on success
-            _answer = displayLine;
+            // Remove the question if it appears at the start of the answer
+            String answerText = displayLine;
+            final question = _controller.text.trim();
+            final idx = answerText.indexOf(question);
+            if (idx != -1) {
+              // Take everything after the question
+              answerText = answerText.substring(idx + question.length).trim();
+              // Optionally, remove leading punctuation or newlines
+              answerText = answerText.replaceFirst(RegExp(r'^[:\-\s]+'), '');
+            }
+            _answer = answerText;
           });
         }
       }, onDone: () {
