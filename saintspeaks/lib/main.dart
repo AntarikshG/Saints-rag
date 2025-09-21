@@ -11,6 +11,8 @@ import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'config_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
 
 
 void main() {
@@ -409,6 +411,21 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final url = 'https://flutter.dev';
+          if (await canLaunchUrl(Uri.parse(url))) {
+            await launchUrl(
+              Uri.parse(url),
+              mode: LaunchMode.externalApplication,
+            );
+          } else {
+            print('Could not launch browser');
+          }
+        },
+        child: Icon(Icons.open_in_browser),
+        tooltip: 'Test Open Browser',
+      ),
     );
   }
 }
@@ -419,40 +436,64 @@ class ContactPage extends StatelessWidget {
     final loc = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(loc.contact)),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 32.0, bottom: 24.0),
-                child: Image.asset(
-                  'assets/images/antarikshverse.png',
-                  width: 120,
-                  height: 120,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Text(
-                  loc.contactUs,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    height: 1.5,
+      body: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 32.0, bottom: 24.0),
+                  child: Image.asset(
+                    'assets/images/antarikshverse.png',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.contain,
                   ),
                 ),
-              ),
-              SizedBox(height: 32),
-              Image.asset(
-                'assets/images/Antariksh.jpg',
-                width: 140,
-                height: 140,
-                fit: BoxFit.contain,
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: SelectableText(
+                    loc.contactUs,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 24),
+                RichText(
+                  text: TextSpan(
+                    text: '☕ Buy me a coffee',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                      fontSize: 16,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () async {
+                        final url = 'https://www.buymeacoffee.com/AntarikshVerse';
+                        if (await canLaunchUrl(Uri.parse(url))) {
+                          await launchUrl(
+                            Uri.parse(url),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
+                  ),
+                ),
+                SizedBox(height: 32),
+                Image.asset(
+                  'assets/images/Antariksh.jpg',
+                  width: 140,
+                  height: 140,
+                  fit: BoxFit.contain,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -682,10 +723,20 @@ class _AskTabState extends State<AskTab> {
   AppConfig? _config;
   bool _configLoading = true;
   String? _configError;
+  bool _hasTriedAsk = false;
 
   @override
   void initState() {
     super.initState();
+    _controller.addListener(() {
+      if (_hasTriedAsk) {
+        setState(() {
+          _hasTriedAsk = false;
+          _lines.clear();
+          _answer = null;
+        });
+      }
+    });
     _fetchConfig();
   }
 
@@ -713,12 +764,33 @@ class _AskTabState extends State<AskTab> {
   }
 
   Future<void> _askQuestion() async {
+    setState(() {
+      _hasTriedAsk = true;
+    });
+    if (_configLoading) {
+      setState(() {
+        _lines.clear();
+        _lines.add('Configuration is still loading. Please wait and try again.');
+        _loading = false;
+        _answer = null;
+      });
+      return;
+    }
+    if (_configError != null) {
+      setState(() {
+        _lines.clear();
+        _lines.add(_configError!);
+        _loading = false;
+        _answer = null;
+      });
+      return;
+    }
     if (_config == null || !_config!.gradioServerRunning) {
-      print('AskTab: Gradio server is not running or config not loaded.');
-      if (!mounted) return;
       setState(() {
         _lines.clear();
         _lines.add('Gradio server is not running. Please try again later.');
+        _loading = false;
+        _answer = null;
       });
       return;
     }
@@ -726,6 +798,7 @@ class _AskTabState extends State<AskTab> {
     setState(() {
       _lines.clear();
       _loading = true;
+      _answer = null;
     });
     final question = _controller.text;
     _client = http.Client();
@@ -744,13 +817,16 @@ class _AskTabState extends State<AskTab> {
             language // Pass language context to backend
           ]
         }),
-      );
+      ).timeout(const Duration(seconds: 15), onTimeout: () {
+        throw Exception('Server timeout. Please try again later.');
+      });
 
       if (!mounted) return;
       if (postResponse.statusCode != 200) {
         setState(() {
-          _lines.add('POST failed: {postResponse.statusCode}');
+          _lines.add('Apologies, Server is down, Please try later : POST failed: ${postResponse.statusCode}');
           _loading = false;
+          _answer = null;
         });
         return;
       }
@@ -761,20 +837,38 @@ class _AskTabState extends State<AskTab> {
         setState(() {
           _lines.add('No event_id in response');
           _loading = false;
+          _answer = null;
         });
         return;
       }
 
-      final streamUrl = 'https://nonobserving-unoceanic-jean.ngrok-free.app/gradio_api/call/query_rag_stream/$eventId';
+      // Use config gradioServerLink for stream URL
+      final streamUrl = _config!.gradioServerLink + '/gradio_api/call/query_rag_stream/' + eventId;
       final request = http.Request('GET', Uri.parse(streamUrl));
-      final response = await _client!.send(request);
+      final responseFuture = _client!.send(request);
+      late http.StreamedResponse response;
+      try {
+        response = await responseFuture.timeout(const Duration(seconds: 15), onTimeout: () {
+          throw Exception('Server timeout. Please try again later.');
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _lines.add('Error: Server did not respond in time. Please try later.');
+          _loading = false;
+          _answer = null;
+        });
+        return;
+      }
 
+      bool gotResponse = false;
       response.stream
           .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen((line) {
         final trimmed = line.trim();
         if (trimmed.isNotEmpty && trimmed != 'data' && trimmed != 'null') {
+          gotResponse = true;
           String displayLine = trimmed;
           final match = RegExp(r'\[\s*\[(.*?)\]\s*\]').firstMatch(displayLine);
           if (match != null) {
@@ -797,9 +891,7 @@ class _AskTabState extends State<AskTab> {
           }
           if (!mounted) return;
           setState(() {
-            _lines
-              ..clear()
-              ..add(displayLine);
+            _lines.clear(); // Clear error lines on success
             _answer = displayLine;
           });
         }
@@ -808,7 +900,12 @@ class _AskTabState extends State<AskTab> {
         setState(() {
           _loading = false;
         });
-        if (_answer != null) {
+        if (!gotResponse) {
+          setState(() {
+            _lines.add('No response from server. Please try again later.');
+            _answer = null;
+          });
+        } else if (_answer != null) {
           widget.onSubmit(question, _answer!);
         }
       }, onError: (e) {
@@ -816,6 +913,7 @@ class _AskTabState extends State<AskTab> {
         setState(() {
           _lines.add('Error: Server seems to be down. Please try later.');
           _loading = false;
+          _answer = null;
         });
       });
     } catch (e) {
@@ -823,29 +921,19 @@ class _AskTabState extends State<AskTab> {
       setState(() {
         _lines.add('Error: Server seems to be down. Please try later. Details: $e');
         _loading = false;
+        _answer = null;
       });
     }
   }
 
   @override
-  void dispose() {
-    _subscription?.cancel();
-    _controller.dispose();
-    _client?.close();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    if (_configLoading) {
-      return Center(child: CircularProgressIndicator());
-    }
-    if (_configError != null) {
-      return Center(child: Text(_configError!));
-    }
-    if (_config == null || !_config!.gradioServerRunning) {
-      return Center(child: Text('Gradio server is not running. Please try again later.'));
+    bool showError = false;
+    if (_hasTriedAsk && _lines.isNotEmpty && _answer == null) {
+      final errorKeywords = ['error', 'failed', 'not running', 'no response', 'did not respond'];
+      final firstLine = _lines.first.toLowerCase();
+      showError = errorKeywords.any((kw) => firstLine.contains(kw));
     }
     return Padding(
       padding: EdgeInsets.all(16),
@@ -853,6 +941,22 @@ class _AskTabState extends State<AskTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Text(
+                loc.askDisclaimer,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.orange[800],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+            if (showError)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Text(_lines.join('\n'), style: TextStyle(color: Colors.red, fontSize: 15)),
+              ),
             TextField(
               controller: _controller,
               decoration: InputDecoration(labelText: loc.askAQuestion),
@@ -867,11 +971,6 @@ class _AskTabState extends State<AskTab> {
               Padding(
                 padding: EdgeInsets.only(top: 20),
                 child: SelectableText('${loc.answer}: $_answer'),
-              ),
-            if (_lines.isNotEmpty && _lines.first.startsWith('Error:'))
-              Padding(
-                padding: EdgeInsets.only(top: 20),
-                child: SelectableText(_lines.join('\n')),
               ),
           ],
         ),

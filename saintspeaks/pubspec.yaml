@@ -1,4 +1,4 @@
-name: my_new_app
+name: talk_with_saints
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -53,6 +53,7 @@ dependencies:
   intl: any
   google_fonts: ^6.1.0
   shared_preferences: ^2.2.2
+  url_launcher: ^6.2.6
 
 
 dev_dependencies:

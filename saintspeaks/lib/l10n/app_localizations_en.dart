@@ -18,7 +18,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contact => 'Contact';
 
   @override
-  String get contactUs => 'Antarikshverse is dedicated to spreading spiritual awareness and fostering meaningful interaction with inspiring saints and their timeless literature. Through this app, we aim to help the younger generation connect with the wisdom of saints, find clarity in their doubts, and develop a deeper understanding of spiritual teachings. Our goal is to encourage more time spent in swadhyaya (self-study) and the study of sacred texts. \n\n For feedback or suggestions, please reach out to us at antarikshverse@gmail.com.\';';
+  String get contactUs => 'Antarikshverse is dedicated to spreading spiritual awareness and fostering meaningful interaction with inspiring saints and their timeless literature. Through this app, we aim to help the younger generation connect with the wisdom of saints, find clarity in their doubts, and develop a deeper understanding of spiritual teachings. Our goal is to encourage more time spent in swadhyaya (self-study) and the study of sacred texts. \n\n For feedback or suggestions, please reach out to us at antarikshverse@gmail.com.  \n\n Advertisement shouldnt come in way of Swadhaya and therefore there are no advertisement here , If you like our server to run 24x7 and reach more people , consider supporting this initiative support us at  buymeacoffee.com/Antarikshverse';
 
   @override
   String get selectTheme => 'Select Theme';
@@ -88,4 +88,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutAppInstructions => 'Welcome to the Motivational Saints app!\n\nHow to use the app:\n• Browse the list of saints on the home screen. Tap a saint to view their quotes, articles, and ask questions.\n• Use the \'Ask\' tab to ask questions to the selected saint and get motivational answers.\n• View your previous questions and answers in the \'History\' tab.\n• Use the \'Spiritual diary\' from the menu to write and save your personal notes.\n• Change the app language or theme from the menu.\n• Contact the developer from the menu if you have feedback or suggestions.\n\nEnjoy your journey towards inspiration and self-improvement!';
+
+  @override
+  String get askDisclaimer => 'Disclaimer: Answers are based on the books of the author and AI can make mistakes. Use AI as a tool, not a master.';
 }
