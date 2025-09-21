@@ -54,7 +54,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get articles => 'Articles';
 
   @override
-  String get ask => 'Ask';
+  String get ask => 'Ask - AI Powered';
 
   @override
   String get history => 'History';
@@ -82,4 +82,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get spiritualDiary => 'Spiritual diary';
+
+  @override
+  String get aboutApp => 'About App';
+
+  @override
+  String get aboutAppInstructions => 'Welcome to the Motivational Saints app!\n\nHow to use the app:\n• Browse the list of saints on the home screen. Tap a saint to view their quotes, articles, and ask questions.\n• Use the \'Ask\' tab to ask questions to the selected saint and get motivational answers.\n• View your previous questions and answers in the \'History\' tab.\n• Use the \'Spiritual diary\' from the menu to write and save your personal notes.\n• Change the app language or theme from the menu.\n• Contact the developer from the menu if you have feedback or suggestions.\n\nEnjoy your journey towards inspiration and self-improvement!';
 }

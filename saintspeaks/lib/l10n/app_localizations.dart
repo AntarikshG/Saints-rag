@@ -188,7 +188,7 @@ abstract class AppLocalizations {
   /// No description provided for @ask.
   ///
   /// In en, this message translates to:
-  /// **'Ask'**
+  /// **'Ask - AI Powered'**
   String get ask;
 
   /// No description provided for @history.
@@ -244,6 +244,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Spiritual diary'**
   String get spiritualDiary;
+
+  /// No description provided for @aboutApp.
+  ///
+  /// In en, this message translates to:
+  /// **'About App'**
+  String get aboutApp;
+
+  /// No description provided for @aboutAppInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to the Motivational Saints app!\n\nHow to use the app:\n• Browse the list of saints on the home screen. Tap a saint to view their quotes, articles, and ask questions.\n• Use the \'Ask\' tab to ask questions to the selected saint and get motivational answers.\n• View your previous questions and answers in the \'History\' tab.\n• Use the \'Spiritual diary\' from the menu to write and save your personal notes.\n• Change the app language or theme from the menu.\n• Contact the developer from the menu if you have feedback or suggestions.\n\nEnjoy your journey towards inspiration and self-improvement!'**
+  String get aboutAppInstructions;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

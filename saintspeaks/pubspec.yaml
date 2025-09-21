@@ -32,6 +32,7 @@ flutter:
     - assets/images/raman.jpg
     - assets/images/apppic.png
     - assets/images/antarikshverse.png
+    - assets/images/Antariksh.jpg
   uses-material-design: true
 
 # Dependencies specify other packages that your package needs in order to work.

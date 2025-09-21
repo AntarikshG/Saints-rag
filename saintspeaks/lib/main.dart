@@ -368,6 +368,17 @@ class HomePage extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              leading: Icon(Icons.info),
+              title: Text(loc.aboutApp),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AboutAppPage()),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -433,6 +444,13 @@ class ContactPage extends StatelessWidget {
                     height: 1.5,
                   ),
                 ),
+              ),
+              SizedBox(height: 32),
+              Image.asset(
+                'assets/images/Antariksh.jpg',
+                width: 140,
+                height: 140,
+                fit: BoxFit.contain,
               ),
             ],
           ),
@@ -970,6 +988,44 @@ class _SpiritualDiaryPageState extends State<SpiritualDiaryPage> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+class AboutAppPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(loc.aboutApp)),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Image.asset(
+                  'assets/images/apppic.png', // Use your available image as aboutapp.jpg is not present
+                  width: 180,
+                  height: 180,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              SizedBox(height: 20),
+              Text(
+                loc.aboutApp,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 20),
+              Text(
+                loc.aboutAppInstructions,
+                style: TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
