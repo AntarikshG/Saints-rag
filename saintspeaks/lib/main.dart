@@ -993,7 +993,54 @@ class _AskTabState extends State<AskTab> {
             if (_answer != null)
               Padding(
                 padding: EdgeInsets.only(top: 20),
-                child: SelectableText('${loc.answer}: $_answer', style: TextStyle(fontSize: 20)), // Make only output answer larger
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SelectableText('${loc.answer}: $_answer', style: TextStyle(fontSize: 20)),
+                    SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.flag),
+                      label: Text('Flag as Incorrect'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        final url = (_config?.gradioServerLink ?? '') + '/gradio_api/call/flag_and_show';
+                        try {
+                          final response = await http.post(
+                            Uri.parse(url),
+                            headers: {'Content-Type': 'application/json'},
+                            body: jsonEncode({
+                              "data": [
+
+                              ]
+                            }),
+                          );
+                          if (response.statusCode == 200) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Flag submitted. Thank you!')),
+                              );
+                            }
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to flag. Please try again.')),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error submitting flag.')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
           ],
         ),

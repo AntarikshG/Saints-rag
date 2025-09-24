@@ -1,3 +1,16 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystoreProperties = Properties().apply {
+    val keystoreFile = rootProject.file("key.properties")
+    if (keystoreFile.exists()) {
+        load(FileInputStream(keystoreFile))
+    }
+}
+
+fun getNotNullProperty(props: Properties, key: String): String =
+    props.getProperty(key) ?: throw GradleException("Property '$key' not found in key.properties")
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -6,7 +19,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.talk_with_saints"
+    namespace = "com.antarikshverse.talkwithsaints"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -22,20 +35,27 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.talk_with_saints"
+        applicationId = "com.antarikshverse.talkwithsaints"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
+        versionCode = 3 // Incremented to avoid duplicate version code error
         versionName = flutter.versionName
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(getNotNullProperty(keystoreProperties, "storeFile"))
+            storePassword = getNotNullProperty(keystoreProperties, "storePassword")
+            keyAlias = getNotNullProperty(keystoreProperties, "keyAlias")
+            keyPassword = getNotNullProperty(keystoreProperties, "keyPassword")
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
