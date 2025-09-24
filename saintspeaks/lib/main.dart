@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
 import 'dart:math';
+import 'notification_service.dart';
 
 
 void main() async {
@@ -123,6 +124,10 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _loadPrefs();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await NotificationService.initialize(context);
+      await NotificationService.scheduleDailyQuoteNotification(_locale);
+    });
   }
 
   Future<void> _loadPrefs() async {
@@ -403,20 +408,45 @@ class HomePage extends StatelessWidget {
           Expanded(
             child: ListView.builder(
               itemCount: saints.length,
-              itemBuilder: (context, i) => ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: saints[i].image.startsWith('assets/')
-                      ? AssetImage(saints[i].image) as ImageProvider
-                      : NetworkImage(saints[i].image),
-                ),
-                title: Text(saints[i].name),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => SaintPage(
-                      saint: saints[i],
-                      userName: userName,
+              itemBuilder: (context, i) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    elevation: 4,
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SaintPage(
+                        saint: saints[i],
+                        userName: userName,
+                      ),
                     ),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 36,
+                        backgroundImage: saints[i].image.startsWith('assets/')
+                            ? AssetImage(saints[i].image) as ImageProvider
+                            : NetworkImage(saints[i].image),
+                      ),
+                      SizedBox(width: 24),
+                      Expanded(
+                        child: Text(
+                          saints[i].name,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                    ],
                   ),
                 ),
               ),
@@ -426,7 +456,7 @@ class HomePage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final url = 'https://flutter.dev';
+          final url = 'https://buymeacoffee.com/AntarikshVerse';
           if (await canLaunchUrl(Uri.parse(url))) {
             await launchUrl(
               Uri.parse(url),
@@ -437,7 +467,7 @@ class HomePage extends StatelessWidget {
           }
         },
         child: Icon(Icons.open_in_browser),
-        tooltip: 'Test Open Browser',
+        tooltip: 'Buy my GPUs a Coffee',
       ),
     );
   }
@@ -488,11 +518,18 @@ class ContactPage extends StatelessWidget {
                     ),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
-                        final url = 'https://www.buymeacoffee.com/AntarikshVerse';
-                        if (await canLaunchUrl(Uri.parse(url))) {
-                          await launchUrl(
-                            Uri.parse(url),
-                            mode: LaunchMode.externalApplication,
+                        final url = Uri.parse('https://www.buymeacoffee.com/AntarikshVerse');
+                        try {
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('No browser found to open the link.')),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to open browser: ' + e.toString())),
                           );
                         }
                       },
@@ -630,41 +667,68 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
   }
 }
 
-class QuotesTab extends StatelessWidget {
+class QuotesTab extends StatefulWidget {
   final List<String> quotes;
   final String image;
   QuotesTab({required this.quotes, required this.image});
   @override
+  _QuotesTabState createState() => _QuotesTabState();
+}
+
+class _QuotesTabState extends State<QuotesTab> {
+  Set<String> _readQuotes = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReadQuotes();
+  }
+
+  Future<void> _loadReadQuotes() async {
+    final read = await ReadStatusService.getReadQuotes();
+    setState(() {
+      _readQuotes = read;
+    });
+  }
+
+  String _quoteId(String quote) {
+    // Use quote text as unique ID (adjust if you have a better unique key)
+    return quote;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final quoteTextStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic, fontSize: 18);
     return ListView.separated(
-      itemCount: quotes.length + 1,
+      itemCount: widget.quotes.length + 1,
       separatorBuilder: (context, index) => SizedBox(height: 12),
       itemBuilder: (context, i) {
         if (i == 0) {
-          return SaintImagePlaceholder(imagePath: image);
+          return SaintImagePlaceholder(imagePath: widget.image);
         }
-        final quote = quotes[i - 1];
+        final quote = widget.quotes[i - 1];
+        final id = _quoteId(quote);
+        final isRead = _readQuotes.contains(id);
         return Card(
           elevation: 2,
           margin: EdgeInsets.symmetric(horizontal: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           color: Theme.of(context).cardColor,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.format_quote, color: Colors.grey[400], size: 32),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    quote,
-                    style: quoteTextStyle,
-                  ),
-                ),
-              ],
+          child: ListTile(
+            leading: isRead ? null : Icon(Icons.fiber_manual_record, color: Colors.blue, size: 14),
+            title: Text(
+              quote,
+              style: quoteTextStyle?.copyWith(
+                fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                color: isRead ? Colors.black87 : Colors.blueAccent,
+              ),
             ),
+            onTap: () async {
+              await ReadStatusService.markQuoteRead(id);
+              setState(() {
+                _readQuotes.add(id);
+              });
+            },
           ),
         );
       },
@@ -672,25 +736,57 @@ class QuotesTab extends StatelessWidget {
   }
 }
 
-class ArticlesTab extends StatelessWidget {
+class ArticlesTab extends StatefulWidget {
   final List<Article> articles;
   ArticlesTab({required this.articles});
 
   @override
+  _ArticlesTabState createState() => _ArticlesTabState();
+}
+
+class _ArticlesTabState extends State<ArticlesTab> {
+  Set<String> _readArticles = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReadArticles();
+  }
+
+  Future<void> _loadReadArticles() async {
+    final read = await ReadStatusService.getReadArticles();
+    setState(() {
+      _readArticles = read;
+    });
+  }
+
+  String _articleId(Article a) {
+    // Use heading + saint as unique ID (adjust if you have a better unique key)
+    return a.heading;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      itemCount: articles.length,
+      itemCount: widget.articles.length,
       separatorBuilder: (context, index) => SizedBox(height: 12),
       itemBuilder: (context, i) {
-        final a = articles[i];
+        final a = widget.articles[i];
+        final id = _articleId(a);
+        final isRead = _readArticles.contains(id);
         return Card(
           elevation: 2,
           margin: EdgeInsets.symmetric(horizontal: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: ListTile(
+            leading: isRead ? null : Icon(Icons.fiber_manual_record, color: Colors.blue, size: 14),
             title: Text(
               a.heading,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: TextStyle(
+                fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                fontSize: 18,
+                color: isRead ? Colors.black87 : Colors.blueAccent,
+              ),
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 8.0),
@@ -702,7 +798,11 @@ class ArticlesTab extends StatelessWidget {
               ),
             ),
             trailing: Icon(Icons.article, color: Colors.blueGrey[300]),
-            onTap: () {
+            onTap: () async {
+              await ReadStatusService.markArticleRead(id);
+              setState(() {
+                _readArticles.add(id);
+              });
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -942,7 +1042,7 @@ class _AskTabState extends State<AskTab> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _lines.add('Error: Server seems to be down. Please try later. Details: $e');
+        _lines.add('Error: Server seems to be down. Please try later');
         _loading = false;
         _answer = null;
       });
