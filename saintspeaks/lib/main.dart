@@ -399,6 +399,17 @@ class HomePage extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              leading: Icon(Icons.coffee),
+              title: Text('Buy me a coffee'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => BuyMeACoffeePage()),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -454,21 +465,6 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final url = 'https://buymeacoffee.com/AntarikshVerse';
-          if (await canLaunchUrl(Uri.parse(url))) {
-            await launchUrl(
-              Uri.parse(url),
-              mode: LaunchMode.externalApplication,
-            );
-          } else {
-            print('Could not launch browser');
-          }
-        },
-        child: Icon(Icons.open_in_browser),
-        tooltip: 'Buy my GPUs a Coffee',
-      ),
     );
   }
 }
@@ -507,34 +503,6 @@ class ContactPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: 24),
-                RichText(
-                  text: TextSpan(
-                    text: '☕ Buy me a coffee',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      decoration: TextDecoration.underline,
-                      fontSize: 16,
-                    ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () async {
-                        final url = Uri.parse('https://www.buymeacoffee.com/AntarikshVerse');
-                        try {
-                          if (await canLaunchUrl(url)) {
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('No browser found to open the link.')),
-                            );
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed to open browser: ' + e.toString())),
-                          );
-                        }
-                      },
-                  ),
-                ),
                 SizedBox(height: 32),
                 Image.asset(
                   'assets/images/Antariksh.jpg',
@@ -544,6 +512,60 @@ class ContactPage extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class BuyMeACoffeePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    return Scaffold(
+      appBar: AppBar(title: Text(isHindi ? 'मुझे कॉफी खरीदें' : 'Buy me a coffee')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              RichText(
+                text: TextSpan(
+                  text: isHindi ? '☕ मुझे कॉफी खरीदें' : '☕ Buy me a coffee',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
+                    fontSize: 20,
+                  ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () async {
+                      final url = Uri.parse('https://www.buymeacoffee.com/AntarikshVerse');
+                      try {
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(isHindi ? 'लिंक खोलने के लिए कोई ब्राउज़र नहीं मिला।' : 'No browser found to open the link.')),
+                          );
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text((isHindi ? 'ब्राउज़र खोलने में विफल: ' : 'Failed to open browser: ') + e.toString())),
+                        );
+                      }
+                    },
+                ),
+              ),
+              SizedBox(height: 32),
+              Text(
+                isHindi ? loc.supportTextHi : loc.supportTextEn,
+                style: TextStyle(fontSize: 16, color: Colors.black87),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       ),
@@ -720,7 +742,7 @@ class _QuotesTabState extends State<QuotesTab> {
               quote,
               style: quoteTextStyle?.copyWith(
                 fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
-                color: isRead ? Colors.black87 : Colors.blueAccent,
+                color: isRead ? Theme.of(context).colorScheme.onSurface : Colors.blueAccent,
               ),
             ),
             onTap: () async {
@@ -785,7 +807,6 @@ class _ArticlesTabState extends State<ArticlesTab> {
               style: TextStyle(
                 fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
                 fontSize: 18,
-                color: isRead ? Colors.black87 : Colors.blueAccent,
               ),
             ),
             subtitle: Padding(
