@@ -1,4 +1,4 @@
-package com.example.talk_with_saints
+package com.antarikshverse.talkwithsaints
 
 import io.flutter.embedding.android.FlutterActivity
 

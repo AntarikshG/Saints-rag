@@ -18,7 +18,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get contact => 'संपर्क करें';
 
   @override
-  String get contactUs => 'अंतरिक्षवर्स आध्यात्मिक जागरूकता फैलाने और प्रेरणादायक संतों तथा उनकी अमर वाणियों के साथ सार्थक संवाद को प्रोत्साहित करने के लिए समर्पित है। इस ऐप के माध्यम से हमारा उद्देश्य युवा पीढ़ी को संतों की ज्ञान-गंगा से जोड़ना, उनकी शंकाओं का समाधान करना और आध्यात्मिक शिक्षाओं की गहरी समझ विकसित करने में सहायता करना है। हमारा लक्ष्य है कि अधिक से अधिक समय स्वाध्याय (आत्म-अध्ययन) और पवित्र ग्रंथों के अध्ययन में लगाया जाए। \n\n किसी भी सुझाव या प्रतिक्रिया के लिए, कृपया हमसे antarikshverse@gmail.com पर संपर्क करें। \n\n विज्ञापन स्वाध्याय के मार्ग में बाधा नहीं बनना चाहिए और इसलिए यहां कोई विज्ञापन नहीं है। यदि आप चाहते हैं कि हमारा सर्वर 24x7 चलता रहे और अधिक लोगों तक पहुंचे, तो इस पहल का समर्थन करने पर विचार करें। हमारा समर्थन करें: buymeacoffee.com/Antarikshverse';
+  String get contactUs => 'अंतरिक्षवर्स आध्यात्मिक जागरूकता फैलाने और प्रेरणादायक संतों तथा उनकी अमर वाणियों के साथ सार्थक संवाद को प्रोत्साहित करने के लिए समर्पित है। इस ऐप के माध्यम से हमारा उद्देश्य युवा पीढ़ी को संतों की ज्ञान-गंगा से जोड़ना, उनकी शंकाओं का समाधान करना और आध्यात्मिक शिक्षाओं की गहरी समझ विकसित करने में सहायता करना है। हमारा लक्ष्य है कि अधिक से अधिक समय स्वाध्याय (आत्म-अध्ययन) और पवित्र ग्रंथों के अध्ययन में लगाया जाए। \n\n किसी भी सुझाव या प्रतिक्रिया के लिए, कृपया हमसे antarikshverse@gmail.com पर संपर्क करें। \n\n ';
 
   @override
   String get selectTheme => 'थीम चुनें';
@@ -94,4 +94,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get quoteOfTheDay => 'आज का उद्धरण';
+
+  @override
+  String get supportTextHi => 'स्वाध्याय के मार्ग में विज्ञापन नहीं आना चाहिए, इसलिए यहाँ कोई विज्ञापन नहीं है। यदि आप चाहते हैं कि हमारा सर्वर 24x7 चले और अधिक लोगों तक पहुँचे, तो कृपया इस पहल का समर्थन करें: buymeacoffee.com/Antarikshverse';
+
+  @override
+  String get supportTextEn => 'Advertisement shouldn\'t come in way of Swadhaya and therefore there are no advertisement here. If you like our server to run 24x7 and reach more people, consider supporting this initiative: buymeacoffee.com/Antarikshverse';
 }
