@@ -27,7 +27,16 @@ flutter:
   assets:
     - assets/images/vivekananda.jpg
     - assets/images/sivananda.jpg
-    - assets/images/foursaints.jpg
+    - assets/images/banner.jpeg
+    - assets/images/banner1.jpeg
+    - assets/images/banner2.jpeg
+    - assets/images/banner3.jpeg
+    - assets/images/banner4.jpeg
+    - assets/images/banner5.jpeg
+    - assets/images/banner6.jpeg
+    - assets/images/banner7.jpeg
+    - assets/images/banner8.jpeg
+    - assets/images/banner9.jpeg
     - assets/images/paramhansa.jpg
     - assets/images/raman.jpg
     - assets/images/apppic.png

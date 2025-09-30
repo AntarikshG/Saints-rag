@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
 import 'dart:math';
 import 'notification_service.dart';
+import 'rotating_banner.dart';
 
 
 void main() async {
@@ -81,34 +82,6 @@ class SaintImagePlaceholder extends StatelessWidget {
       );
 }
 
-class MainBannerImage extends StatelessWidget {
-  final String imagePath;
-  const MainBannerImage({required this.imagePath});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: AspectRatio(
-        aspectRatio: 16 / 7,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            color: Colors.grey[200],
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Center(
-                child: Icon(Icons.image, size: 80, color: Colors.grey[400]),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class MyApp extends StatefulWidget {
   @override
   State<MyApp> createState() => _MyAppState();
@@ -126,7 +99,7 @@ class _MyAppState extends State<MyApp> {
     _loadPrefs();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await NotificationService.initialize(context);
-      await NotificationService.scheduleDailyQuoteNotification(_locale);
+      await NotificationService.scheduleDailyQuoteNotifications(_locale);
     });
   }
 
@@ -162,6 +135,8 @@ class _MyAppState extends State<MyApp> {
       _locale = locale;
     });
     _saveLocale(locale);
+    // Reschedule notifications with new language
+    NotificationService.scheduleDailyQuoteNotifications(locale);
   }
 
   void _setUserName(String name) {
@@ -378,6 +353,17 @@ class HomePage extends StatelessWidget {
               },
             ),
             ListTile(
+              leading: Icon(Icons.bookmark),
+              title: Text('Bookmarked Quotes'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()),
+                );
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.info),
               title: Text(loc.aboutApp),
               onTap: () {
@@ -415,7 +401,21 @@ class HomePage extends StatelessWidget {
       ),
       body: Column(
         children: [
-          MainBannerImage(imagePath: 'assets/images/foursaints.jpg'),
+          RotatingBanner(
+            imagePaths: [
+              'assets/images/banner.jpeg',
+              'assets/images/banner1.jpeg',
+              'assets/images/banner2.jpeg',
+              'assets/images/banner3.jpeg',
+              'assets/images/banner4.jpeg',
+              'assets/images/banner5.jpeg',
+              'assets/images/banner6.jpeg',
+              'assets/images/banner7.jpeg',
+              'assets/images/banner8.jpeg',
+              'assets/images/banner9.jpeg',
+              'assets/images/Antariksh.jpg',
+            ],
+          ),
           Expanded(
             child: ListView.builder(
               itemCount: saints.length,
@@ -562,7 +562,7 @@ class BuyMeACoffeePage extends StatelessWidget {
               SizedBox(height: 32),
               Text(
                 isHindi ? loc.supportTextHi : loc.supportTextEn,
-                style: TextStyle(fontSize: 16, color: Colors.black87),
+                style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onBackground),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -671,6 +671,8 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
                 ? saintsHi.firstWhere((s) => s.id == widget.saint.id, orElse: () => saintsHi[0]).quotes
                 : widget.saint.quotes,
             image: widget.saint.image,
+            saintName: widget.saint.name,
+            saintId: widget.saint.id, // Pass saint ID to QuotesTab
           ),
           ArticlesTab(
             articles: isHindi
@@ -692,18 +694,22 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
 class QuotesTab extends StatefulWidget {
   final List<String> quotes;
   final String image;
-  QuotesTab({required this.quotes, required this.image});
+  final String saintName;
+  final String saintId; // Add saint ID to find the correct Hindi name
+  QuotesTab({required this.quotes, required this.image, required this.saintName, required this.saintId});
   @override
   _QuotesTabState createState() => _QuotesTabState();
 }
 
 class _QuotesTabState extends State<QuotesTab> {
   Set<String> _readQuotes = {};
+  Set<String> _bookmarkedQuotes = {};
 
   @override
   void initState() {
     super.initState();
     _loadReadQuotes();
+    _loadBookmarkedQuotes();
   }
 
   Future<void> _loadReadQuotes() async {
@@ -713,9 +719,50 @@ class _QuotesTabState extends State<QuotesTab> {
     });
   }
 
+  Future<void> _loadBookmarkedQuotes() async {
+    final bookmarked = await ReadStatusService.getBookmarkedQuotes();
+    setState(() {
+      _bookmarkedQuotes = bookmarked;
+    });
+  }
+
   String _quoteId(String quote) {
-    // Use quote text as unique ID (adjust if you have a better unique key)
-    return quote;
+    // Use the correct saint name based on current language
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    String saintNameForId;
+
+    if (isHindi) {
+      // Find the Hindi saint name using the saint ID
+      final hindiSaint = saintsHi.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsHi[0]);
+      saintNameForId = hindiSaint.name;
+    } else {
+      saintNameForId = widget.saintName;
+    }
+
+    return '$saintNameForId|||$quote';
+  }
+
+  Future<void> _toggleBookmark(String quote) async {
+    final id = _quoteId(quote);
+    final isBookmarked = _bookmarkedQuotes.contains(id);
+
+    if (isBookmarked) {
+      await ReadStatusService.removeBookmark(id);
+      setState(() {
+        _bookmarkedQuotes.remove(id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Quote removed from bookmarks')),
+      );
+    } else {
+      await ReadStatusService.bookmarkQuote(id);
+      setState(() {
+        _bookmarkedQuotes.add(id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Quote bookmarked!')),
+      );
+    }
   }
 
   @override
@@ -731,6 +778,7 @@ class _QuotesTabState extends State<QuotesTab> {
         final quote = widget.quotes[i - 1];
         final id = _quoteId(quote);
         final isRead = _readQuotes.contains(id);
+        final isBookmarked = _bookmarkedQuotes.contains(id);
         return Card(
           elevation: 2,
           margin: EdgeInsets.symmetric(horizontal: 16),
@@ -744,6 +792,13 @@ class _QuotesTabState extends State<QuotesTab> {
                 fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
                 color: isRead ? Theme.of(context).colorScheme.onSurface : Colors.blueAccent,
               ),
+            ),
+            trailing: IconButton(
+              icon: Icon(
+                isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                color: isBookmarked ? Colors.orange : Colors.grey,
+              ),
+              onPressed: () => _toggleBookmark(quote),
             ),
             onTap: () async {
               await ReadStatusService.markQuoteRead(id);
@@ -813,7 +868,7 @@ class _ArticlesTabState extends State<ArticlesTab> {
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
                 a.body,
-                style: TextStyle(fontSize: 16, color: Colors.black87),
+                style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onBackground),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1316,6 +1371,178 @@ class AboutAppPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class BookmarkedQuotesPage extends StatefulWidget {
+  @override
+  _BookmarkedQuotesPageState createState() => _BookmarkedQuotesPageState();
+}
+
+class _BookmarkedQuotesPageState extends State<BookmarkedQuotesPage> {
+  Set<String> _bookmarkedQuotes = {};
+  List<Map<String, String>> _allQuotes = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookmarkedQuotes();
+  }
+
+  Future<void> _loadBookmarkedQuotes() async {
+    final bookmarked = await ReadStatusService.getBookmarkedQuotes();
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+
+    // Get all quotes from all saints
+    final allQuotes = <Map<String, String>>[];
+
+    if (isHindi) {
+      for (final saint in saintsHi) {
+        for (final quote in saint.quotes) {
+          final quoteId = '${saint.name}|||$quote';
+          if (bookmarked.contains(quoteId)) {
+            allQuotes.add({
+              'quote': quote,
+              'saint': saint.name,
+              'image': saint.image,
+              'id': quoteId,
+            });
+          }
+        }
+      }
+    } else {
+      for (final saint in saints) {
+        for (final quote in saint.quotes) {
+          final quoteId = '${saint.name}|||$quote';
+          if (bookmarked.contains(quoteId)) {
+            allQuotes.add({
+              'quote': quote,
+              'saint': saint.name,
+              'image': saint.image,
+              'id': quoteId,
+            });
+          }
+        }
+      }
+    }
+
+    setState(() {
+      _bookmarkedQuotes = bookmarked;
+      _allQuotes = allQuotes;
+      _loading = false;
+    });
+  }
+
+  Future<void> _removeBookmark(String quoteId) async {
+    await ReadStatusService.removeBookmark(quoteId);
+    setState(() {
+      _bookmarkedQuotes.remove(quoteId);
+      _allQuotes.removeWhere((quote) => quote['id'] == quoteId);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Quote removed from bookmarks')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Bookmarked Quotes'),
+        backgroundColor: Colors.orange.shade100,
+      ),
+      body: _loading
+          ? Center(child: CircularProgressIndicator())
+          : _allQuotes.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.bookmark_border,
+                        size: 80,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'No bookmarked quotes yet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Start bookmarking your favorite quotes!',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: EdgeInsets.all(16),
+                  itemCount: _allQuotes.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final quote = _allQuotes[index];
+                    return Card(
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundImage: quote['image']!.startsWith('assets/')
+                                      ? AssetImage(quote['image']!) as ImageProvider
+                                      : NetworkImage(quote['image']!),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    quote['saint']!,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.orange.shade700,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.bookmark,
+                                    color: Colors.orange,
+                                  ),
+                                  onPressed: () => _removeBookmark(quote['id']!),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              '"${quote['quote']!}"',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontStyle: FontStyle.italic,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }

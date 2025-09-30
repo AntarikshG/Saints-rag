@@ -25,30 +25,86 @@ class NotificationService {
     await _notificationsPlugin.initialize(initializationSettings);
   }
 
-  static Future<void> scheduleDailyQuoteNotification(Locale locale) async {
-    final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now();
-    final lastNotified = prefs.getString('lastQuoteNotificationDate');
-    final todayStr = '${today.year}-${today.month}-${today.day}';
-    if (lastNotified == todayStr) return; // Already notified today
+  static Future<void> scheduleDailyQuoteNotifications(Locale locale) async {
+    // Cancel any existing notifications
+    await _notificationsPlugin.cancelAll();
 
-    // Pick a random time between 10am and 8pm
-    final random = Random();
-    final hour = 10 + random.nextInt(10); // 10 to 19
-    final minute = random.nextInt(60);
-    final scheduledTime = tz.TZDateTime(
-      tz.local,
-      today.year,
-      today.month,
-      today.day,
-      hour,
-      minute,
+    // Use periodic notifications instead of exact scheduling
+    await _schedulePeriodicNotifications(locale);
+  }
+
+  static Future<void> _schedulePeriodicNotifications(Locale locale) async {
+    // Schedule morning notification (around 9 AM with some flexibility)
+    await _notificationsPlugin.periodicallyShow(
+      0, // Morning notification ID
+      'Morning Wisdom',
+      _getRandomQuoteText(locale),
+      RepeatInterval.daily,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'daily_quote_channel',
+          'Daily Quotes',
+          channelDescription: 'Daily motivational quote notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+          when: null, // Let system decide timing
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexact,
     );
-    if (scheduledTime.isBefore(tz.TZDateTime.now(tz.local))) return; // Don't schedule if time has passed
 
-    // Get quote of the day
+    // Schedule a second daily notification with offset
+    await _scheduleSecondDailyNotification(locale);
+  }
+
+  static Future<void> _scheduleSecondDailyNotification(Locale locale) async {
+    final now = tz.TZDateTime.now(tz.local);
+    final random = Random();
+
+    // Schedule evening notification for today (if time hasn't passed) or tomorrow
+    var eveningTime = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      17 + random.nextInt(3), // 5-7 PM with some randomness
+      random.nextInt(60),
+    );
+
+    // If evening time has passed today, schedule for tomorrow
+    if (eveningTime.isBefore(now)) {
+      eveningTime = eveningTime.add(Duration(days: 1));
+    }
+
+    await _notificationsPlugin.zonedSchedule(
+      1, // Evening notification ID
+      'Evening Reflection',
+      _getRandomQuoteText(locale),
+      eveningTime,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'daily_quote_channel',
+          'Daily Quotes',
+          channelDescription: 'Daily motivational quote notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexact, // Use inexact instead of exact
+      matchDateTimeComponents: DateTimeComponents.time, // Repeat daily at same time
+    );
+  }
+
+  static String _getRandomQuoteText(Locale locale) {
+    final quote = _getRandomQuote(locale);
+    return '"${quote['quote']}"\n- ${quote['saint']}';
+  }
+
+  static Map<String, String> _getRandomQuote(Locale locale) {
+    final random = Random();
     String quote = '';
     String saint = '';
+
     if (locale.languageCode == 'hi') {
       final allSaints = saintsHi;
       final allQuotes = <Map<String, String>>[];
@@ -77,30 +133,44 @@ class NotificationService {
       }
     }
 
-    await _notificationsPlugin.zonedSchedule(
-      0,
-      'Quote of the Day',
-      '"$quote"\n- $saint',
-      scheduledTime,
+    return {'quote': quote, 'saint': saint};
+  }
+
+  // Alternative approach: Use a simple daily notification that varies content
+  static Future<void> scheduleSimpleDailyNotifications(Locale locale) async {
+    await _notificationsPlugin.cancelAll();
+
+    // Single periodic notification that will show different quotes
+    await _notificationsPlugin.periodicallyShow(
+      100, // Simple notification ID
+      'Daily Inspiration',
+      'Tap to read today\'s wisdom from the saints',
+      RepeatInterval.daily,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'daily_quote_channel',
-          'Daily Quote',
-          channelDescription: 'Daily motivational quote notification',
-          importance: Importance.max,
-          priority: Priority.high,
+          'daily_inspiration_channel',
+          'Daily Inspiration',
+          channelDescription: 'Daily spiritual inspiration',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+          showWhen: true,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.exact,
-      matchDateTimeComponents: DateTimeComponents.time,
+      androidScheduleMode: AndroidScheduleMode.inexact,
     );
-    await prefs.setString('lastQuoteNotificationDate', todayStr);
+  }
+
+  // Keep the old method for backward compatibility but mark as deprecated
+  @deprecated
+  static Future<void> scheduleDailyQuoteNotification(Locale locale) async {
+    await scheduleDailyQuoteNotifications(locale);
   }
 }
 
 class ReadStatusService {
   static const String _readArticlesKey = 'read_articles';
   static const String _readQuotesKey = 'read_quotes';
+  static const String _bookmarkedQuotesKey = 'bookmarked_quotes';
 
   static Future<Set<String>> getReadArticles() async {
     final prefs = await SharedPreferences.getInstance();
@@ -124,5 +194,30 @@ class ReadStatusService {
     final read = prefs.getStringList(_readQuotesKey)?.toSet() ?? <String>{};
     read.add(quoteId);
     await prefs.setStringList(_readQuotesKey, read.toList());
+  }
+
+  // Bookmark functionality
+  static Future<Set<String>> getBookmarkedQuotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_bookmarkedQuotesKey)?.toSet() ?? <String>{};
+  }
+
+  static Future<void> bookmarkQuote(String quoteId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final bookmarked = prefs.getStringList(_bookmarkedQuotesKey)?.toSet() ?? <String>{};
+    bookmarked.add(quoteId);
+    await prefs.setStringList(_bookmarkedQuotesKey, bookmarked.toList());
+  }
+
+  static Future<void> removeBookmark(String quoteId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final bookmarked = prefs.getStringList(_bookmarkedQuotesKey)?.toSet() ?? <String>{};
+    bookmarked.remove(quoteId);
+    await prefs.setStringList(_bookmarkedQuotesKey, bookmarked.toList());
+  }
+
+  static Future<bool> isQuoteBookmarked(String quoteId) async {
+    final bookmarked = await getBookmarkedQuotes();
+    return bookmarked.contains(quoteId);
   }
 }
