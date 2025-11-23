@@ -15,14 +15,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
 import 'dart:math';
 import 'notification_service.dart';
-
+import 'rotating_banner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
-
-
 
 class ArticlePage extends StatelessWidget {
   final String heading;
@@ -33,15 +31,15 @@ class ArticlePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(heading)),
-        body: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SingleChildScrollView(
-                child: SelectableText(
-                  body,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
-                ),
-    ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: SelectableText(
+            body,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
+          ),
         ),
+      ),
     );
   }
 }
@@ -81,34 +79,6 @@ class SaintImagePlaceholder extends StatelessWidget {
       );
 }
 
-class MainBannerImage extends StatelessWidget {
-  final String imagePath;
-  const MainBannerImage({required this.imagePath});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: AspectRatio(
-        aspectRatio: 16 / 7,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            color: Colors.grey[200],
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Center(
-                child: Icon(Icons.image, size: 80, color: Colors.grey[400]),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class MyApp extends StatefulWidget {
   @override
   State<MyApp> createState() => _MyAppState();
@@ -126,7 +96,7 @@ class _MyAppState extends State<MyApp> {
     _loadPrefs();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await NotificationService.initialize(context);
-      await NotificationService.scheduleDailyQuoteNotification(_locale);
+      await NotificationService.scheduleDailyQuoteNotifications(_locale);
     });
   }
 
@@ -162,6 +132,8 @@ class _MyAppState extends State<MyApp> {
       _locale = locale;
     });
     _saveLocale(locale);
+    // Reschedule notifications with new language
+    NotificationService.scheduleDailyQuoteNotifications(locale);
   }
 
   void _setUserName(String name) {
@@ -175,7 +147,51 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     if (!_prefsLoaded) {
       return MaterialApp(
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+        home: Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.orange.shade50, Colors.deepOrange.shade100],
+              ),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
+                      strokeWidth: 3,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    'Loading Saints...',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.deepOrange.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       );
     }
     return MaterialApp(
@@ -183,23 +199,100 @@ class _MyAppState extends State<MyApp> {
       title: 'Motivational Saints',
       themeMode: _themeMode,
       theme: ThemeData(
-        textTheme: GoogleFonts.notoSansTextTheme(),
+        primarySwatch: Colors.deepOrange,
+        primaryColor: Colors.deepOrange,
+        textTheme: GoogleFonts.notoSansTextTheme().copyWith(
+          headlineLarge: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold,
+            color: Colors.deepOrange.shade800,
+          ),
+          headlineMedium: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.w600,
+            color: Colors.deepOrange.shade700,
+          ),
+          titleLarge: GoogleFonts.notoSans(
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade800,
+          ),
+        ),
         cardTheme: CardThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 8,
+          shadowColor: Colors.deepOrange.withOpacity(0.3),
+          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 1,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.deepOrange.shade800,
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: GoogleFonts.playfairDisplay(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.deepOrange.shade800,
+          ),
         ),
         scaffoldBackgroundColor: Colors.grey[50],
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepOrange,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: Colors.deepOrange,
+          secondary: Colors.orange,
+          surface: Colors.white,
+          background: Colors.grey.shade50,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 6,
+            shadowColor: Colors.deepOrange.withOpacity(0.4),
+          ),
+        ),
       ),
       darkTheme: ThemeData.dark().copyWith(
-        textTheme: GoogleFonts.notoSansTextTheme(ThemeData.dark().textTheme),
+        primaryColor: Colors.deepOrange,
+        textTheme: GoogleFonts.notoSansTextTheme(ThemeData.dark().textTheme).copyWith(
+          headlineLarge: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold,
+            color: Colors.orange.shade300,
+          ),
+          headlineMedium: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.w600,
+            color: Colors.orange.shade400,
+          ),
+        ),
         cardTheme: CardThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 8,
+          shadowColor: Colors.orange.withOpacity(0.3),
+          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: Colors.grey.shade900,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.orange.shade300,
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: GoogleFonts.playfairDisplay(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.orange.shade300,
+          ),
+        ),
+        scaffoldBackgroundColor: Colors.grey.shade900,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepOrange,
+          brightness: Brightness.dark,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 6,
+            shadowColor: Colors.orange.withOpacity(0.4),
+          ),
         ),
       ),
       locale: _locale,
@@ -241,227 +334,473 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final brightness = Theme.of(context).brightness;
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final List<dynamic> saintList = isHindi ? saintsHi : saints;
+    // Theme-aware gradients
+    final mainGradient = brightness == Brightness.dark
+        ? LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.grey.shade900,
+              Colors.grey.shade800,
+              Colors.black,
+            ],
+          )
+        : LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.deepOrange.shade50,
+              Colors.orange.shade50,
+              Colors.white,
+            ],
+          );
+    final drawerGradient = brightness == Brightness.dark
+        ? LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.grey.shade900, Colors.grey.shade800],
+          )
+        : LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.deepOrange.shade50, Colors.white],
+          );
+    final appBarGradient = brightness == Brightness.dark
+        ? LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.grey.shade900, Colors.grey.shade800],
+          )
+        : LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.deepOrange.shade100.withOpacity(0.9),
+              Colors.orange.shade50.withOpacity(0.9),
+            ],
+          );
     return Scaffold(
-      appBar: AppBar(title: Text(loc.inspiringSaints)),
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            DrawerHeader(child: Text(loc.menu)),
-            ListTile(
-              leading: Icon(Icons.contact_page),
-              title: Text(loc.contact),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ContactPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.color_lens),
-              title: Text(loc.selectTheme),
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: Text(loc.chooseTheme),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        RadioListTile(
-                          title: Text(loc.system),
-                          value: ThemeMode.system,
-                          groupValue: themeMode,
-                          onChanged: (val) {
-                            onThemeChange(ThemeMode.system);
-                            Navigator.pop(context);
-                          },
-                        ),
-                        RadioListTile(
-                          title: Text(loc.light),
-                          value: ThemeMode.light,
-                          groupValue: themeMode,
-                          onChanged: (val) {
-                            onThemeChange(ThemeMode.light);
-                            Navigator.pop(context);
-                          },
-                        ),
-                        RadioListTile(
-                          title: Text(loc.dark),
-                          value: ThemeMode.dark,
-                          groupValue: themeMode,
-                          onChanged: (val) {
-                            onThemeChange(ThemeMode.dark);
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.language),
-              title: Text(loc.language),
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: Text(loc.language),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        RadioListTile<Locale>(
-                          title: Text(loc.english),
-                          value: const Locale('en'),
-                          groupValue: locale,
-                          onChanged: (val) {
-                            onLocaleChange(const Locale('en'));
-                            Navigator.pop(context);
-                          },
-                        ),
-                        RadioListTile<Locale>(
-                          title: Text(loc.hindi),
-                          value: const Locale('hi'),
-                          groupValue: locale,
-                          onChanged: (val) {
-                            onLocaleChange(const Locale('hi'));
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text(loc.setName),
-              onTap: () {
-                Navigator.pop(context);
-                final controller = TextEditingController(text: userName);
-                showDialog(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: Text(loc.enterYourName),
-                    content: TextField(
-                      controller: controller,
-                      decoration: InputDecoration(labelText: loc.name),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          onSetUserName(controller.text.trim());
-                          Navigator.pop(context);
-                        },
-                        child: Text(loc.save),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.note),
-              title: Text('Spiritual diary'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => SpiritualDiaryPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.info),
-              title: Text(loc.aboutApp),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => AboutAppPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.format_quote),
-              title: Text(loc.quoteOfTheDay),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.coffee),
-              title: Text('Buy me a coffee'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => BuyMeACoffeePage()),
-                );
-              },
-            ),
-          ],
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          loc.inspiringSaints,
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: appBarGradient,
+          ),
         ),
       ),
-      body: Column(
-        children: [
-          MainBannerImage(imagePath: 'assets/images/foursaints.jpg'),
-          Expanded(
-            child: ListView.builder(
-              itemCount: saints.length,
-              itemBuilder: (context, i) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    elevation: 4,
+      drawer: Container(
+        width: MediaQuery.of(context).size.width * 0.85,
+        child: Drawer(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: drawerGradient,
+            ),
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    gradient: appBarGradient,
                   ),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SaintPage(
-                        saint: saints[i],
-                        userName: userName,
-                      ),
+                  child: DrawerHeader(
+                    margin: EdgeInsets.zero,
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            Icons.self_improvement,
+                            size: 35,
+                            color: Colors.deepOrange,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          loc.menu,
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 36,
-                        backgroundImage: saints[i].image.startsWith('assets/')
-                            ? AssetImage(saints[i].image) as ImageProvider
-                            : NetworkImage(saints[i].image),
+                ),
+                _buildDrawerItem(context, Icons.contact_page, loc.contact, () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => ContactPage()));
+                }),
+                _buildDrawerItem(context, Icons.color_lens, loc.selectTheme, () {
+                  Navigator.pop(context);
+                  _showThemeDialog(context);
+                }),
+                _buildDrawerItem(context, Icons.language, loc.language, () {
+                  Navigator.pop(context);
+                  _showLanguageDialog(context);
+                }),
+                _buildDrawerItem(context, Icons.person, loc.setName, () {
+                  Navigator.pop(context);
+                  _showNameDialog(context);
+                }),
+                _buildDrawerItem(context, Icons.note, loc.spiritualDiary, () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => SpiritualDiaryPage()));
+                }),
+                _buildDrawerItem(context, Icons.bookmark, loc.bookmarkedQuotes, () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
+                }),
+                _buildDrawerItem(context, Icons.info, loc.aboutApp, () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => AboutAppPage()));
+                }),
+                _buildDrawerItem(context, Icons.format_quote, loc.quoteOfTheDay, () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()));
+                }),
+                _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
+                }),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: mainGradient,
+        ),
+        child: Column(
+          children: [
+            SizedBox(height: 100), // Space for AppBar
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.deepOrange.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: RotatingBanner(
+                  imagePaths: [
+                    'assets/images/banner.jpeg',
+                    'assets/images/banner1.jpeg',
+                    'assets/images/banner2.jpeg',
+                    'assets/images/banner3.jpeg',
+                    'assets/images/banner4.jpeg',
+                    'assets/images/banner5.jpeg',
+                    'assets/images/banner6.jpeg',
+                    'assets/images/banner7.jpeg',
+                    'assets/images/banner8.jpeg',
+                    'assets/images/banner9.jpeg',
+                    'assets/images/Antariksh.jpg',
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 16),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                AppLocalizations.of(context)!.chooseSpiritualGuide,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: Colors.deepOrange.shade800,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: saintList.length,
+                itemBuilder: (context, i) => Container(
+                  margin: EdgeInsets.symmetric(vertical: 8),
+                  child: Material(
+                    elevation: 8,
+                    borderRadius: BorderRadius.circular(25),
+                    shadowColor: Colors.deepOrange.withOpacity(0.3),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(25),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Colors.white,
+                            Colors.deepOrange.shade50 ?? Colors.deepOrange.shade50,
+                          ],
+                        ),
                       ),
-                      SizedBox(width: 24),
-                      Expanded(
-                        child: Text(
-                          saints[i].name,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(25),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SaintPage(
+                              saint: saintList[i],
+                              userName: userName,
+                            ),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Row(
+                            children: [
+                              Hero(
+                                tag: 'saint_${saintList[i].id}',
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.deepOrange.withOpacity(0.3),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 40,
+                                    backgroundColor: Colors.white,
+                                    child: CircleAvatar(
+                                      radius: 36,
+                                      backgroundImage: saintList[i].image.startsWith('assets/')
+                                          ? AssetImage(saintList[i].image) as ImageProvider
+                                          : NetworkImage(saintList[i].image),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 20),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      saintList[i].name,
+                                      style: GoogleFonts.playfairDisplay(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.deepOrange.shade800,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      '${saintList[i].quotes.length} inspiring quotes',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.deepOrange.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: Colors.deepOrange.shade700,
+                                  size: 18,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios, color: Theme.of(context).colorScheme.onPrimaryContainer),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem(BuildContext context, IconData icon, String title, VoidCallback onTap) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.deepOrange.shade100,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.deepOrange.shade700, size: 22),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.grey.shade800,
+          ),
+        ),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showThemeDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          loc.chooseTheme,
+          style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildThemeOption(loc.system, ThemeMode.system, context),
+            _buildThemeOption(loc.light, ThemeMode.light, context),
+            _buildThemeOption(loc.dark, ThemeMode.dark, context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(String title, ThemeMode mode, BuildContext context) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: themeMode == mode ? Colors.deepOrange.shade50 : null,
+      ),
+      child: RadioListTile(
+        title: Text(title),
+        value: mode,
+        groupValue: themeMode,
+        activeColor: Colors.deepOrange,
+        onChanged: (val) {
+          onThemeChange(mode);
+          Navigator.pop(context);
+        },
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          loc.language,
+          style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildLanguageOption(loc.english, Locale('en'), context),
+            _buildLanguageOption(loc.hindi, Locale('hi'), context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(String title, Locale localeOption, BuildContext context) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: locale == localeOption ? Colors.deepOrange.shade50 : null,
+      ),
+      child: RadioListTile<Locale>(
+        title: Text(title),
+        value: localeOption,
+        groupValue: locale,
+        activeColor: Colors.deepOrange,
+        onChanged: (val) {
+          onLocaleChange(localeOption);
+          Navigator.pop(context);
+        },
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showNameDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final controller = TextEditingController(text: userName);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          loc.enterYourName,
+          style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: loc.name,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.deepOrange, width: 2),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              onSetUserName(controller.text.trim());
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepOrange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(loc.save),
           ),
         ],
       ),
@@ -469,112 +808,8 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class ContactPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(title: Text(loc.contact)),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 32.0, bottom: 24.0),
-                  child: Image.asset(
-                    'assets/images/antarikshverse.png',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: SelectableText(
-                    loc.contactUs,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 32),
-                Image.asset(
-                  'assets/images/Antariksh.jpg',
-                  width: 140,
-                  height: 140,
-                  fit: BoxFit.contain,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class BuyMeACoffeePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
-    return Scaffold(
-      appBar: AppBar(title: Text(isHindi ? 'मुझे कॉफी खरीदें' : 'Buy me a coffee')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              RichText(
-                text: TextSpan(
-                  text: isHindi ? '☕ मुझे कॉफी खरीदें' : '☕ Buy me a coffee',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                    fontSize: 20,
-                  ),
-                  recognizer: TapGestureRecognizer()
-                    ..onTap = () async {
-                      final url = Uri.parse('https://www.buymeacoffee.com/AntarikshVerse');
-                      try {
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(isHindi ? 'लिंक खोलने के लिए कोई ब्राउज़र नहीं मिला।' : 'No browser found to open the link.')),
-                          );
-                        }
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text((isHindi ? 'ब्राउज़र खोलने में विफल: ' : 'Failed to open browser: ') + e.toString())),
-                        );
-                      }
-                    },
-                ),
-              ),
-              SizedBox(height: 32),
-              Text(
-                isHindi ? loc.supportTextHi : loc.supportTextEn,
-                style: TextStyle(fontSize: 16, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class SaintPage extends StatefulWidget {
-  final Saint saint;
+  final dynamic saint; // Accept both Saint and SaintHi
   final String userName;
   SaintPage({required this.saint, required this.userName});
   @override
@@ -586,6 +821,15 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
   late Database db;
   List<Map<String, dynamic>> history = [];
   bool _useHindi = false;
+
+  // Helper function to get English saint name based on saint ID
+  String getEnglishSaintName(String saintId) {
+    final englishSaint = saints.firstWhere(
+      (saint) => saint.id == saintId,
+      orElse: () => saints[0], // fallback to first saint if not found
+    );
+    return englishSaint.name;
+  }
 
   @override
   void didChangeDependencies() {
@@ -648,11 +892,14 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final saintId = widget.saint.id;
+    final saintName = widget.saint.name;
+    final saintImage = widget.saint.image;
+    final saintQuotes = widget.saint.quotes;
+    final saintArticles = widget.saint.articles;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isHindi
-            ? saintsHi.firstWhere((s) => s.id == widget.saint.id, orElse: () => saintsHi[0]).name
-            : widget.saint.name),
+        title: Text(saintName),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -667,19 +914,19 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
         controller: _tabController,
         children: [
           QuotesTab(
-            quotes: isHindi
-                ? saintsHi.firstWhere((s) => s.id == widget.saint.id, orElse: () => saintsHi[0]).quotes
-                : widget.saint.quotes,
-            image: widget.saint.image,
+            quotes: saintQuotes,
+            image: saintImage,
+            saintName: saintName,
+            saintId: saintId, // Pass saint ID to QuotesTab
           ),
           ArticlesTab(
             articles: isHindi
-                ? saintsHi.firstWhere((s) => s.id == widget.saint.id, orElse: () => saintsHi[0]).articles.map((a) => Article(heading: a.heading, body: a.body)).toList()
-                : widget.saint.articles,
+                ? (saintArticles as List).map<Article>((a) => Article(heading: a.heading, body: a.body)).toList()
+                : saintArticles as List<Article>,
           ),
           AskTab(
             onSubmit: (q, a) => _addQnA(q, a),
-            saint: widget.saint.name,
+            saintId: saintId, // Pass saint ID instead of saint name
             userName: widget.userName,
           ),
           HistoryTab(history: history),
@@ -692,18 +939,22 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
 class QuotesTab extends StatefulWidget {
   final List<String> quotes;
   final String image;
-  QuotesTab({required this.quotes, required this.image});
+  final String saintName;
+  final String saintId; // Add saint ID to find the correct Hindi name
+  QuotesTab({required this.quotes, required this.image, required this.saintName, required this.saintId});
   @override
   _QuotesTabState createState() => _QuotesTabState();
 }
 
 class _QuotesTabState extends State<QuotesTab> {
   Set<String> _readQuotes = {};
+  Set<String> _bookmarkedQuotes = {};
 
   @override
   void initState() {
     super.initState();
     _loadReadQuotes();
+    _loadBookmarkedQuotes();
   }
 
   Future<void> _loadReadQuotes() async {
@@ -713,47 +964,204 @@ class _QuotesTabState extends State<QuotesTab> {
     });
   }
 
+  Future<void> _loadBookmarkedQuotes() async {
+    final bookmarked = await ReadStatusService.getBookmarkedQuotes();
+    setState(() {
+      _bookmarkedQuotes = bookmarked;
+    });
+  }
+
   String _quoteId(String quote) {
-    // Use quote text as unique ID (adjust if you have a better unique key)
-    return quote;
+    // Use the correct saint name based on current language
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    String saintNameForId;
+
+    if (isHindi) {
+      // Find the Hindi saint name using the saint ID
+      final hindiSaint = saintsHi.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsHi[0]);
+      saintNameForId = hindiSaint.name;
+    } else {
+      saintNameForId = widget.saintName;
+    }
+
+    return '$saintNameForId|||$quote';
+  }
+
+  Future<void> _toggleBookmark(String quote) async {
+    final id = _quoteId(quote);
+    final isBookmarked = _bookmarkedQuotes.contains(id);
+
+    if (isBookmarked) {
+      await ReadStatusService.removeBookmark(id);
+      setState(() {
+        _bookmarkedQuotes.remove(id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Quote removed from bookmarks')),
+      );
+    } else {
+      await ReadStatusService.bookmarkQuote(id);
+      setState(() {
+        _bookmarkedQuotes.add(id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Quote bookmarked!')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final quoteTextStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic, fontSize: 18);
-    return ListView.separated(
-      itemCount: widget.quotes.length + 1,
-      separatorBuilder: (context, index) => SizedBox(height: 12),
-      itemBuilder: (context, i) {
-        if (i == 0) {
-          return SaintImagePlaceholder(imagePath: widget.image);
-        }
-        final quote = widget.quotes[i - 1];
-        final id = _quoteId(quote);
-        final isRead = _readQuotes.contains(id);
-        return Card(
-          elevation: 2,
-          margin: EdgeInsets.symmetric(horizontal: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          color: Theme.of(context).cardColor,
-          child: ListTile(
-            leading: isRead ? null : Icon(Icons.fiber_manual_record, color: Colors.blue, size: 14),
-            title: Text(
-              quote,
-              style: quoteTextStyle?.copyWith(
-                fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
-                color: isRead ? Theme.of(context).colorScheme.onSurface : Colors.blueAccent,
+    final quoteTextStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
+      fontStyle: FontStyle.italic,
+      fontSize: 18,
+      height: 1.4,
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.deepOrange.shade50,
+            Colors.white,
+          ],
+        ),
+      ),
+      child: ListView.separated(
+        padding: EdgeInsets.all(16),
+        itemCount: widget.quotes.length + 1,
+        separatorBuilder: (context, index) => SizedBox(height: 16),
+        itemBuilder: (context, i) {
+          if (i == 0) {
+            return Container(
+              margin: EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.deepOrange.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: Offset(0, 8),
+                  ),
+                ],
               ),
-            ),
-            onTap: () async {
-              await ReadStatusService.markQuoteRead(id);
-              setState(() {
-                _readQuotes.add(id);
-              });
-            },
-          ),
-        );
-      },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child: SaintImagePlaceholder(imagePath: widget.image),
+              ),
+            );
+          }
+          final quote = widget.quotes[i - 1];
+          final id = _quoteId(quote);
+          final isRead = _readQuotes.contains(id);
+          final isBookmarked = _bookmarkedQuotes.contains(id);
+
+          return Container(
+            margin: EdgeInsets.symmetric(horizontal: 4),
+            child: Material(
+              elevation: isRead ? 4 : 8,
+              borderRadius: BorderRadius.circular(20),
+              shadowColor: isRead
+                  ? Colors.grey.withOpacity(0.3)
+                  : Colors.deepOrange.withOpacity(0.4),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isRead
+                        ? [Colors.white, Colors.grey.shade50]
+                        : [Colors.white, Colors.orange.shade50],
+                  ),
+                  border: isRead
+                      ? null
+                      : Border.all(color: Colors.deepOrange.shade100, width: 1),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () async {
+                    await ReadStatusService.markQuoteRead(id);
+                    setState(() {
+                      _readQuotes.add(id);
+                    });
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (!isRead)
+                              Container(
+                                margin: EdgeInsets.only(top: 4, right: 12),
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: Colors.deepOrange,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            Expanded(
+                              child: Text(
+                                '"$quote"',
+                                style: quoteTextStyle?.copyWith(
+                                  fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
+                                  color: isRead
+                                      ? Colors.grey.shade700
+                                      : Colors.deepOrange.shade800,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: isBookmarked
+                                    ? Colors.orange.shade100
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                icon: Icon(
+                                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                                  color: isBookmarked ? Colors.orange.shade700 : Colors.grey.shade600,
+                                  size: 22,
+                                ),
+                                onPressed: () => _toggleBookmark(quote),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (!isRead) ...[
+                          SizedBox(height: 12),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.deepOrange.shade100,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              'Tap to mark as read',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.deepOrange.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )
+          );
+        },
+      ),
     );
   }
 }
@@ -813,7 +1221,7 @@ class _ArticlesTabState extends State<ArticlesTab> {
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
                 a.body,
-                style: TextStyle(fontSize: 16, color: Colors.black87),
+                style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -840,9 +1248,9 @@ class _ArticlesTabState extends State<ArticlesTab> {
 
 class AskTab extends StatefulWidget {
   final Function(String, String) onSubmit;
-  final String saint;
+  final String saintId;
   final String userName;
-  AskTab({required this.onSubmit, required this.saint, required this.userName});
+  AskTab({required this.onSubmit, required this.saintId, required this.userName});
   @override
   _AskTabState createState() => _AskTabState();
 }
@@ -858,6 +1266,15 @@ class _AskTabState extends State<AskTab> {
   bool _configLoading = true;
   String? _configError;
   bool _hasTriedAsk = false;
+
+  // Helper function to get English saint name based on saint ID
+  String getEnglishSaintName(String saintId) {
+    final englishSaint = saints.firstWhere(
+      (saint) => saint.id == saintId,
+      orElse: () => saints[0], // fallback to first saint if not found
+    );
+    return englishSaint.name;
+  }
 
   @override
   void initState() {
@@ -947,7 +1364,7 @@ class _AskTabState extends State<AskTab> {
         body: jsonEncode({
           "data": [
             widget.userName + ": " + question,
-            widget.saint,
+            getEnglishSaintName(widget.saintId), // Use English saint name consistently
             language // Pass language context to backend
           ]
         }),
@@ -1133,9 +1550,7 @@ class _AskTabState extends State<AskTab> {
                             Uri.parse(url),
                             headers: {'Content-Type': 'application/json'},
                             body: jsonEncode({
-                              "data": [
-
-                              ]
+                              "data": []
                             }),
                           );
                           if (response.statusCode == 200) {
@@ -1320,6 +1735,503 @@ class AboutAppPage extends StatelessWidget {
   }
 }
 
+class BookmarkedQuotesPage extends StatefulWidget {
+  @override
+  _BookmarkedQuotesPageState createState() => _BookmarkedQuotesPageState();
+}
+
+class _BookmarkedQuotesPageState extends State<BookmarkedQuotesPage> {
+  Set<String> _bookmarkedQuotes = {};
+  List<Map<String, String>> _allQuotes = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookmarkedQuotes();
+  }
+
+  Future<void> _loadBookmarkedQuotes() async {
+    final bookmarked = await ReadStatusService.getBookmarkedQuotes();
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+
+    // Get all quotes from all saints
+    final allQuotes = <Map<String, String>>[];
+
+    if (isHindi) {
+      for (final saint in saintsHi) {
+        for (final quote in saint.quotes) {
+          final quoteId = '${saint.name}|||$quote';
+          if (bookmarked.contains(quoteId)) {
+            allQuotes.add({
+              'quote': quote,
+              'saint': saint.name,
+              'image': saint.image,
+              'id': quoteId,
+            });
+          }
+        }
+      }
+    } else {
+      for (final saint in saints) {
+        for (final quote in saint.quotes) {
+          final quoteId = '${saint.name}|||$quote';
+          if (bookmarked.contains(quoteId)) {
+            allQuotes.add({
+              'quote': quote,
+              'saint': saint.name,
+              'image': saint.image,
+              'id': quoteId,
+            });
+          }
+        }
+      }
+    }
+
+    setState(() {
+      _bookmarkedQuotes = bookmarked;
+      _allQuotes = allQuotes;
+      _loading = false;
+    });
+  }
+
+  Future<void> _removeBookmark(String quoteId) async {
+    await ReadStatusService.removeBookmark(quoteId);
+    setState(() {
+      _bookmarkedQuotes.remove(quoteId);
+      _allQuotes.removeWhere((quote) => quote['id'] == quoteId);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Quote removed from bookmarks')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          'Bookmarked Quotes',
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.orange.shade100.withOpacity(0.9),
+                Colors.deepOrange.shade50.withOpacity(0.9),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.orange.shade50,
+              Colors.white,
+            ],
+          ),
+        ),
+        child: _loading
+          ? Center(
+              child: Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
+                  strokeWidth: 3,
+                ),
+              ),
+            )
+          : _allQuotes.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(30),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.bookmark_border,
+                          size: 60,
+                          color: Colors.orange.shade300,
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                      Text(
+                        'No bookmarked quotes yet',
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        'Start bookmarking your favorite quotes!',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: [
+                    SizedBox(height: 100), // Space for AppBar
+                    Expanded(
+                      child: ListView.separated(
+                        padding: EdgeInsets.all(16),
+                        itemCount: _allQuotes.length,
+                        separatorBuilder: (context, index) => SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          final quote = _allQuotes[index];
+                          return Container(
+                            margin: EdgeInsets.symmetric(horizontal: 4),
+                            child: Material(
+                              elevation: 6,
+                              borderRadius: BorderRadius.circular(20),
+                              shadowColor: Colors.orange.withOpacity(0.3),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [Colors.white, Colors.orange.shade50 ?? Colors.orange.shade50],
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.orange.withOpacity(0.3),
+                                                  blurRadius: 8,
+                                                  offset: Offset(0, 3),
+                                                ),
+                                              ],
+                                            ),
+                                            child: CircleAvatar(
+                                              radius: 25,
+                                              backgroundColor: Colors.white,
+                                              child: CircleAvatar(
+                                                radius: 22,
+                                                backgroundImage: quote['image']!.startsWith('assets/')
+                                                    ? AssetImage(quote['image']!) as ImageProvider
+                                                    : NetworkImage(quote['image']!),
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 16),
+                                          Expanded(
+                                            child: Text(
+                                              quote['saint']!,
+                                              style: GoogleFonts.playfairDisplay(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18,
+                                                color: Colors.orange.shade800,
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange.shade100,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: IconButton(
+                                              icon: Icon(
+                                                Icons.bookmark,
+                                                color: Colors.orange.shade700,
+                                                size: 22,
+                                              ),
+                                              onPressed: () => _removeBookmark(quote['id']!),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 16),
+                                      Container(
+                                        padding: EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.7),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.orange.shade100),
+                                        ),
+                                        child: Text(
+                                          '"${quote['quote']!}"',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontStyle: FontStyle.italic,
+                                            height: 1.5,
+                                            color: Colors.grey.shade800,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+      ),
+    );
+  }
+}
+
+class ContactPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          loc.contact,
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.deepOrange.shade100.withOpacity(0.9),
+                Colors.orange.shade50.withOpacity(0.9),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.deepOrange.shade50,
+              Colors.white,
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(height: 120), // Space for AppBar
+                  Container(
+                    padding: EdgeInsets.all(30),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.deepOrange.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'assets/images/antarikshverse.png',
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.contain,
+                        ),
+                        SizedBox(height: 24),
+                        Text(
+                          loc.contactUs,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.notoSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            height: 1.5,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                        SizedBox(height: 32),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: Image.asset(
+                            'assets/images/Antariksh.jpg',
+                            width: 140,
+                            height: 140,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class BuyMeACoffeePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          isHindi ? 'मुझे कॉफी खरीदें' : 'Buy me a coffee',
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.deepOrange.shade100.withOpacity(0.9),
+                Colors.orange.shade50.withOpacity(0.9),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.deepOrange.shade50,
+              Colors.white,
+            ],
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.deepOrange.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.coffee,
+                        size: 60,
+                        color: Colors.deepOrange.shade700,
+                      ),
+                      SizedBox(height: 24),
+                      RichText(
+                        text: TextSpan(
+                          text: isHindi ? '☕ मुझे कॉफी खरीदें' : '☕ Buy me a coffee',
+                          style: GoogleFonts.playfairDisplay(
+                            color: Colors.deepOrange.shade700,
+                            decoration: TextDecoration.underline,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () async {
+                              final url = Uri.parse('https://www.buymeacoffee.com/AntarikshVerse');
+                              try {
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(isHindi ? 'लिंक खोलने के लिए कोई ब्राउज़र नहीं मिला।' : 'No browser found to open the link.')),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text((isHindi ? 'ब्राउज़र खोलने में विफल: ' : 'Failed to open browser: ') + e.toString())),
+                                );
+                              }
+                            },
+                        ),
+                      ),
+                      SizedBox(height: 32),
+                      Text(
+                        isHindi ? loc.supportTextHi : loc.supportTextEn,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade700,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class QuoteOfTheDayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -1329,6 +2241,7 @@ class QuoteOfTheDayPage extends StatelessWidget {
     String quote = '';
     String saintName = '';
     String saintImage = '';
+
     if (isHindi) {
       final allSaints = saintsHi;
       final allQuotes = <Map<String, String>>[];
@@ -1358,31 +2271,109 @@ class QuoteOfTheDayPage extends StatelessWidget {
         saintImage = picked['image']!;
       }
     }
+
     return Scaffold(
-      appBar: AppBar(title: Text(loc.quoteOfTheDay)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (saintImage.isNotEmpty)
-                CircleAvatar(
-                  backgroundImage: AssetImage(saintImage),
-                  radius: 60,
-                ),
-              SizedBox(height: 24),
-              Text(
-                '"$quote"',
-                style: TextStyle(fontSize: 22, fontStyle: FontStyle.italic),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 24),
-              Text(
-                '- $saintName',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          loc.quoteOfTheDay,
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.deepOrange.shade100.withOpacity(0.9),
+                Colors.orange.shade50.withOpacity(0.9),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.deepOrange.shade50,
+              Colors.white,
             ],
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Container(
+              padding: EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.deepOrange.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (saintImage.isNotEmpty)
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepOrange.withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        backgroundImage: AssetImage(saintImage),
+                        radius: 60,
+                      ),
+                    ),
+                  SizedBox(height: 32),
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.orange.shade100),
+                    ),
+                    child: Text(
+                      '"$quote"',
+                      style: GoogleFonts.notoSans(
+                        fontSize: 20,
+                        fontStyle: FontStyle.italic,
+                        height: 1.6,
+                        color: Colors.grey.shade800,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    '- $saintName',
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepOrange.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
