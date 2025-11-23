@@ -100,4 +100,19 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get supportTextEn => 'Advertisement shouldn\'t come in way of Swadhaya and therefore there are no advertisement here. If you like our server to run 24x7 and reach more people, consider supporting this initiative: buymeacoffee.com/Antarikshverse';
+
+  @override
+  String get chooseSpiritualGuide => 'अपना आध्यात्मिक मार्गदर्शक चुनें';
+
+  @override
+  String get bookmarkedQuotes => 'बुकमार्क किए गए उद्धरण';
+
+  @override
+  String get buyMeACoffee => 'मुझे कॉफी खरीदें';
+
+  @override
+  String get inspiringQuotes => 'प्रेरणादायक उद्धरण';
+
+  @override
+  String get tapToMarkAsRead => 'पढ़ा हुआ चिह्नित करने के लिए टैप करें';
 }

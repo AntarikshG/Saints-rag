@@ -280,6 +280,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Advertisement shouldn\'t come in way of Swadhaya and therefore there are no advertisement here. If you like our server to run 24x7 and reach more people, consider supporting this initiative: buymeacoffee.com/Antarikshverse'**
   String get supportTextEn;
+
+  /// No description provided for @chooseSpiritualGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Your Spiritual Guide'**
+  String get chooseSpiritualGuide;
+
+  /// No description provided for @bookmarkedQuotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarked Quotes'**
+  String get bookmarkedQuotes;
+
+  /// No description provided for @buyMeACoffee.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy me a coffee'**
+  String get buyMeACoffee;
+
+  /// No description provided for @inspiringQuotes.
+  ///
+  /// In en, this message translates to:
+  /// **'inspiring quotes'**
+  String get inspiringQuotes;
+
+  /// No description provided for @tapToMarkAsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to mark as read'**
+  String get tapToMarkAsRead;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
