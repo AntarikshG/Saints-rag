@@ -20,7 +20,7 @@ plugins {
 
 android {
     namespace = "com.antarikshverse.talkwithsaints"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -39,7 +39,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = 6 // Incremented to avoid duplicate version code error
         versionName = flutter.versionName
     }
