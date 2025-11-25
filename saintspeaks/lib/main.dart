@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:http/http.dart' as http;
@@ -13,12 +14,32 @@ import 'config_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
-import 'dart:math';
 import 'notification_service.dart';
 import 'rotating_banner.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:path_provider/path_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Configure system UI overlay style for edge-to-edge display
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
+
+  // Enable edge-to-edge mode
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge,
+  );
+
   runApp(MyApp());
 }
 
@@ -472,6 +493,29 @@ class HomePage extends StatelessWidget {
                   Navigator.pop(context);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()));
                 }),
+                _buildDrawerItem(context, Icons.notifications_active, 'Test Notification', () async {
+                  Navigator.pop(context);
+
+                  // Show current notification configuration
+                  final configInfo = NotificationService.getNotificationConfigInfo();
+                  await NotificationService.showTestNotification();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('✅ Test notification sent!'),
+                          SizedBox(height: 4),
+                          Text(configInfo, style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 5),
+                    ),
+                  );
+                }),
                 _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
                   Navigator.pop(context);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
@@ -481,156 +525,255 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: mainGradient,
-        ),
-        child: Column(
-          children: [
-            SizedBox(height: 100), // Space for AppBar
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.deepOrange.withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: RotatingBanner(
-                  imagePaths: [
-                    'assets/images/banner.jpeg',
-                    'assets/images/banner1.jpeg',
-                    'assets/images/banner2.jpeg',
-                    'assets/images/banner3.jpeg',
-                    'assets/images/banner4.jpeg',
-                    'assets/images/banner5.jpeg',
-                    'assets/images/banner6.jpeg',
-                    'assets/images/banner7.jpeg',
-                    'assets/images/banner8.jpeg',
-                    'assets/images/banner9.jpeg',
-                    'assets/images/Antariksh.jpg',
+      body: SafeArea(
+        top: false, // Allow content behind AppBar since extendBodyBehindAppBar is true
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: mainGradient,
+          ),
+          child: Column(
+            children: [
+              SizedBox(height: 100), // Space for AppBar
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepOrange.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: Offset(0, 5),
+                    ),
                   ],
                 ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                AppLocalizations.of(context)!.chooseSpiritualGuide,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.deepOrange.shade800,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: RotatingBanner(
+                    imagePaths: [
+                      'assets/images/banner.jpeg',
+                      'assets/images/banner1.jpeg',
+                      'assets/images/banner2.jpeg',
+                      'assets/images/banner3.jpeg',
+                      'assets/images/banner4.jpeg',
+                      'assets/images/banner5.jpeg',
+                      'assets/images/banner6.jpeg',
+                      'assets/images/banner7.jpeg',
+                      'assets/images/banner8.jpeg',
+                      'assets/images/banner9.jpeg',
+                      'assets/images/Antariksh.jpg',
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.center,
               ),
-            ),
-            SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: saintList.length,
-                itemBuilder: (context, i) => Container(
-                  margin: EdgeInsets.symmetric(vertical: 8),
-                  child: Material(
-                    elevation: 8,
-                    borderRadius: BorderRadius.circular(25),
-                    shadowColor: Colors.deepOrange.withOpacity(0.3),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(25),
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Colors.white,
-                            Colors.deepOrange.shade50 ?? Colors.deepOrange.shade50,
-                          ],
-                        ),
-                      ),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(25),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SaintPage(
-                              saint: saintList[i],
-                              userName: userName,
+              SizedBox(height: 16),
+              // Quote of the Day Card
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(colors: [Colors.grey.shade900, Colors.grey.shade800])
+                      : LinearGradient(colors: [Colors.white, Colors.orange.shade50]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepOrange.withOpacity(0.18),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.deepOrange.shade50,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.deepOrange.withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.format_quote,
+                              color: Colors.deepOrange.shade700,
+                              size: 30,
                             ),
                           ),
+                          SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  loc.quoteOfTheDay,
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.orange.shade300
+                                        : Colors.deepOrange.shade800,
+                                  ),
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  'Discover today\'s inspirational wisdom',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.grey.shade300
+                                        : Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.deepOrange.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.deepOrange.shade700,
+                              size: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  AppLocalizations.of(context)!.chooseSpiritualGuide,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Colors.deepOrange.shade800,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: saintList.length,
+                  itemBuilder: (context, i) => Container(
+                    margin: EdgeInsets.symmetric(vertical: 8),
+                    child: Material(
+                      elevation: 8,
+                      borderRadius: BorderRadius.circular(25),
+                      shadowColor: Colors.deepOrange.withOpacity(0.3),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(25),
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Colors.white,
+                              Colors.deepOrange.shade50 ?? Colors.deepOrange.shade50,
+                            ],
+                          ),
                         ),
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              Hero(
-                                tag: 'saint_${saintList[i].id}',
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.deepOrange.withOpacity(0.3),
-                                        blurRadius: 10,
-                                        offset: Offset(0, 4),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(25),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SaintPage(
+                                saint: saintList[i],
+                                userName: userName,
+                              ),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Hero(
+                                  tag: 'saint_${saintList[i].id}',
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.deepOrange.withOpacity(0.3),
+                                          blurRadius: 10,
+                                          offset: Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 40,
+                                      backgroundColor: Colors.white,
+                                      child: CircleAvatar(
+                                        radius: 36,
+                                        backgroundImage: saintList[i].image.startsWith('assets/')
+                                            ? AssetImage(saintList[i].image) as ImageProvider
+                                            : NetworkImage(saintList[i].image),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 20),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        saintList[i].name,
+                                        style: GoogleFonts.playfairDisplay(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.deepOrange.shade800,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        '${saintList[i].quotes.length} inspiring quotes',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey.shade600,
+                                          fontStyle: FontStyle.italic,
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  child: CircleAvatar(
-                                    radius: 40,
-                                    backgroundColor: Colors.white,
-                                    child: CircleAvatar(
-                                      radius: 36,
-                                      backgroundImage: saintList[i].image.startsWith('assets/')
-                                          ? AssetImage(saintList[i].image) as ImageProvider
-                                          : NetworkImage(saintList[i].image),
-                                    ),
+                                ),
+                                Container(
+                                  padding: EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.deepOrange.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: Colors.deepOrange.shade700,
+                                    size: 18,
                                   ),
                                 ),
-                              ),
-                              SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      saintList[i].name,
-                                      style: GoogleFonts.playfairDisplay(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.deepOrange.shade800,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      '${saintList[i].quotes.length} inspiring quotes',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade600,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.deepOrange.shade100,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  Icons.arrow_forward_ios,
-                                  color: Colors.deepOrange.shade700,
-                                  size: 18,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -638,8 +781,8 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -814,6 +957,389 @@ class SaintPage extends StatefulWidget {
   SaintPage({required this.saint, required this.userName});
   @override
   _SaintPageState createState() => _SaintPageState();
+}
+
+// New page to display single quote with navigation
+class SingleQuoteViewPage extends StatefulWidget {
+  final List<String> quotes;
+  final int initialIndex;
+  final String saintName;
+  final String saintId;
+  final String image;
+
+  SingleQuoteViewPage({
+    required this.quotes,
+    required this.initialIndex,
+    required this.saintName,
+    required this.saintId,
+    required this.image,
+  });
+
+  @override
+  _SingleQuoteViewPageState createState() => _SingleQuoteViewPageState();
+}
+
+class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
+  late PageController _pageController;
+  late int _currentIndex;
+  Set<String> _readQuotes = {};
+  Set<String> _bookmarkedQuotes = {};
+  final ScreenshotController _screenshotController = ScreenshotController();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+    _loadReadQuotes();
+    _loadBookmarkedQuotes();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadReadQuotes() async {
+    final read = await ReadStatusService.getReadQuotes();
+    setState(() {
+      _readQuotes = read;
+    });
+  }
+
+  Future<void> _loadBookmarkedQuotes() async {
+    final bookmarked = await ReadStatusService.getBookmarkedQuotes();
+    setState(() {
+      _bookmarkedQuotes = bookmarked;
+    });
+  }
+
+  String _quoteId(String quote) {
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    String saintNameForId;
+
+    if (isHindi) {
+      final hindiSaint = saintsHi.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsHi[0]);
+      saintNameForId = hindiSaint.name;
+    } else {
+      saintNameForId = widget.saintName;
+    }
+
+    return '$saintNameForId|||$quote';
+  }
+
+  Future<void> _toggleBookmark(String quote) async {
+    final id = _quoteId(quote);
+    final isBookmarked = _bookmarkedQuotes.contains(id);
+
+    if (isBookmarked) {
+      await ReadStatusService.removeBookmark(id);
+      setState(() {
+        _bookmarkedQuotes.remove(id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Quote removed from bookmarks'), duration: Duration(seconds: 1)),
+      );
+    } else {
+      await ReadStatusService.bookmarkQuote(id);
+      setState(() {
+        _bookmarkedQuotes.add(id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Quote bookmarked!'), duration: Duration(seconds: 1)),
+      );
+    }
+  }
+
+  Future<void> _shareQuote(String quote) async {
+    try {
+      final image = await _screenshotController.captureFromWidget(
+        Container(
+          width: 600,
+          padding: EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.deepOrange.shade100, Colors.orange.shade50],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.format_quote, size: 40, color: Colors.deepOrange.shade700),
+              SizedBox(height: 20),
+              Text(
+                '"$quote"',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.deepOrange.shade900,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 30),
+              Text(
+                '- ${widget.saintName}',
+                style: GoogleFonts.notoSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.deepOrange.shade800,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final directory = await getTemporaryDirectory();
+      final imagePath = '${directory.path}/quote_${DateTime.now().millisecondsSinceEpoch}.png';
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(image);
+
+      await Share.shareXFiles([XFile(imagePath)], text: '"$quote"\n\n- ${widget.saintName}');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to share quote')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.saintName}'),
+        actions: [
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '${_currentIndex + 1} / ${widget.quotes.length}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: brightness == Brightness.dark
+                      ? Colors.orange.shade300
+                      : Colors.deepOrange.shade800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: brightness == Brightness.dark
+                ? [Colors.grey.shade900, Colors.black]
+                : [Colors.deepOrange.shade50, Colors.white],
+          ),
+        ),
+        child: PageView.builder(
+          controller: _pageController,
+          onPageChanged: (index) async {
+            setState(() {
+              _currentIndex = index;
+            });
+            // Mark quote as read when viewed
+            final quote = widget.quotes[index];
+            final id = _quoteId(quote);
+            await ReadStatusService.markQuoteRead(id);
+            setState(() {
+              _readQuotes.add(id);
+            });
+          },
+          itemCount: widget.quotes.length,
+          itemBuilder: (context, index) {
+            final quote = widget.quotes[index];
+            final id = _quoteId(quote);
+            final isBookmarked = _bookmarkedQuotes.contains(id);
+
+            return SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(height: 40),
+                    // Saint Image
+                    Hero(
+                      tag: 'saint_quote_${widget.saintId}',
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.deepOrange.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Colors.white,
+                          child: CircleAvatar(
+                            radius: 56,
+                            backgroundImage: widget.image.startsWith('assets/')
+                                ? AssetImage(widget.image) as ImageProvider
+                                : NetworkImage(widget.image),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 50),
+                    // Quote Card
+                    Container(
+                      padding: EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: brightness == Brightness.dark
+                            ? Colors.grey.shade800
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepOrange.withOpacity(0.2),
+                            blurRadius: 30,
+                            offset: Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.format_quote,
+                            size: 40,
+                            color: Colors.deepOrange.shade400,
+                          ),
+                          SizedBox(height: 20),
+                          Text(
+                            quote,
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              height: 1.6,
+                              color: brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.deepOrange.shade900,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 30),
+                          Text(
+                            '- ${widget.saintName}',
+                            style: GoogleFonts.notoSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: brightness == Brightness.dark
+                                  ? Colors.orange.shade300
+                                  : Colors.deepOrange.shade700,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 40),
+                    // Action Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildActionButton(
+                          icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          label: isBookmarked ? 'Bookmarked' : 'Bookmark',
+                          onPressed: () => _toggleBookmark(quote),
+                          color: isBookmarked ? Colors.orange : Colors.grey,
+                        ),
+                        SizedBox(width: 20),
+                        _buildActionButton(
+                          icon: Icons.share,
+                          label: 'Share',
+                          onPressed: () => _shareQuote(quote),
+                          color: Colors.blue,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 40),
+                    // Navigation Indicators
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.arrow_back_ios, size: 28),
+                          color: _currentIndex > 0
+                              ? Colors.deepOrange
+                              : Colors.grey.shade400,
+                          onPressed: _currentIndex > 0
+                              ? () => _pageController.previousPage(
+                                    duration: Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  )
+                              : null,
+                        ),
+                        SizedBox(width: 20),
+                        Text(
+                          'Swipe to navigate',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        SizedBox(width: 20),
+                        IconButton(
+                          icon: Icon(Icons.arrow_forward_ios, size: 28),
+                          color: _currentIndex < widget.quotes.length - 1
+                              ? Colors.deepOrange
+                              : Colors.grey.shade400,
+                          onPressed: _currentIndex < widget.quotes.length - 1
+                              ? () => _pageController.nextPage(
+                                    duration: Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  )
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    required Color color,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.1),
+        foregroundColor: color,
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 4,
+      ),
+    );
+  }
 }
 
 class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMixin {
@@ -1083,10 +1609,22 @@ class _QuotesTabState extends State<QuotesTab> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
                   onTap: () async {
-                    await ReadStatusService.markQuoteRead(id);
-                    setState(() {
-                      _readQuotes.add(id);
-                    });
+                    // Navigate to single quote view page
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SingleQuoteViewPage(
+                          quotes: widget.quotes,
+                          initialIndex: i - 1,
+                          saintName: widget.saintName,
+                          saintId: widget.saintId,
+                          image: widget.image,
+                        ),
+                      ),
+                    );
+                    // Reload read status after returning from single quote view
+                    _loadReadQuotes();
+                    _loadBookmarkedQuotes();
                   },
                   child: Padding(
                     padding: EdgeInsets.all(20),
@@ -1922,7 +2460,7 @@ class _BookmarkedQuotesPageState extends State<BookmarkedQuotesPage> {
                                   gradient: LinearGradient(
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
-                                    colors: [Colors.white, Colors.orange.shade50 ?? Colors.orange.shade50],
+                                    colors: [Colors.white, Colors.orange.shade50],
                                   ),
                                 ),
                                 child: Padding(
@@ -2195,16 +2733,85 @@ class BuyMeACoffeePage extends StatelessWidget {
                             ..onTap = () async {
                               final url = Uri.parse('https://www.buymeacoffee.com/AntarikshVerse');
                               try {
-                                if (await canLaunchUrl(url)) {
-                                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                                } else {
+                                print('Attempting to launch URL: $url');
+
+                                // First try with external application mode
+                                bool launched = false;
+
+                                try {
+                                  if (await canLaunchUrl(url)) {
+                                    launched = await launchUrl(
+                                      url,
+                                      mode: LaunchMode.externalApplication
+                                    );
+                                    print('External app launch result: $launched');
+                                  }
+                                } catch (e) {
+                                  print('External app launch failed: $e');
+                                }
+
+                                // If external app failed, try platform default
+                                if (!launched) {
+                                  try {
+                                    launched = await launchUrl(
+                                      url,
+                                      mode: LaunchMode.platformDefault
+                                    );
+                                    print('Platform default launch result: $launched');
+                                  } catch (e) {
+                                    print('Platform default launch failed: $e');
+                                  }
+                                }
+
+                                // If still failed, try in-app web view
+                                if (!launched) {
+                                  try {
+                                    launched = await launchUrl(
+                                      url,
+                                      mode: LaunchMode.inAppWebView
+                                    );
+                                    print('In-app webview launch result: $launched');
+                                  } catch (e) {
+                                    print('In-app webview launch failed: $e');
+                                  }
+                                }
+
+                                if (!launched) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(isHindi ? 'लिंक खोलने के लिए कोई ब्राउज़र नहीं मिला।' : 'No browser found to open the link.')),
+                                    SnackBar(
+                                      content: Text(isHindi
+                                        ? 'लिंक खोलने में असमर्थ। कृपया मैन्युअल रूप से buymeacoffee.com/AntarikshVerse पर जाएं।'
+                                        : 'Unable to open link. Please visit buymeacoffee.com/AntarikshVerse manually.'
+                                      ),
+                                      duration: Duration(seconds: 5),
+                                      action: SnackBarAction(
+                                        label: 'Copy URL',
+                                        onPressed: () {
+                                          // Copy to clipboard
+                                          Clipboard.setData(ClipboardData(text: 'https://www.buymeacoffee.com/AntarikshVerse'));
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('URL copied to clipboard!'),
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
                                   );
+                                } else {
+                                  print('URL launched successfully');
                                 }
                               } catch (e) {
+                                print('General URL launch error: $e');
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text((isHindi ? 'ब्राउज़र खोलने में विफल: ' : 'Failed to open browser: ') + e.toString())),
+                                  SnackBar(
+                                    content: Text((isHindi
+                                      ? 'ब्राउज़र खोलने में विफल: '
+                                      : 'Failed to open browser: ') + e.toString()
+                                    ),
+                                    duration: Duration(seconds: 5),
+                                  ),
                                 );
                               }
                             },
@@ -2232,45 +2839,166 @@ class BuyMeACoffeePage extends StatelessWidget {
   }
 }
 
-class QuoteOfTheDayPage extends StatelessWidget {
+class QuoteOfTheDayPage extends StatefulWidget {
+  @override
+  _QuoteOfTheDayPageState createState() => _QuoteOfTheDayPageState();
+}
+
+class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
+  String quote = '';
+  String saintName = '';
+  String saintImage = '';
+  bool isLoading = true;
+  final ScreenshotController screenshotController = ScreenshotController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Use addPostFrameCallback to ensure context is ready for locale access
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadQuoteOfTheDay();
+    });
+  }
+
+  Future<void> _loadQuoteOfTheDay() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Ensure we have a valid context and locale
+      if (!mounted) return;
+
+      final locale = Localizations.localeOf(context);
+      // Use the new method to get a fresh random quote each time
+      final quoteData = NotificationService.getRandomQuoteNow(locale);
+
+      // Ensure we got valid quote data
+      if (quoteData['quote'] == null || quoteData['saint'] == null) {
+        throw Exception('Invalid quote data received');
+      }
+
+      // Get saint image from the quotes data
+      final isHindi = locale.languageCode == 'hi';
+
+      String image = 'assets/images/vivekananda.jpg'; // default
+
+      if (isHindi) {
+        // Cast to proper type for Hindi saints
+        for (final saint in saintsHi) {
+          if (saint.name == quoteData['saint']) {
+            image = saint.image;
+            break;
+          }
+        }
+      } else {
+        // Cast to proper type for English saints
+        for (final saint in saints) {
+          if (saint.name == quoteData['saint']) {
+            image = saint.image;
+            break;
+          }
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        quote = quoteData['quote']!;
+        saintName = quoteData['saint']!;
+        saintImage = image;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading quote of the day: $e');
+      // Try again with a fallback approach if the first attempt failed
+      try {
+        // Use English as fallback locale if there was an issue
+        final fallbackQuoteData = NotificationService.getRandomQuoteNow(Locale('en'));
+
+        String image = 'assets/images/vivekananda.jpg';
+        for (final saint in saints) {
+          if (saint.name == fallbackQuoteData['saint']) {
+            image = saint.image;
+            break;
+          }
+        }
+
+        if (!mounted) return;
+        setState(() {
+          quote = fallbackQuoteData['quote'] ?? 'Stay inspired and blessed!';
+          saintName = fallbackQuoteData['saint'] ?? 'Talk with Saints';
+          saintImage = image;
+          isLoading = false;
+        });
+      } catch (e2) {
+        print('Fallback quote loading also failed: $e2');
+        if (!mounted) return;
+        setState(() {
+          quote = 'Stay inspired and blessed!';
+          saintName = 'Talk with Saints';
+          saintImage = 'assets/images/vivekananda.jpg';
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _shareQuoteScreenshot() async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 16),
+              Text('Preparing quote image...'),
+            ],
+          ),
+          backgroundColor: Colors.blue,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Capture screenshot
+      final Uint8List? imageBytes = await screenshotController.capture(
+        pixelRatio: 3.0,
+      );
+
+      if (imageBytes != null) {
+        // Get temporary directory
+        final directory = await getTemporaryDirectory();
+        final imagePath = '${directory.path}/quote_of_the_day_${DateTime.now().millisecondsSinceEpoch}.png';
+
+        // Save image to file
+        final File imageFile = File(imagePath);
+        await imageFile.writeAsBytes(imageBytes);
+
+        // Share the image with text
+        await Share.shareXFiles(
+          [XFile(imagePath)],
+          text: '"$quote"\n\n- $saintName\n\n✨ Shared from Talk with Saints App',
+        );
+      } else {
+        throw Exception('Failed to capture screenshot');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error sharing quote: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
-    final random = Random();
-    String quote = '';
-    String saintName = '';
-    String saintImage = '';
-
-    if (isHindi) {
-      final allSaints = saintsHi;
-      final allQuotes = <Map<String, String>>[];
-      for (final s in allSaints) {
-        for (final q in s.quotes) {
-          allQuotes.add({'quote': q, 'saint': s.name, 'image': s.image});
-        }
-      }
-      if (allQuotes.isNotEmpty) {
-        final picked = allQuotes[random.nextInt(allQuotes.length)];
-        quote = picked['quote']!;
-        saintName = picked['saint']!;
-        saintImage = picked['image']!;
-      }
-    } else {
-      final allSaints = saints;
-      final allQuotes = <Map<String, String>>[];
-      for (final s in allSaints) {
-        for (final q in s.quotes) {
-          allQuotes.add({'quote': q, 'saint': s.name, 'image': s.image});
-        }
-      }
-      if (allQuotes.isNotEmpty) {
-        final picked = allQuotes[random.nextInt(allQuotes.length)];
-        quote = picked['quote']!;
-        saintName = picked['saint']!;
-        saintImage = picked['image']!;
-      }
-    }
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -2294,6 +3022,14 @@ class QuoteOfTheDayPage extends StatelessWidget {
             ),
           ),
         ),
+        actions: [
+          if (!isLoading)
+            IconButton(
+              icon: Icon(Icons.share, color: Colors.deepOrange.shade700),
+              onPressed: _shareQuoteScreenshot,
+              tooltip: 'Share Quote',
+            ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -2309,74 +3045,119 @@ class QuoteOfTheDayPage extends StatelessWidget {
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-            child: Container(
-              padding: EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.deepOrange.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (saintImage.isNotEmpty)
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.deepOrange.withOpacity(0.3),
-                            blurRadius: 15,
-                            offset: Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: CircleAvatar(
-                        backgroundImage: AssetImage(saintImage),
-                        radius: 60,
-                      ),
-                    ),
-                  SizedBox(height: 32),
-                  Container(
-                    padding: EdgeInsets.all(20),
+            child: isLoading
+              ? CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
+                )
+              : Screenshot(
+                  controller: screenshotController,
+                  child: Container(
+                    padding: EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.orange.shade100),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.deepOrange.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: Offset(0, 8),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      '"$quote"',
-                      style: GoogleFonts.notoSans(
-                        fontSize: 20,
-                        fontStyle: FontStyle.italic,
-                        height: 1.6,
-                        color: Colors.grey.shade800,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (saintImage.isNotEmpty)
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.deepOrange.withOpacity(0.3),
+                                  blurRadius: 15,
+                                  offset: Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              backgroundImage: AssetImage(saintImage),
+                              radius: 60,
+                            ),
+                          ),
+                        SizedBox(height: 32),
+                        Container(
+                          padding: EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: Colors.orange.shade100),
+                          ),
+                          child: Text(
+                            '"$quote"',
+                            style: GoogleFonts.notoSans(
+                              fontSize: 20,
+                              fontStyle: FontStyle.italic,
+                              height: 1.6,
+                              color: Colors.grey.shade800,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        SizedBox(height: 24),
+                        Text(
+                          '- $saintName',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepOrange.shade700,
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        // App attribution for screenshot
+                        Text(
+                          '✨ Talk with Saints App',
+                          style: GoogleFonts.notoSans(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 24),
-                  Text(
-                    '- $saintName',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepOrange.shade700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
           ),
         ),
       ),
+      floatingActionButton: !isLoading
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                FloatingActionButton(
+                  onPressed: _loadQuoteOfTheDay,
+                  backgroundColor: Colors.orange.shade600,
+                  heroTag: "refresh",
+                  child: Icon(Icons.refresh, color: Colors.white),
+                  tooltip: 'Get New Quote',
+                ),
+                SizedBox(height: 16),
+                FloatingActionButton.extended(
+                  onPressed: _shareQuoteScreenshot,
+                  backgroundColor: Colors.deepOrange.shade600,
+                  heroTag: "share",
+                  icon: Icon(Icons.share, color: Colors.white),
+                  label: Text(
+                    'Share Quote',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : null,
     );
   }
 }
