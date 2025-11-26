@@ -21,6 +21,12 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
+// Book reading imports
+import 'book_service.dart';
+import 'books_library.dart';
+import 'books_tab.dart';
+import 'pdf_reader.dart';
+import 'epub_reader.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -484,6 +490,10 @@ class HomePage extends StatelessWidget {
                 _buildDrawerItem(context, Icons.bookmark, loc.bookmarkedQuotes, () {
                   Navigator.pop(context);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
+                }),
+                _buildDrawerItem(context, Icons.library_books, 'My Books Library', () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => BooksLibraryPage()));
                 }),
                 _buildDrawerItem(context, Icons.info, loc.aboutApp, () {
                   Navigator.pop(context);
@@ -1369,7 +1379,7 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this); // Changed from 4 to 5 for Books tab
     _initDb();
   }
 
@@ -1433,6 +1443,7 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
             Tab(text: loc.articles),
             Tab(text: loc.ask),
             Tab(text: loc.history),
+            Tab(text: 'Books'), // New Books tab
           ],
         ),
       ),
@@ -1456,6 +1467,7 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
             userName: widget.userName,
           ),
           HistoryTab(history: history),
+          BooksTab(saintId: saintId, saintName: saintName), // Pass both saint ID and name to BooksTab
         ],
       ),
     );
@@ -1673,24 +1685,6 @@ class _QuotesTabState extends State<QuotesTab> {
                             ),
                           ],
                         ),
-                        if (!isRead) ...[
-                          SizedBox(height: 12),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.deepOrange.shade100,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              'Tap to mark as read',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.deepOrange.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
