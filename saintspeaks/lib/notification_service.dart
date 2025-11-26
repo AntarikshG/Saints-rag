@@ -13,8 +13,8 @@ class NotificationService {
   static bool _initialized = false;
 
   // Configurable notification settings
-  static const int NOTIFICATIONS_PER_DAY = 20; // Change this to 2 for production
-  static const int SCHEDULE_DAYS_AHEAD = 30; // How many days to schedule in advance
+  static const int NOTIFICATIONS_PER_DAY = 60; // Change this to 2 for production
+  static const int SCHEDULE_DAYS_AHEAD = 2; // How many days to schedule in advance
 
   // Calculate notification times based on notifications per day
   static List<int> get _notificationHours {
