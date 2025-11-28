@@ -12,9 +12,9 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
-  // Configurable notification settings
-  static const int NOTIFICATIONS_PER_DAY = 60; // Change this to 2 for production
-  static const int SCHEDULE_DAYS_AHEAD = 2; // How many days to schedule in advance
+  // Configurable notification settings - Changed from 60 to 2 for better reliability
+  static const int NOTIFICATIONS_PER_DAY = 2; // Morning and evening notifications
+  static const int SCHEDULE_DAYS_AHEAD = 7; // Schedule for a full week
 
   // Calculate notification times based on notifications per day
   static List<int> get _notificationHours {
@@ -28,7 +28,7 @@ class NotificationService {
     if (NOTIFICATIONS_PER_DAY == 1) {
       return [8]; // Single notification at 8 AM
     } else if (NOTIFICATIONS_PER_DAY == 2) {
-      return [8, 19]; // Morning and evening
+      return [8, 20]; // Morning (8 AM) and evening (8 PM)
     } else {
       // Distribute evenly across the day
       List<int> hours = [];
@@ -53,14 +53,18 @@ class NotificationService {
   static Future<void> initialize(BuildContext context) async {
     if (_initialized) return;
 
+    print('🚀 Initializing NotificationService...');
+
     // Initialize timezone database
     try {
       tzdata.initializeTimeZones();
       tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
+      print('✓ Timezone set to Asia/Kolkata');
     } catch (e) {
       print('Timezone init error: $e, using UTC');
       try {
         tz.setLocalLocation(tz.UTC);
+        print('✓ Timezone set to UTC');
       } catch (e2) {
         print('Failed to set UTC timezone: $e2');
       }
@@ -91,7 +95,7 @@ class NotificationService {
       final initialized = await _notificationsPlugin.initialize(
         settings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
-          print('Notification tapped');
+          print('Notification tapped: ${response.payload}');
         },
       );
 
@@ -105,56 +109,55 @@ class NotificationService {
       print('✗ Error initializing notifications: $e');
     }
 
-    // Request permission for Android 13+
-    await _requestPermission();
+    // Request all necessary permissions
+    await _requestAllPermissions();
   }
 
-  static Future<bool> _requestPermission() async {
+  static Future<bool> _requestAllPermissions() async {
+    bool allGranted = true;
+
     try {
-      final status = await Permission.notification.status;
-
-      if (status.isGranted) {
-        print('✓ Notification permission already granted');
-        return true;
-      }
-
-      if (status.isDenied) {
+      // Request notification permission only
+      final notificationStatus = await Permission.notification.status;
+      if (!notificationStatus.isGranted) {
         final result = await Permission.notification.request();
-        if (result.isGranted) {
-          print('✓ Notification permission granted');
-          return true;
-        } else {
+        if (!result.isGranted) {
           print('✗ Notification permission denied');
-          return false;
+          allGranted = false;
+        } else {
+          print('✓ Notification permission granted');
         }
+      } else {
+        print('✓ Notification permission already granted');
       }
 
-      if (status.isPermanentlyDenied) {
-        print('✗ Notification permission permanently denied');
-        return false;
-      }
-
-      return status.isGranted;
     } catch (e) {
-      print('Permission check error (may be older Android): $e');
-      return true; // Assume granted on older versions
+      print('Permission check error: $e');
+      allGranted = false;
     }
+
+    return allGranted;
   }
 
   static Future<void> scheduleDailyQuoteNotifications(Locale locale) async {
-    print('=== Starting notification scheduling ===');
+    print('=== Starting notification scheduling (inexact alarms only) ===');
     print('📅 Scheduling $NOTIFICATIONS_PER_DAY notifications per day for $SCHEDULE_DAYS_AHEAD days');
 
     if (!_initialized) {
-      print('✗ Notifications not initialized');
-      return;
+      print('✗ Notifications not initialized - initializing now...');
+      // Try to initialize with a dummy context
+      try {
+        await initialize(null as BuildContext);
+      } catch (e) {
+        print('✗ Failed to initialize notifications: $e');
+        return;
+      }
     }
 
-    // Request permission first
-    final hasPermission = await _requestPermission();
+    // Request permissions
+    final hasPermission = await _requestAllPermissions();
     if (!hasPermission) {
-      print('✗ No notification permission, skipping scheduling');
-      return;
+      print('⚠️ Notification permissions missing, but proceeding with scheduling');
     }
 
     // Cancel existing notifications
@@ -165,8 +168,20 @@ class NotificationService {
       print('Error canceling notifications: $e');
     }
 
-    // Schedule configurable notifications
+    // Wait a bit to ensure cancellation completes
+    await Future.delayed(Duration(milliseconds: 500));
+
+    // Schedule notifications
     await _scheduleConfigurableNotifications(locale);
+
+    // Save scheduling timestamp
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_schedule_date', DateTime.now().toIso8601String());
+      print('✓ Saved scheduling timestamp');
+    } catch (e) {
+      print('Error saving schedule timestamp: $e');
+    }
 
     print('=== Notification scheduling complete ===');
   }
@@ -179,6 +194,7 @@ class NotificationService {
       print('📋 Notification times: ${notificationHours.map((h) => '${h}:00').join(', ')}');
 
       int notificationId = 1000; // Starting ID for configurable notifications
+      int successCount = 0;
 
       // Schedule notifications for each day
       for (int day = 0; day < SCHEDULE_DAYS_AHEAD; day++) {
@@ -195,45 +211,57 @@ class NotificationService {
           final scheduledDate = baseDate.add(Duration(hours: hour));
 
           // Skip notifications that are in the past (only for today)
-          if (day == 0 && scheduledDate.isBefore(now)) {
+          if (day == 0 && scheduledDate.isBefore(now.add(Duration(minutes: 1)))) {
+            print('⏭️ Skipping past notification: $scheduledDate');
             continue;
           }
 
           final quote = _getRandomQuote(locale);
           final title = _getNotificationTitle(hour);
 
-          await _notificationsPlugin.zonedSchedule(
-            notificationId++,
-            title,
-            '"${quote['quote']}"\n\n- ${quote['saint']}',
-            scheduledDate,
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                'daily_quotes',
-                'Daily Quotes',
-                channelDescription: 'Daily motivational quotes from saints',
-                importance: Importance.high,
-                priority: Priority.high,
-                showWhen: true,
-                icon: '@mipmap/ic_launcher',
-                enableVibration: true,
-                playSound: true,
-                autoCancel: true,
-                styleInformation: BigTextStyleInformation(''),
+          try {
+            await _notificationsPlugin.zonedSchedule(
+              notificationId++,
+              title,
+              '"${quote['quote']}"\n\n- ${quote['saint']}',
+              scheduledDate,
+              const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  'daily_quotes',
+                  'Daily Quotes',
+                  channelDescription: 'Daily motivational quotes from saints',
+                  importance: Importance.high,
+                  priority: Priority.high,
+                  showWhen: true,
+                  icon: '@mipmap/ic_launcher',
+                  enableVibration: true,
+                  playSound: true,
+                  autoCancel: true,
+                  styleInformation: BigTextStyleInformation(''),
+                  // Add these for better reliability
+                  ticker: 'Daily Quote',
+                  visibility: NotificationVisibility.public,
+                ),
               ),
-            ),
-            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          );
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            );
 
-          print('✓ Notification ${notificationId - 1000} scheduled for: $scheduledDate ($title)');
+            successCount++;
+            print('✓ Notification ${notificationId - 1000} scheduled (inexact) for: $scheduledDate ($title)');
+          } catch (e) {
+            print('✗ Failed to schedule notification ${notificationId - 1000}: $e');
+          }
         }
       }
 
-      final totalScheduled = (notificationId - 1000);
-      print('🎉 Successfully scheduled $totalScheduled notifications total');
+      print('🎉 Successfully scheduled $successCount notifications total (all inexact)');
+
+      // Verify scheduled notifications
+      await Future.delayed(Duration(milliseconds: 1000));
+      await checkPendingNotifications();
 
     } catch (e) {
-      print('✗ Error scheduling configurable notifications: $e');
+      print('✗ Error scheduling notifications: $e');
     }
   }
 

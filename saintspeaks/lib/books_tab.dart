@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'book_service.dart';
 import 'epub_reader.dart';
+import 'pdf_reader.dart'; // Add PDF reader import
 import 'l10n/app_localizations.dart';
 
 class BooksTab extends StatefulWidget {
@@ -59,33 +60,194 @@ class _BooksTabState extends State<BooksTab> {
   }
 
   Future<void> _addSampleBooksIfNeeded() async {
-    // Add sample books for Swami Sivananda
-    if (widget.saintName.toLowerCase().contains('sivananda')) {
-      try {
-        await BookService.addSampleBooksForSivananda();
-        // Also try to download the actual EPUB from the provided URL
-        await _downloadSampleBook();
-      } catch (e) {
-        print('Error adding sample books: $e');
+    // Load all sample books universally (includes books from all saints)
+    try {
+      print('Loading sample spiritual books...');
+      await BookService.addSampleBooks(); // This loads all 8 sample books
+      print('Sample books loaded successfully!');
+
+      // Reload the books list to show the newly added books
+      await _loadBooks();
+    } catch (e) {
+      print('Error loading sample books: $e');
+      // Show error to user if needed
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading sample books. You can add books manually.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     }
   }
 
-  Future<void> _downloadSampleBook() async {
-    const sampleUrl = 'https://www.dlshq.org/download2/hinduismbk.epub';
-    try {
-      // Check if this book already exists
-      final existingBooks = await BookService.searchBooks('Bliss Divine');
-      bool hasRealBook = existingBooks.any((book) => !book.filePath.startsWith('sample_'));
+  Future<void> _downloadDefaultBooks(String saint) async {
+    // Default book URLs for different saints - including URLs that don't end with .epub
+    final Map<String, List<Map<String, String>>> defaultBooks = {
+      'sivananda': [
+        {
+          'url': 'https://www.dlshq.org/download2/hinduismbk.epub',
+          'title': 'Bliss Divine',
+        },
+        {
+          'url': 'https://www.dlshq.org/download2/japa.epub',
+          'title': 'Japa Yoga',
+        },
+        {
+          'url': 'https://www.dlshq.org/download2/meditation.epub',
+          'title': 'Concentration and Meditation',
+        },
+        {
+          'url': 'https://www.dlshq.org/download2/sadhana.epub',
+          'title': 'Sadhana',
+        },
+        {
+          'url': 'https://www.dlshq.org/download2/yoga.epub',
+          'title': 'Science of Pranayama',
+        },
+        {
+          'url': 'https://www.dlshq.org/download2/practice.epub',
+          'title': 'Practice of Yoga',
+        },
+      ],
+      'vivekananda': [
+        {
+          'url': 'https://www.gutenberg.org/ebooks/2346.epub.images',
+          'title': 'Complete Works of Swami Vivekananda Vol 1',
+        },
+        {
+          'url': 'https://www.gutenberg.org/ebooks/2347.epub.images',
+          'title': 'Complete Works of Swami Vivekananda Vol 2',
+        },
+        {
+          'url': 'https://www.gutenberg.org/ebooks/2348.epub.images',
+          'title': 'Complete Works of Swami Vivekananda Vol 3',
+        },
+        {
+          'url': 'https://www.gutenberg.org/ebooks/2349.epub3.images',
+          'title': 'Complete Works of Swami Vivekananda Vol 4',
+        },
+        {
+          'url': 'https://www.gutenberg.org/files/2346/2346-h.zip',
+          'title': 'Raja Yoga (Alternative)',
+        },
+      ],
+      'yogananda': [
+        {
+          'url': 'https://www.gutenberg.org/ebooks/7452.epub3.images',
+          'title': 'Autobiography of a Yogi',
+        },
+        {
+          'url': 'https://archive.org/download/AutobiographyOfAYogi_534/Autobiography%20of%20a%20Yogi.epub',
+          'title': 'Autobiography of a Yogi (Alternative)',
+        },
+        {
+          'url': 'https://www.ananda.org/free-inspiration/books/whispers-from-eternity/download/',
+          'title': 'Whispers from Eternity',
+        },
+      ],
+      'ramana': [
+        {
+          'url': 'https://archive.org/download/WhoAmI-RamanaMaharshi/Who%20Am%20I%20-%20Ramana%20Maharshi.epub',
+          'title': 'Who Am I?',
+        },
+        {
+          'url': 'https://www.sriramanamaharshi.org/downloadbooks/who_am_i',
+          'title': 'Who Am I? (Official)',
+        },
+        {
+          'url': 'https://archive.org/download/BeAsYouAreRamanaMaharshi/Be%20As%20You%20Are%20-%20Ramana%20Maharshi.epub',
+          'title': 'Be As You Are',
+        },
+        {
+          'url': 'https://www.sriramanamaharshi.org/downloadbooks/talks_with_ramana',
+          'title': 'Talks with Ramana Maharshi',
+        },
+      ],
+      'buddha': [
+        {
+          'url': 'https://www.gutenberg.org/ebooks/2017.epub3.images',
+          'title': 'The Dhammapada',
+        },
+        {
+          'url': 'https://archive.org/download/dhammapada_buddhist_teachings/dhammapada.epub',
+          'title': 'Dhammapada (Archive)',
+        },
+        {
+          'url': 'https://www.buddhanet.net/pdf_file/buddha-teach.epub',
+          'title': 'What the Buddha Taught',
+        },
+      ],
+      'krishna': [
+        {
+          'url': 'https://www.gutenberg.org/ebooks/2388.epub.images',
+          'title': 'The Bhagavad Gita',
+        },
+        {
+          'url': 'https://archive.org/download/BhagavadGitaAsItIs/Bhagavad%20Gita%20As%20It%20Is.epub',
+          'title': 'Bhagavad Gita As It Is',
+        },
+        {
+          'url': 'https://www.sacred-texts.com/hin/gita/download/gita.epub',
+          'title': 'The Bhagavad Gita (Sacred Texts)',
+        },
+      ],
+      'eckhart': [
+        {
+          'url': 'https://www.gutenberg.org/ebooks/4041.epub3.images',
+          'title': 'Meister Eckhart\'s Sermons',
+        },
+        {
+          'url': 'https://archive.org/download/eckhartsermons/eckhart_sermons.epub',
+          'title': 'The Complete Mystical Works',
+        },
+      ],
+      'rumi': [
+        {
+          'url': 'https://www.gutenberg.org/ebooks/2500.epub.images',
+          'title': 'The Masnavi',
+        },
+        {
+          'url': 'https://archive.org/download/rumipoetry/rumi_complete_poems.epub',
+          'title': 'The Complete Poems of Rumi',
+        },
+        {
+          'url': 'https://www.sufibooks.org/downloads/rumi_spiritual_verses',
+          'title': 'Spiritual Verses',
+        },
+      ],
+      'teresa': [
+        {
+          'url': 'https://www.gutenberg.org/ebooks/8120.epub3.images',
+          'title': 'The Interior Castle',
+        },
+        {
+          'url': 'https://archive.org/download/teresaavila/interior_castle.epub',
+          'title': 'The Interior Castle (Archive)',
+        },
+      ],
+    };
 
-      if (!hasRealBook) {
-        await BookService.downloadBookFromUrl(sampleUrl);
-        _loadBooks(); // Refresh the list
+    final booksToDownload = defaultBooks[saint] ?? [];
+
+    for (final bookInfo in booksToDownload) {
+      try {
+        // Check if this book already exists by searching for the title
+        final existingBooks = await BookService.searchBooks(bookInfo['title']!);
+        bool hasRealBook = existingBooks.any((book) => !book.filePath.startsWith('sample_'));
+
+        if (!hasRealBook) {
+          print('Downloading default book: ${bookInfo['title']}');
+          await BookService.downloadBookFromUrl(bookInfo['url']!);
+        }
+      } catch (e) {
+        print('Could not download ${bookInfo['title']}: $e');
+        // Continue with other books even if one fails
       }
-    } catch (e) {
-      print('Could not download sample book: $e');
-      // This is fine, we'll fall back to the placeholder
     }
+
+    _loadBooks(); // Refresh the list after downloading books
   }
 
   Future<void> _downloadBook(String url) async {
@@ -105,10 +267,37 @@ class _BooksTabState extends State<BooksTab> {
       return;
     }
 
-    // Check if URL points to an EPUB file
-    if (!url.toLowerCase().endsWith('.epub')) {
+    // Enhanced URL validation - support various EPUB and PDF sources
+    bool isValidUrl = false;
+
+    // Check for direct EPUB files
+    if (url.toLowerCase().endsWith('.epub')) {
+      isValidUrl = true;
+    }
+    // Check for direct PDF files
+    else if (url.toLowerCase().endsWith('.pdf')) {
+      isValidUrl = true;
+    }
+    // Check for Gutenberg EPUB/PDF links
+    else if (url.contains('gutenberg.org') && (url.contains('.epub') || url.contains('.pdf') || url.contains('ebooks'))) {
+      isValidUrl = true;
+    }
+    // Check for Archive.org EPUB/PDF links
+    else if (url.contains('archive.org') && (url.toLowerCase().contains('.epub') || url.toLowerCase().contains('.pdf'))) {
+      isValidUrl = true;
+    }
+    // Check for other common book hosting patterns
+    else if (url.contains('.epub') || url.contains('.pdf') ||
+             (url.contains('download') && (url.contains('epub') || url.contains('pdf') || url.contains('book')))) {
+      isValidUrl = true;
+    }
+
+    if (!isValidUrl) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('URL must point to an EPUB file (.epub)')),
+        SnackBar(
+          content: Text('URL must point to an EPUB or PDF file, or be from a supported book source'),
+          duration: Duration(seconds: 4),
+        ),
       );
       return;
     }
@@ -150,8 +339,8 @@ class _BooksTabState extends State<BooksTab> {
         backgroundColor = Colors.orange;
       } else if (e.toString().contains('HTTP')) {
         errorMessage = 'Failed to download: Network error';
-      } else if (e.toString().contains('Failed to process EPUB')) {
-        errorMessage = 'Invalid EPUB file format';
+      } else if (e.toString().contains('Failed to process')) {
+        errorMessage = 'Invalid file format';
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -171,12 +360,27 @@ class _BooksTabState extends State<BooksTab> {
   }
 
   void _openBook(Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EpubReaderPage(book: book),
-      ),
-    );
+    // Check the file extension to determine the reader
+    String fileExtension = book.filePath.split('.').last.toLowerCase();
+    if (fileExtension == 'epub') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EpubReaderPage(book: book),
+        ),
+      );
+    } else if (fileExtension == 'pdf') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PdfReaderPage(book: book), // Open PDF reader
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unsupported file type: ${book.filePath}')),
+      );
+    }
   }
 
   void _deleteBook(Book book) {
@@ -220,7 +424,7 @@ class _BooksTabState extends State<BooksTab> {
               TextField(
                 controller: _urlController,
                 decoration: InputDecoration(
-                  hintText: 'Enter EPUB URL (e.g., https://example.com/book.epub)',
+                  hintText: 'Enter EPUB or PDF URL (e.g., https://example.com/book.epub)',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.link),
                 ),
@@ -243,7 +447,7 @@ class _BooksTabState extends State<BooksTab> {
                         Icon(Icons.info_outline, size: 16, color: Colors.orange.shade700),
                         SizedBox(width: 8),
                         Text(
-                          'Sample URL:',
+                          'Sample URLs:',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.orange.shade700,
@@ -253,16 +457,25 @@ class _BooksTabState extends State<BooksTab> {
                     ),
                     SizedBox(height: 4),
                     SelectableText(
-                      'https://www.dlshq.org/download2/hinduismbk.epub',
+                      'EPUB: https://www.dlshq.org/download2/hinduismbk.epub',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
+                        color: Colors.orange.shade600,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    SelectableText(
+                      'PDF: https://www.gutenberg.org/files/2346/2346-pdf.pdf',
+                      style: TextStyle(
+                        fontSize: 11,
                         color: Colors.orange.shade600,
                         fontFamily: 'monospace',
                       ),
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Tap to copy this sample URL and paste it above.',
+                      'Copy and paste any sample URL above.',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.orange.shade600,
@@ -273,7 +486,7 @@ class _BooksTabState extends State<BooksTab> {
               ),
               SizedBox(height: 8),
               Text(
-                'Only EPUB files are supported. The book will be downloaded and added to your library.',
+                'Both EPUB and PDF files are supported. The book will be downloaded and added to your library.',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               if (_isDownloading) ...[
@@ -304,7 +517,13 @@ class _BooksTabState extends State<BooksTab> {
               onPressed: () {
                 _urlController.text = 'https://www.dlshq.org/download2/hinduismbk.epub';
               },
-              child: Text('Use Sample URL'),
+              child: Text('Use EPUB Sample'),
+            ),
+            TextButton(
+              onPressed: () {
+                _urlController.text = 'https://www.gutenberg.org/files/2346/2346-pdf.pdf';
+              },
+              child: Text('Use PDF Sample'),
             ),
             TextButton(
               onPressed: _isDownloading
@@ -616,14 +835,31 @@ class _AllBooksLibraryPageState extends State<AllBooksLibraryPage> {
   }
 
   void _openBook(Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => EpubReaderPage(book: book),
-      ),
-    ).then((_) {
-      _loadAllBooks(); // Refresh when returning from reader
-    });
+    // Check the file extension to determine the reader
+    String fileExtension = book.filePath.split('.').last.toLowerCase();
+    if (fileExtension == 'epub') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EpubReaderPage(book: book),
+        ),
+      ).then((_) {
+        _loadAllBooks(); // Refresh when returning from reader
+      });
+    } else if (fileExtension == 'pdf') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PdfReaderPage(book: book), // Open PDF reader
+        ),
+      ).then((_) {
+        _loadAllBooks(); // Refresh when returning from reader
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unsupported file type: ${book.filePath}')),
+      );
+    }
   }
 
   @override
