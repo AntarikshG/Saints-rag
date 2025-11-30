@@ -28,7 +28,7 @@ class _BooksTabState extends State<BooksTab> {
   void initState() {
     super.initState();
     _loadBooks();
-    _addSampleBooksIfNeeded();
+    _downloadSampleBooksOnceIfNeeded();
   }
 
   @override
@@ -59,17 +59,17 @@ class _BooksTabState extends State<BooksTab> {
     }
   }
 
-  Future<void> _addSampleBooksIfNeeded() async {
-    // Load all sample books universally (includes books from all saints)
+  Future<void> _downloadSampleBooksOnceIfNeeded() async {
+    // Only download sample books if they haven't been downloaded before
     try {
-      print('Loading sample spiritual books...');
-      await BookService.addSampleBooks(); // This loads all 8 sample books
-      print('Sample books loaded successfully!');
+      print('Checking if sample spiritual books need to be downloaded...');
+      await BookService.downloadSampleBooksOnce();
+      print('Sample books check completed!');
 
       // Reload the books list to show the newly added books
       await _loadBooks();
     } catch (e) {
-      print('Error loading sample books: $e');
+      print('Error checking sample books: $e');
       // Show error to user if needed
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

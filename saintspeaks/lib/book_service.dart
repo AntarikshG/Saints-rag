@@ -6,6 +6,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:epubx/epubx.dart';
 import 'package:image/image.dart' as img;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Book {
   final int? id;
@@ -159,6 +160,41 @@ class BookService {
   static const String _databaseName = 'books.db';
   static const int _databaseVersion = 1;
 
+  // Sample books data moved to the top of the class
+  static const List<Map<String, String>> _sampleBooksData = [
+    {
+      'title': 'Bhagavad Gita',
+      'author': 'Swami Sivananda',
+      'url': 'https://www.dlshq.org/download2/bgita.epub',
+    },
+    {
+      'title': 'Brahmacharya',
+      'author': 'Swami Sivananda',
+      'url': 'https://www.dlshq.org/download2/brahmacharya.pdf',
+    },
+    {
+      'title': 'Thought Power',
+      'author': 'Swami Sivananda',
+      'url': 'https://www.dlshq.org/download2/thought_power.epub',
+    },
+    {
+      'title': 'Vedanta for Beginners',
+      'author': 'Swami Sivananda',
+      'url': 'https://www.dlshq.org/download2/vedbegin.pdf',
+    },
+
+    {
+      'title': 'Autobiography of a Yogi',
+      'author': 'Paramahansa Yogananda',
+      'url': 'https://www.gutenberg.org/ebooks/7452.epub.images',
+    },
+    {
+      'title': 'Hindu Sanskrit Tales',
+      'author': 'Traditional',
+      'url': 'https://www.gutenberg.org/ebooks/11310.epub3.images',
+    },
+  ];
+
   static Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -243,7 +279,37 @@ class BookService {
     );
   }
 
+  // Enhanced delete method that tracks deleted sample books
   static Future<void> deleteBook(int id) async {
+    // Get book details before deleting
+    final book = await getBook(id);
+    if (book != null) {
+      // Check if this is a sample book by checking against our sample book list
+      final isSampleBook = _sampleBooksData.any((sample) =>
+        sample['title'] == book.title && sample['author'] == book.author);
+
+      if (isSampleBook) {
+        await addDeletedSampleBook(book.title, book.author);
+      }
+
+      // Delete the physical file if it exists
+      if (book.filePath.isNotEmpty && !book.filePath.startsWith('placeholder_')) {
+        final file = File(book.filePath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+
+      // Delete cover file if it exists
+      if (book.coverPath != null && book.coverPath!.isNotEmpty) {
+        final coverFile = File(book.coverPath!);
+        if (await coverFile.exists()) {
+          await coverFile.delete();
+        }
+      }
+    }
+
+    // Delete from database
     final db = await database;
     await db.delete(
       'books',
@@ -335,6 +401,56 @@ class BookService {
       orderBy: 'lastRead DESC, dateAdded DESC',
     );
     return List.generate(maps.length, (i) => Book.fromMap(maps[i]));
+  }
+
+  // Helper method to find author from sample books based on title or URL
+  static String _findAuthorFromSampleBooks(String title, String url, String currentAuthor) {
+    // If we already have a valid author, return it
+    if (currentAuthor != 'Unknown Author' && currentAuthor.isNotEmpty) {
+      return currentAuthor;
+    }
+
+    // First, try to match by URL
+    for (final sample in _sampleBooksData) {
+      if (sample['url'] == url) {
+        return sample['author']!;
+      }
+    }
+
+    // Then, try to match by title (case-insensitive, flexible matching)
+    final normalizedTitle = title.toLowerCase().trim();
+    for (final sample in _sampleBooksData) {
+      final sampleTitle = sample['title']!.toLowerCase().trim();
+
+      // Exact match
+      if (normalizedTitle == sampleTitle) {
+        return sample['author']!;
+      }
+
+      // Partial match (check if titles contain each other)
+      if (normalizedTitle.contains(sampleTitle) || sampleTitle.contains(normalizedTitle)) {
+        return sample['author']!;
+      }
+
+      // Check for key words match (for cases like "Complete Works of Swami Vivekananda")
+      final titleWords = normalizedTitle.split(' ');
+      final sampleWords = sampleTitle.split(' ');
+      int matchCount = 0;
+
+      for (final word in titleWords) {
+        if (word.length > 3 && sampleWords.contains(word)) { // Only count significant words
+          matchCount++;
+        }
+      }
+
+      // If more than half of the significant words match, consider it a match
+      if (matchCount >= 2 && matchCount >= titleWords.where((w) => w.length > 3).length / 2) {
+        return sample['author']!;
+      }
+    }
+
+    // If no match found, return the current author
+    return currentAuthor;
   }
 
   static Future<Book> downloadBookFromUrl(
@@ -484,6 +600,9 @@ class BookService {
           title = epubBook.Title ?? 'Unknown Title';
           author = epubBook.Author ?? 'Unknown Author';
 
+          // Use sample books data as fallback for author
+          author = _findAuthorFromSampleBooks(title, url, author);
+
           // Enhanced EPUB3 cover extraction
           try {
             final cover = epubBook.CoverImage;
@@ -539,26 +658,52 @@ class BookService {
             print('Could not extract cover: $e');
           }
         } else if (expectedExtension == '.pdf') {
-          // Handle PDF files - extract title from filename or URL
-          if (fileName.isNotEmpty) {
-            title = fileName
-                .replaceAll('.pdf', '')
-                .replaceAll('_', ' ')
-                .replaceAll('-', ' ')
-                .split(' ')
-                .map((word) => word.isNotEmpty
-                    ? word[0].toUpperCase() + word.substring(1).toLowerCase()
-                    : word)
-                .join(' ');
-          }
+          // Handle PDF files - validate and extract title from filename or URL
+          try {
+            // Additional PDF validation
+            final fileBytes = await file.readAsBytes();
+            if (fileBytes.length >= 4) {
+              final header = String.fromCharCodes(fileBytes.take(4));
+              if (!header.startsWith('%PDF')) {
+                await file.delete();
+                throw Exception('Downloaded file is not a valid PDF format');
+              }
+            } else {
+              await file.delete();
+              throw Exception('Downloaded PDF file is too small or corrupted');
+            }
 
-          // Try to extract author from URL patterns
-          if (url.contains('gutenberg.org')) {
-            author = 'Project Gutenberg';
-          } else if (url.contains('archive.org')) {
-            author = 'Internet Archive';
-          } else {
-            author = 'Unknown Author';
+            // Extract title from filename or URL
+            if (fileName.isNotEmpty) {
+              title = fileName
+                  .replaceAll('.pdf', '')
+                  .replaceAll('_', ' ')
+                  .replaceAll('-', ' ')
+                  .split(' ')
+                  .map((word) => word.isNotEmpty
+                      ? word[0].toUpperCase() + word.substring(1).toLowerCase()
+                      : word)
+                  .join(' ');
+            }
+
+            // Try to extract author from URL patterns
+            if (url.contains('gutenberg.org')) {
+              author = 'Project Gutenberg';
+            } else if (url.contains('archive.org')) {
+              author = 'Internet Archive';
+            } else if (url.contains('dlshq.org')) {
+              author = 'Divine Life Society';
+            } else {
+              author = 'Unknown Author';
+            }
+
+            // Use sample books data as fallback for author
+            author = _findAuthorFromSampleBooks(title, url, author);
+
+            print('PDF processed successfully: $title by $author');
+          } catch (e) {
+            await file.delete();
+            throw Exception('Failed to process PDF file: $e');
           }
         }
 
@@ -687,64 +832,58 @@ class BookService {
     }
   }
 
-  // Add sample books method for compatibility
-  static Future<void> addSampleBooksForSivananda() async {
-    await addSampleBooks();
+  // New methods to track sample books
+  static Future<bool> areSampleBooksDownloaded() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('sample_books_downloaded') ?? false;
+  }
+
+  static Future<void> setSampleBooksDownloaded(bool downloaded) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sample_books_downloaded', downloaded);
+  }
+
+  static Future<Set<String>> getDeletedSampleBooks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final deletedList = prefs.getStringList('deleted_sample_books') ?? [];
+    return deletedList.toSet();
+  }
+
+  static Future<void> addDeletedSampleBook(String title, String author) async {
+    final prefs = await SharedPreferences.getInstance();
+    final deletedBooks = await getDeletedSampleBooks();
+    final bookKey = '$title|$author';
+    deletedBooks.add(bookKey);
+    await prefs.setStringList('deleted_sample_books', deletedBooks.toList());
+  }
+
+  static Future<void> removeDeletedSampleBook(String title, String author) async {
+    final prefs = await SharedPreferences.getInstance();
+    final deletedBooks = await getDeletedSampleBooks();
+    final bookKey = '$title|$author';
+    deletedBooks.remove(bookKey);
+    await prefs.setStringList('deleted_sample_books', deletedBooks.toList());
   }
 
   // Comprehensive method to add all sample books
   static Future<void> addSampleBooks() async {
-    final sampleBooks = [
-      // Swami Sivananda books
-      {
-        'title': 'Bhagavad Gita',
-        'author': 'Swami Sivananda',
-        'url': 'https://www.dlshq.org/download2/bgita.epub',
-      },
-      {
-        'title': 'Brahmacharya',
-        'author': 'Swami Sivananda',
-        'url': 'https://www.dlshq.org/download2/brahmacharya.pdf',
-      },
-      {
-        'title': 'Thought Power',
-        'author': 'Swami Sivananda',
-        'url': 'https://www.dlshq.org/download2/thought_power.epub',
-      },
-      {
-        'title': 'Vedanta for Beginners',
-        'author': 'Swami Sivananda',
-        'url': 'https://www.dlshq.org/download2/vedbegin.pdf',
-      },
-      // Swami Vivekananda books
-      {
-        'title': 'Complete Works of Swami Vivekananda',
-        'author': 'Swami Vivekananda',
-        'url': 'https://www.vedanta-pitt.org/wp-content/uploads/2020/05/Complete_Works_of_Swami_Vivekananda_all_volumes.pdf',
-      },
-      {
-        'title': 'The Gospel of Sri Ramakrishna',
-        'author': 'Swami Vivekananda',
-        'url': 'https://www.gutenberg.org/ebooks/72368.epub3.images',
-      },
-      // Paramahansa Yogananda
-      {
-        'title': 'Autobiography of a Yogi',
-        'author': 'Paramahansa Yogananda',
-        'url': 'https://www.gutenberg.org/ebooks/7452.epub3.images',
-      },
-      // Traditional Hindu texts
-      {
-        'title': 'Hindu Sanskrit Tales',
-        'author': 'Traditional',
-        'url': 'https://www.gutenberg.org/ebooks/11310.epub3.images',
-      },
-    ];
+    // Check if sample books have already been downloaded
+    final alreadyDownloaded = await areSampleBooksDownloaded();
+    final deletedBooks = await getDeletedSampleBooks();
 
-    print('Adding sample spiritual books...');
+    print('Checking sample spiritual books...');
 
-    for (final bookData in sampleBooks) {
+    int downloadedCount = 0;
+    for (final bookData in _sampleBooksData) {
       try {
+        final bookKey = '${bookData['title']}|${bookData['author']}';
+
+        // Skip if user has deleted this book
+        if (deletedBooks.contains(bookKey)) {
+          print('Book "${bookData['title']}" was deleted by user, skipping...');
+          continue;
+        }
+
         // Check if book already exists by title and author
         if (await bookExistsByTitle(bookData['title']!, bookData['author']!)) {
           print('Book "${bookData['title']}" by ${bookData['author']} already exists, skipping...');
@@ -763,77 +902,49 @@ class BookService {
             }
           },
         );
+        downloadedCount++;
 
       } catch (e) {
         print('Failed to add "${bookData['title']}" by ${bookData['author']}: $e');
 
-        // If download fails, create a placeholder entry
-        try {
-          final placeholderBook = Book(
-            title: bookData['title']!,
-            author: bookData['author']!,
-            filePath: 'placeholder_${bookData['title']!.toLowerCase().replaceAll(' ', '_')}.epub',
-            dateAdded: DateTime.now(),
-          );
-          await addBook(placeholderBook);
-          print('Added placeholder for "${bookData['title']}"');
-        } catch (placeholderError) {
-          print('Failed to add placeholder for "${bookData['title']}": $placeholderError');
+        // If download fails, create a placeholder entry only if not already downloaded
+        if (!alreadyDownloaded) {
+          try {
+            final placeholderBook = Book(
+              title: bookData['title']!,
+              author: bookData['author']!,
+              filePath: 'placeholder_${bookData['title']!.toLowerCase().replaceAll(' ', '_')}.epub',
+              dateAdded: DateTime.now(),
+            );
+            await addBook(placeholderBook);
+            print('Added placeholder for "${bookData['title']}"');
+          } catch (placeholderError) {
+            print('Failed to add placeholder for "${bookData['title']}": $placeholderError');
+          }
         }
       }
     }
 
-    print('Sample books setup complete!');
+    // Mark sample books as downloaded if we actually downloaded any or if this is the first time
+    if (downloadedCount > 0 || !alreadyDownloaded) {
+      await setSampleBooksDownloaded(true);
+    }
+
+    print('Sample books setup complete! Downloaded: $downloadedCount books');
   }
 
-  // Method to download all sample books (can be called separately)
-  static Future<void> downloadAllSampleBooks() async {
-    await addSampleBooks();
+  // New method to download sample books only once (for library page)
+  static Future<void> downloadSampleBooksOnce() async {
+    final alreadyDownloaded = await areSampleBooksDownloaded();
+    if (!alreadyDownloaded) {
+      await addSampleBooks();
+    } else {
+      print('Sample books already downloaded previously.');
+    }
   }
 
   // Method to get sample book URLs for manual download
   static List<Map<String, String>> getSampleBookUrls() {
-    return [
-      {
-        'title': 'Bhagavad Gita',
-        'author': 'Swami Sivananda',
-        'url': 'https://www.dlshq.org/download2/bgita.epub',
-      },
-      {
-        'title': 'Brahmacharya',
-        'author': 'Swami Sivananda',
-        'url': 'https://www.dlshq.org/download2/brahmacharya.pdf',
-      },
-      {
-        'title': 'Thought Power',
-        'author': 'Swami Sivananda',
-        'url': 'https://www.dlshq.org/download2/thought_power.epub',
-      },
-      {
-        'title': 'Vedanta for Beginners',
-        'author': 'Swami Sivananda',
-        'url': 'https://www.dlshq.org/download2/vedbegin.pdf',
-      },
-      {
-        'title': 'Complete Works of Swami Vivekananda',
-        'author': 'Swami Vivekananda',
-        'url': 'https://www.vedanta-pitt.org/wp-content/uploads/2020/05/Complete_Works_of_Swami_Vivekananda_all_volumes.pdf',
-      },
-      {
-        'title': 'The Gospel of Sri Ramakrishna',
-        'author': 'Swami Vivekananda',
-        'url': 'https://www.gutenberg.org/ebooks/72368.epub3.images',
-      },
-      {
-        'title': 'Autobiography of a Yogi',
-        'author': 'Paramahansa Yogananda',
-        'url': 'https://www.gutenberg.org/ebooks/7452.epub3.images',
-      },
-      {
-        'title': 'Hindu Sanskrit Tales',
-        'author': 'Traditional',
-        'url': 'https://www.gutenberg.org/ebooks/11310.epub3.images',
-      },
-    ];
+    return List<Map<String, String>>.from(_sampleBooksData);
   }
 }

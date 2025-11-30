@@ -27,6 +27,8 @@ flutter:
   assets:
     - assets/images/vivekananda.jpg
     - assets/images/sivananda.jpg
+    - assets/images/shankaracharya.jpg
+    - assets/images/anandmoyima.jpg
     - assets/images/banner.jpeg
     - assets/images/banner1.jpeg
     - assets/images/banner2.jpeg
@@ -37,10 +39,10 @@ flutter:
     - assets/images/banner7.jpeg
     - assets/images/banner8.jpeg
     - assets/images/banner9.jpeg
-    - assets/images/paramhansa.jpg
-    - assets/images/raman.jpg
     - assets/images/apppic.png
     - assets/images/antarikshverse.png
+    - assets/images/paramhansa.jpg
+    - assets/images/raman.jpg
     - assets/images/Antariksh.jpg
   uses-material-design: true
 
@@ -79,8 +81,10 @@ dependencies:
   xml: ^6.4.2
   image: ^3.3.0
   # PDF and file picker support
-  syncfusion_flutter_pdfviewer: ^31.2.15
-  file_picker: ^8.1.2
+  flutter_pdfview: ^1.3.2
+  file_picker: ^8.0.6
+  # Text-to-Speech
+  flutter_tts: ^3.8.5
 
 dev_dependencies:
   flutter_launcher_icons: ^0.11.0

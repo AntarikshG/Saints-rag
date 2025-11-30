@@ -1,13 +1,11 @@
 import 'dart:io';
-import 'dart:convert'; // Add this import for jsonEncode/jsonDecode
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_html/flutter_html.dart';
 import 'package:epubx/epubx.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'book_service.dart';
-import 'table_of_contents.dart';
 
 class EpubReaderPage extends StatefulWidget {
   final Book book;
@@ -24,298 +22,278 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   bool _isLoading = true;
   String _error = '';
 
-  // Reading settings
-  double _fontSize = 16.0;
-  Color _backgroundColor = Colors.white;
-  Color _textColor = Colors.black;
-  String _fontFamily = 'Roboto';
-  double _lineHeight = 1.5;
+  // Enhanced reading settings with better defaults
+  double _fontSize = 18.0;
+  Color _backgroundColor = const Color(0xFFFDF6E3); // Sepia background
+  Color _textColor = const Color(0xFF3C3C3C); // Dark gray text
+  String _fontFamily = 'System Default';
+  double _lineHeight = 1.6;
   double _brightness = 1.0;
   bool _isDarkTheme = false;
-  bool _isNightMode = false; // Enhanced night mode flag
+  double _wordSpacing = 1.0;
+  double _letterSpacing = 0.3;
+  EdgeInsets _textPadding = const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0);
 
-  // Night mode presets
+  // Theme presets
   Map<String, Map<String, dynamic>> _themePresets = {
     'light': {
-      'backgroundColor': Colors.white,
-      'textColor': Colors.black87,
-      'brightness': 1.0,
-      'isNight': false,
+      'backgroundColor': const Color(0xFFFFFFFF),
+      'textColor': const Color(0xFF2C2C2C),
+      'name': 'Light'
     },
     'sepia': {
-      'backgroundColor': Color(0xFFF4ECD8),
-      'textColor': Color(0xFF5C4B37),
-      'brightness': 0.9,
-      'isNight': false,
+      'backgroundColor': const Color(0xFFFDF6E3),
+      'textColor': const Color(0xFF3C3C3C),
+      'name': 'Sepia'
     },
     'dark': {
-      'backgroundColor': Color(0xFF2E2E2E),
-      'textColor': Colors.white70,
-      'brightness': 0.8,
-      'isNight': true,
+      'backgroundColor': const Color(0xFF1E1E1E),
+      'textColor': const Color(0xFFE0E0E0),
+      'name': 'Dark'
     },
     'night': {
-      'backgroundColor': Color(0xFF1A1A1A),
-      'textColor': Color(0xFFE0E0E0),
-      'brightness': 0.7,
-      'isNight': true,
+      'backgroundColor': const Color(0xFF000000),
+      'textColor': const Color(0xFFB0B0B0),
+      'name': 'Night'
     },
   };
 
-  String _currentTheme = 'light';
+  String _currentTheme = 'sepia';
 
-  // Page-by-page navigation
-  List<String> _pages = [];
-  int _currentPageIndex = 0;
+  // Optimized page-by-page navigation
+  List<String> _chapters = [];
   int _currentChapterIndex = 0;
-  List<EpubChapter> _chapters = [];
+  List<EpubChapter> _epubChapters = [];
   bool _showControls = false;
   bool _showSettings = false;
-  bool _showChaptersList = false;
+
+  // Chapter-to-page mapping for accurate navigation
+  Map<int, String> _chapterContent = {};
+  List<String> _chapterTitles = [];
+  ScrollController _scrollController = ScrollController();
+  double _scrollPosition = 0.0;
+
+  // Performance optimization variables
+  Timer? _progressSaveTimer;
+  bool _hasUnsavedProgress = false;
 
   // Search
   TextEditingController _searchController = TextEditingController();
   List<SearchResult> _searchResults = [];
   bool _showSearchResults = false;
 
-  // Bookmarks and Highlights
+  // Bookmarks
   List<Bookmark> _bookmarks = [];
-  List<Highlight> _highlights = [];
-  bool _isSelecting = false;
-  String _selectedText = '';
+
+  // Available font options with both system and Google fonts
+  Map<String, Map<String, dynamic>> _fontOptions = {
+    'System Default': {'isSystemFont': true, 'fontFamily': null},
+    'Serif': {'isSystemFont': true, 'fontFamily': 'serif'},
+    'Times New Roman': {'isSystemFont': true, 'fontFamily': 'Times New Roman'},
+    'Merriweather': {'isSystemFont': false, 'fontFamily': 'Merriweather'},
+    'Crimson Text': {'isSystemFont': false, 'fontFamily': 'Crimson Text'},
+    'Libre Baskerville': {'isSystemFont': false, 'fontFamily': 'Libre Baskerville'},
+    'Source Serif Pro': {'isSystemFont': false, 'fontFamily': 'Source Serif Pro'},
+    'Lora': {'isSystemFont': false, 'fontFamily': 'Lora'},
+  };
 
   @override
   void initState() {
     super.initState();
-    _loadSettings(); // Load settings first to get theme
+    _loadSettings();
     _loadBookmarks();
-    _loadHighlights();
-    _loadBook(); // Load book first, then position will be restored after pages are generated
+    _loadBook();
     _currentChapterIndex = widget.book.currentChapter;
 
-    // Auto-hide system UI for immersive reading
+    // Set immersive mode for better reading experience
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    // Listen to scroll changes for better progress tracking
+    _scrollController.addListener(() {
+      _scrollPosition = _scrollController.offset;
+      _saveReadingProgressDebounced();
+    });
   }
 
   @override
   void dispose() {
+    _progressSaveTimer?.cancel();
+    if (_hasUnsavedProgress) {
+      _saveReadingProgressImmediate();
+    }
     _pageController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   Future<void> _loadBook() async {
     try {
+      if (widget.book.filePath.isEmpty) {
+        throw Exception('Book file path is empty');
+      }
+
       final file = File(widget.book.filePath);
+      if (!await file.exists()) {
+        throw Exception('Book file not found at: ${widget.book.filePath}');
+      }
+
+      final fileSize = await file.length();
+      if (fileSize == 0) {
+        throw Exception('Book file is empty');
+      }
+
+      print('Loading EPUB file: ${widget.book.filePath} (${fileSize} bytes)');
+
       final bytes = await file.readAsBytes();
-      final book = await EpubReader.readBook(bytes);
+
+      EpubBook? book;
+      try {
+        print('Parsing EPUB with epubx package...');
+        book = await EpubReader.readBook(bytes);
+        print('EPUB parsed successfully');
+      } catch (epubError) {
+        print('EPUB parsing error: $epubError');
+        throw Exception('Invalid EPUB file format: $epubError');
+      }
+
+      if (book.Content == null) {
+        throw Exception('EPUB file has no readable content');
+      }
 
       setState(() {
         _epubBook = book;
-        if (book.Chapters != null && book.Chapters!.isNotEmpty) {
-          _chapters = book.Chapters!;
-        } else {
-          final found = <EpubChapter>[];
-          final spineItems = book.Schema?.Package?.Spine?.Items;
-          final manifestItems = book.Schema?.Package?.Manifest?.Items;
-          final chaptersList = book.Chapters;
+        _isLoading = false;
+      });
 
-          if (spineItems != null) {
-            for (final item in spineItems) {
-              final idRef = item.IdRef;
+      await _extractChapters();
+      await _loadLastReadPosition();
 
-              EpubManifestItem? manifestItem;
-              if (manifestItems != null) {
-                for (final m in manifestItems) {
-                  if (m.Id == idRef) {
-                    manifestItem = m;
-                    break;
-                  }
-                }
+    } catch (e) {
+      print('Exception loading EPUB: $e');
+      setState(() {
+        _error = 'Failed to load book: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _extractChapters() async {
+    try {
+      _chapters.clear();
+      _chapterContent.clear();
+      _chapterTitles.clear();
+
+      if (_epubBook!.Chapters != null && _epubBook!.Chapters!.isNotEmpty) {
+        _epubChapters = _epubBook!.Chapters!;
+        print('Found ${_epubChapters.length} chapters in EPUB');
+
+        for (int i = 0; i < _epubChapters.length; i++) {
+          final chapter = _epubChapters[i];
+          final title = chapter.Title ?? 'Chapter ${i + 1}';
+          _chapterTitles.add(title);
+
+          final htmlContent = chapter.HtmlContent ?? '';
+          final cleanContent = _cleanAndFormatHtmlContent(htmlContent);
+          _chapterContent[i] = cleanContent;
+        }
+      } else {
+        // Fallback: extract from HTML files
+        if (_epubBook!.Content?.Html?.isNotEmpty == true) {
+          final htmlFiles = _epubBook!.Content!.Html!;
+          int chapterIndex = 0;
+
+          for (final htmlFile in htmlFiles.entries) {
+            try {
+              final htmlContentFile = htmlFile.value;
+              final htmlContent = htmlContentFile.Content ?? '';
+              if (htmlContent.isNotEmpty) {
+                _chapterTitles.add('Chapter ${chapterIndex + 1}');
+                final cleanContent = _cleanAndFormatHtmlContent(htmlContent);
+                _chapterContent[chapterIndex] = cleanContent;
+                chapterIndex++;
               }
-
-              final href = manifestItem?.Href;
-
-              EpubChapter? chapterByContent;
-              if (chaptersList != null) {
-                for (final c in chaptersList) {
-                  final filename = c.ContentFileName;
-                  if (filename != null && (filename == href || filename == href?.split('/')?.last)) {
-                    chapterByContent = c;
-                    break;
-                  }
-                }
-              }
-
-              if (chapterByContent != null) {
-                found.add(chapterByContent);
-              }
+            } catch (e) {
+              print('Error processing HTML file ${htmlFile.key}: $e');
+              continue;
             }
           }
-
-          _chapters = found;
         }
-        _isLoading = false;
-      });
-
-      _generatePages();
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load book: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadLastReadPosition() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedPageIndex = prefs.getInt('last_page_${widget.book.id}') ?? 0;
-    final savedChapterIndex = prefs.getInt('last_chapter_${widget.book.id}') ?? 0;
-
-    setState(() {
-      _currentPageIndex = savedPageIndex;
-      _currentChapterIndex = savedChapterIndex;
-    });
-  }
-
-  Future<void> _saveLastReadPosition() async {
-    if (widget.book.id != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('last_page_${widget.book.id}', _currentPageIndex);
-      await prefs.setInt('last_chapter_${widget.book.id}', _currentChapterIndex);
-    }
-  }
-
-  Future<void> _generatePages() async {
-    if (_chapters.isEmpty) return;
-
-    final pages = <String>[];
-
-    for (final chapter in _chapters) {
-      final htmlContent = chapter.HtmlContent ?? '';
-      if (htmlContent.isNotEmpty) {
-        // Split content into pages based on estimated screen capacity
-        final cleanContent = _cleanHtmlContent(htmlContent);
-        final chapterPages = _splitContentIntoPages(cleanContent);
-        pages.addAll(chapterPages);
       }
-    }
 
-    // Load the last read position after pages are generated
-    await _loadLastReadPosition();
+      if (_chapterContent.isEmpty) {
+        _chapterTitles.add('Error Page');
+        _chapterContent[0] = 'Unable to extract readable content from this EPUB file.';
+      }
 
-    setState(() {
-      _pages = pages;
-      // Ensure current page is within bounds
-      _currentPageIndex = _currentPageIndex.clamp(0, _pages.length - 1);
-    });
+      print('Extracted ${_chapterContent.length} chapters successfully');
 
-    if (_pages.isNotEmpty && _currentPageIndex > 0) {
-      // Navigate to the saved page position
-      await Future.delayed(Duration(milliseconds: 100)); // Small delay to ensure UI is ready
-      _pageController.animateToPage(
-        _currentPageIndex,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+    } catch (e) {
+      print('Error extracting chapters: $e');
+      _chapterTitles.add('Error Page');
+      _chapterContent[0] = 'Error processing book content: ${e.toString()}';
     }
   }
 
-  String _cleanHtmlContent(String html) {
-    // Clean HTML content while preserving paragraph structure
-    return html
-        .replaceAll(RegExp(r'<script[^>]*>.*?</script>', caseSensitive: false, multiLine: true), '')
-        .replaceAll(RegExp(r'<style[^>]*>.*?</style>', caseSensitive: false, multiLine: true), '')
-        // Convert common HTML entities
+  String _cleanAndFormatHtmlContent(String html) {
+    if (html.isEmpty) return '';
+
+    // Remove scripts, styles, and other non-content elements
+    String cleaned = html
+        .replaceAll(RegExp(r'<script[^>]*>.*?</script>', caseSensitive: false, multiLine: true, dotAll: true), '')
+        .replaceAll(RegExp(r'<style[^>]*>.*?</style>', caseSensitive: false, multiLine: true, dotAll: true), '')
+        .replaceAll(RegExp(r'<meta[^>]*>', caseSensitive: false), '')
+        .replaceAll(RegExp(r'<link[^>]*>', caseSensitive: false), '')
+        .replaceAll(RegExp(r'<!--.*?-->', multiLine: true, dotAll: true), '');
+
+    // Clean up HTML entities
+    cleaned = cleaned
         .replaceAll('&nbsp;', ' ')
         .replaceAll('&amp;', '&')
         .replaceAll('&lt;', '<')
         .replaceAll('&gt;', '>')
         .replaceAll('&quot;', '"')
-        // Normalize whitespace but keep paragraph structure
-        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&apos;', "'");
+
+    // Normalize whitespace but preserve paragraph structure
+    cleaned = cleaned
+        .replaceAll(RegExp(r'\s*<br[^>]*>\s*', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'\s*</p>\s*<p[^>]*>\s*', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'<p[^>]*>', caseSensitive: false), '')
+        .replaceAll('</p>', '\n\n')
+        .replaceAll(RegExp(r'<div[^>]*>', caseSensitive: false), '')
+        .replaceAll('</div>', '\n')
+        .replaceAll(RegExp(r'<h[1-6][^>]*>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'</h[1-6]>', caseSensitive: false), '\n\n');
+
+    // Remove remaining HTML tags
+    cleaned = cleaned.replaceAll(RegExp(r'<[^>]+>'), '');
+
+    // Normalize whitespace
+    cleaned = cleaned
+        .replaceAll(RegExp(r'[ \t]+'), ' ')
+        .replaceAll(RegExp(r'\n[ \t]+'), '\n')
+        .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
-  }
 
-  List<String> _splitContentIntoPages(String content) {
-    final pages = <String>[];
-
-    // Split by paragraphs to maintain structure
-    final paragraphs = content.split(RegExp(r'</p>|<br[^>]*>', caseSensitive: false));
-    final wordsPerPage = _calculateWordsPerPage();
-
-    String currentPage = '';
-    int currentWordCount = 0;
-
-    for (String paragraph in paragraphs) {
-      if (paragraph.trim().isEmpty) continue;
-
-      // Clean up paragraph but keep basic structure
-      String cleanParagraph = paragraph
-          .replaceAll(RegExp(r'<p[^>]*>', caseSensitive: false), '')
-          .trim();
-
-      if (cleanParagraph.isEmpty) continue;
-
-      final words = cleanParagraph.split(' ');
-
-      // If adding this paragraph would exceed page limit, start new page
-      if (currentWordCount > 0 && currentWordCount + words.length > wordsPerPage) {
-        if (currentPage.trim().isNotEmpty) {
-          pages.add('<div style="line-height: ${_lineHeight};">' + currentPage + '</div>');
-        }
-        currentPage = '';
-        currentWordCount = 0;
-      }
-
-      // Add paragraph with proper spacing
-      if (currentPage.isNotEmpty) {
-        currentPage += '<br><br>';
-      }
-      currentPage += '<p>' + cleanParagraph + '</p>';
-      currentWordCount += words.length;
-    }
-
-    // Add remaining content
-    if (currentPage.trim().isNotEmpty) {
-      pages.add('<div style="line-height: ${_lineHeight};">' + currentPage + '</div>');
-    }
-
-    return pages.isEmpty ? ['<p>No content available</p>'] : pages;
-  }
-
-  int _calculateWordsPerPage() {
-    // Estimate words per page based on font size and screen dimensions
-    final screenSize = MediaQuery.of(context).size;
-    final availableHeight = screenSize.height - 200; // Account for UI elements
-    final availableWidth = screenSize.width - 64; // Account for padding
-
-    final linesPerPage = (availableHeight / (_fontSize * _lineHeight)).floor();
-    final charactersPerLine = (availableWidth / (_fontSize * 0.6)).floor();
-    final wordsPerLine = (charactersPerLine / 6).floor(); // Average word length
-
-    return (linesPerPage * wordsPerLine).clamp(50, 500);
+    return cleaned;
   }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _fontSize = prefs.getDouble('epub_font_size') ?? 16.0;
-      _fontFamily = prefs.getString('epub_font_family') ?? 'Roboto';
-      _lineHeight = prefs.getDouble('epub_line_height') ?? 1.5;
+      _fontSize = prefs.getDouble('epub_font_size') ?? 18.0;
+      _fontFamily = prefs.getString('epub_font_family') ?? 'System Default';
+      _lineHeight = prefs.getDouble('epub_line_height') ?? 1.6;
       _brightness = prefs.getDouble('epub_brightness') ?? 1.0;
-      _isDarkTheme = prefs.getBool('epub_dark_theme') ?? false;
-      _isNightMode = prefs.getBool('epub_night_mode') ?? false;
+      _wordSpacing = prefs.getDouble('epub_word_spacing') ?? 1.0;
+      _letterSpacing = prefs.getDouble('epub_letter_spacing') ?? 0.3;
+      _currentTheme = prefs.getString('epub_theme') ?? 'sepia';
 
-      // Apply theme colors based on dark theme setting
-      if (_isDarkTheme) {
-        _backgroundColor = Color(prefs.getInt('epub_bg_color') ?? Color(0xFF1E1E1E).value);
-        _textColor = Color(prefs.getInt('epub_text_color') ?? Colors.white.value);
-      } else {
-        _backgroundColor = Color(prefs.getInt('epub_bg_color') ?? Colors.white.value);
-        _textColor = Color(prefs.getInt('epub_text_color') ?? Colors.black.value);
-      }
+      _applyTheme(_currentTheme);
     });
   }
 
@@ -325,153 +303,140 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     await prefs.setString('epub_font_family', _fontFamily);
     await prefs.setDouble('epub_line_height', _lineHeight);
     await prefs.setDouble('epub_brightness', _brightness);
-    await prefs.setBool('epub_dark_theme', _isDarkTheme);
-    await prefs.setBool('epub_night_mode', _isNightMode);
-    await prefs.setInt('epub_bg_color', _backgroundColor.value);
-    await prefs.setInt('epub_text_color', _textColor.value);
+    await prefs.setDouble('epub_word_spacing', _wordSpacing);
+    await prefs.setDouble('epub_letter_spacing', _letterSpacing);
+    await prefs.setString('epub_theme', _currentTheme);
+  }
+
+  void _applyTheme(String themeName) {
+    if (_themePresets.containsKey(themeName)) {
+      final theme = _themePresets[themeName]!;
+      setState(() {
+        _currentTheme = themeName;
+        _backgroundColor = theme['backgroundColor'] as Color;
+        _textColor = theme['textColor'] as Color;
+        _isDarkTheme = themeName == 'dark' || themeName == 'night';
+      });
+      _saveSettings();
+    }
+  }
+
+  Future<void> _loadLastReadPosition() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedChapterIndex = prefs.getInt('last_chapter_${widget.book.id}') ?? 0;
+    final savedScrollPosition = prefs.getDouble('last_scroll_${widget.book.id}') ?? 0.0;
+
+    setState(() {
+      _currentChapterIndex = savedChapterIndex.clamp(0, _chapterContent.length - 1);
+    });
+
+    // Restore scroll position after widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(savedScrollPosition);
+      }
+    });
+  }
+
+  Future<void> _saveLastReadPosition() async {
+    if (widget.book.id != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('last_chapter_${widget.book.id}', _currentChapterIndex);
+      await prefs.setDouble('last_scroll_${widget.book.id}', _scrollPosition);
+    }
   }
 
   Future<void> _loadBookmarks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bookmarksJson = prefs.getStringList('bookmarks_${widget.book.id}') ?? [];
-    setState(() {
-      _bookmarks = bookmarksJson.map((json) => Bookmark.fromJson(json)).toList();
-    });
-  }
-
-  Future<void> _loadHighlights() async {
-    final prefs = await SharedPreferences.getInstance();
-    final highlightsJson = prefs.getStringList('highlights_${widget.book.id}') ?? [];
-    setState(() {
-      _highlights = highlightsJson.map((json) => Highlight.fromJson(json)).toList();
-    });
-  }
-
-  Future<void> _saveBookmarks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bookmarksJson = _bookmarks.map((b) => jsonEncode(b.toJson())).toList();
-    await prefs.setStringList('bookmarks_${widget.book.id}', bookmarksJson);
-  }
-
-  Future<void> _saveHighlights() async {
-    final prefs = await SharedPreferences.getInstance();
-    final highlightsJson = _highlights.map((h) => h.toJson()).toList();
-    await prefs.setStringList('highlights_${widget.book.id}', highlightsJson);
+    if (widget.book.id != null) {
+      _bookmarks = await BookService.getBookmarks(widget.book.id!);
+      setState(() {});
+    }
   }
 
   void _toggleControls() {
     setState(() {
       _showControls = !_showControls;
       _showSettings = false;
-      _showChaptersList = false;
       _showSearchResults = false;
     });
   }
 
-  void _nextPage() {
-    if (_currentPageIndex < _pages.length - 1) {
+  void _nextChapter() {
+    if (_currentChapterIndex < _chapterContent.length - 1) {
       setState(() {
-        _currentPageIndex++;
+        _currentChapterIndex++;
       });
-      _pageController.nextPage(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-      _updateReadingProgress();
+      _scrollController.jumpTo(0);
+      _saveReadingProgressDebounced();
     }
   }
 
-  void _previousPage() {
-    if (_currentPageIndex > 0) {
+  void _previousChapter() {
+    if (_currentChapterIndex > 0) {
       setState(() {
-        _currentPageIndex--;
+        _currentChapterIndex--;
       });
-      _pageController.previousPage(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+      _scrollController.jumpTo(0);
+      _saveReadingProgressDebounced();
+    }
+  }
+
+  void _addBookmark() async {
+    if (widget.book.id != null) {
+      final bookmark = Bookmark(
+        chapterIndex: _currentChapterIndex,
+        chapterTitle: _chapterTitles[_currentChapterIndex],
+        position: _scrollPosition,
+        createdAt: DateTime.now(),
       );
-      _updateReadingProgress();
+
+      await BookService.addBookmark(widget.book.id!, bookmark);
+      await _loadBookmarks();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bookmark added!'),
+            backgroundColor: _isDarkTheme ? Colors.grey[800] : Colors.green,
+          ),
+        );
+      }
     }
   }
 
-  void _updateReadingProgress() {
-    if (_pages.isNotEmpty && widget.book.id != null) {
-      final progress = _currentPageIndex / _pages.length;
-      BookService.updateReadingProgress(
-        widget.book.id!,
-        _currentChapterIndex,
-        progress.clamp(0.0, 1.0),
-      );
-      _saveLastReadPosition(); // Save current position
-    }
-  }
-
-  void _addBookmark() {
-    final bookmark = Bookmark(
-      chapterIndex: _currentPageIndex,
-      chapterTitle: 'Page ${_currentPageIndex + 1}',
-      position: _currentPageIndex.toDouble(),
-      createdAt: DateTime.now(),
-    );
-
-    setState(() {
-      _bookmarks.add(bookmark);
-    });
-
-    _saveBookmarks();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Bookmark added!')),
-    );
-  }
-
-  void _showTableOfContents() {
-    if (_epubBook != null) {
-      _showTableOfContentsDialog();
-    }
-  }
-
-  void _showTableOfContentsDialog() {
-    final chapters = _extractChapters();
-
+  void _showBookmarks() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
         decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: _backgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
+                color: _isDarkTheme ? Colors.grey[800] : Colors.orange,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.list, color: Colors.white),
+                  Icon(Icons.bookmarks, color: Colors.white),
                   const SizedBox(width: 12),
-                  Text(
-                    'Table of Contents',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  Expanded(
+                    child: Text(
+                      'Bookmarks',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white),
                     onPressed: () => Navigator.of(context).pop(),
@@ -479,89 +444,135 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                 ],
               ),
             ),
-            Flexible(
-              child: Container(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.6,
-                ),
-                child: chapters.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Text(
-                          'No table of contents available',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontStyle: FontStyle.italic,
+            Expanded(
+              child: _bookmarks.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.bookmark_border,
+                            size: 64,
+                            color: _textColor.withValues(alpha: 0.5),
                           ),
-                        ),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: chapters.length,
-                        itemBuilder: (context, index) {
-                          final chapter = chapters[index];
-                          final isCurrentChapter = index == _currentChapterIndex;
+                          const SizedBox(height: 16),
+                          Text(
+                            'No bookmarks yet',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: _textColor.withValues(alpha: 0.7),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Tap the bookmark button to save your current position',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _textColor.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(8),
+                      itemCount: _bookmarks.length,
+                      itemBuilder: (context, index) {
+                        final bookmark = _bookmarks[index];
+                        final isCurrentPosition = bookmark.chapterIndex == _currentChapterIndex;
 
-                          return Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isCurrentPosition
+                                ? (_isDarkTheme ? Colors.orange[900]?.withValues(alpha: 0.3) : Colors.orange[50])
+                                : null,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _textColor.withValues(alpha: 0.1),
+                              width: 1,
                             ),
-                            decoration: BoxDecoration(
-                              color: isCurrentChapter
-                                  ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                                  : null,
-                              borderRadius: BorderRadius.circular(8),
-                              border: isCurrentChapter
-                                  ? Border.all(
-                                      color: Theme.of(context).primaryColor,
-                                      width: 2,
-                                    )
-                                  : null,
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            leading: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: isCurrentPosition
+                                    ? Colors.orange
+                                    : (_isDarkTheme ? Colors.grey[600] : Colors.grey[400]),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.bookmark,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: isCurrentChapter
-                                    ? Theme.of(context).primaryColor
-                                    : Theme.of(context).primaryColor.withValues(alpha: 0.3),
-                                child: Text(
-                                  '${index + 1}',
+                            title: Text(
+                              bookmark.chapterTitle,
+                              style: TextStyle(
+                                fontWeight: isCurrentPosition ? FontWeight.bold : FontWeight.w500,
+                                color: _textColor,
+                                fontSize: 16,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Chapter ${bookmark.chapterIndex + 1}',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: _textColor.withValues(alpha: 0.7),
                                     fontSize: 12,
-                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                              title: Text(
-                                chapter,
-                                style: TextStyle(
-                                  fontWeight: isCurrentChapter
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: isCurrentChapter
-                                      ? Theme.of(context).primaryColor
-                                      : null,
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Added: ${_formatDate(bookmark.createdAt)}',
+                                  style: TextStyle(
+                                    color: _textColor.withValues(alpha: 0.5),
+                                    fontSize: 11,
+                                  ),
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              trailing: isCurrentChapter
-                                  ? Icon(
-                                      Icons.play_circle_filled,
-                                      color: Theme.of(context).primaryColor,
-                                    )
-                                  : const Icon(Icons.arrow_forward_ios, size: 16),
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                _jumpToChapter(index);
-                              },
+                              ],
                             ),
-                          );
-                        },
-                      ),
-              ),
+                            trailing: PopupMenuButton<String>(
+                              onSelected: (value) async {
+                                if (value == 'delete' && bookmark.id != null) {
+                                  await _deleteBookmark(bookmark.id!);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem<String>(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete, color: Colors.red, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text('Delete'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              icon: Icon(
+                                Icons.more_vert,
+                                color: _textColor.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              _jumpToBookmark(bookmark);
+                            },
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -569,781 +580,267 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     );
   }
 
-  List<String> _extractChapters() {
-    final List<String> chapters = [];
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
 
-    try {
-      // Try to get navigation from NCX first (better structure)
-      final navigation = _epubBook?.Schema?.Navigation;
-      if (navigation?.NavMap?.Points != null) {
-        for (final navPoint in navigation!.NavMap!.Points!) {
-          final title = navPoint.NavigationLabels?.isNotEmpty == true
-              ? navPoint.NavigationLabels!.first.Text ?? 'Chapter ${chapters.length + 1}'
-              : 'Chapter ${chapters.length + 1}';
-
-          chapters.add(title);
-        }
-      }
-
-      // Fallback to chapters list if NCX navigation is not available
-      if (chapters.isEmpty && _epubBook?.Chapters != null) {
-        for (int i = 0; i < _epubBook!.Chapters!.length; i++) {
-          final chapter = _epubBook!.Chapters![i];
-          String title = chapter.Title ?? 'Chapter ${i + 1}';
-
-          // Clean up the title
-          title = title.trim();
-          if (title.isEmpty) {
-            title = 'Chapter ${i + 1}';
-          }
-
-          chapters.add(title);
-        }
-      }
-
-      // Last resort: create generic chapter list
-      if (chapters.isEmpty) {
-        // Try to extract from spine
-        final spine = _epubBook?.Schema?.Package?.Spine?.Items;
-        if (spine != null) {
-          for (int i = 0; i < spine.length; i++) {
-            chapters.add('Chapter ${i + 1}');
-          }
-        }
-      }
-    } catch (e) {
-      print('Error extracting chapters: $e');
-    }
-
-    return chapters;
-  }
-
-  void _jumpToChapter(int chapterIndex) {
-    if (chapterIndex >= 0 && chapterIndex < _chapters.length) {
-      setState(() {
-        _currentChapterIndex = chapterIndex;
-      });
-
-      // Find the page index for this chapter
-      int pageIndex = 0;
-      for (int i = 0; i < chapterIndex; i++) {
-        final chapterContent = _chapters[i].HtmlContent ?? '';
-        final cleanContent = _cleanHtmlContent(chapterContent);
-        final chapterPages = _splitContentIntoPages(cleanContent);
-        pageIndex += chapterPages.length;
-      }
-
-      setState(() {
-        _currentPageIndex = pageIndex.clamp(0, _pages.length - 1);
-      });
-
-      _pageController.animateToPage(
-        _currentPageIndex,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-
-      _updateReadingProgress();
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
     }
   }
 
-  void _addHighlight(String text, Color color) {
-    final highlight = Highlight(
-      pageIndex: _currentPageIndex,
-      text: text,
-      color: color,
-      createdAt: DateTime.now(),
-    );
-
+  void _jumpToBookmark(Bookmark bookmark) {
     setState(() {
-      _highlights.add(highlight);
-      _isSelecting = false;
-      _selectedText = '';
+      _currentChapterIndex = bookmark.chapterIndex.clamp(0, _chapterContent.length - 1);
     });
 
-    _saveHighlights();
+    // Navigate to bookmark position after chapter loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients && bookmark.position > 0) {
+        _scrollController.animateTo(
+          bookmark.position,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Text highlighted!')),
-    );
-  }
+    _saveReadingProgressDebounced();
 
-  void _showHighlightDialog(String selectedText) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Highlight Text'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Select highlight color:'),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildHighlightColorButton(Colors.yellow, selectedText),
-                _buildHighlightColorButton(Colors.green.shade200, selectedText),
-                _buildHighlightColorButton(Colors.blue.shade200, selectedText),
-                _buildHighlightColorButton(Colors.pink.shade200, selectedText),
-              ],
-            ),
-          ],
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Navigated to bookmark: ${bookmark.chapterTitle}'),
+          backgroundColor: _isDarkTheme ? Colors.grey[800] : Colors.orange,
+          duration: const Duration(seconds: 2),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHighlightColorButton(Color color, String text) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pop(context);
-        _addHighlight(text, color);
-      },
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPageContent() {
-    if (_pages.isEmpty) {
-      return Center(child: Text('No content available'));
+      );
     }
-
-    return Container(
-      color: _backgroundColor.withValues(alpha: _brightness),
-      child: PageView.builder(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _currentPageIndex = index;
-          });
-          _updateReadingProgress();
-        },
-        itemCount: _pages.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: _toggleControls,
-            onLongPress: () {
-              // Enable text selection mode
-              setState(() {
-                _isSelecting = true;
-              });
-            },
-            child: Container(
-              padding: EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Html(
-                        data: _pages[index],
-                        style: {
-                          "body": Style(
-                            fontFamily: _fontFamily,
-                            fontSize: FontSize(_fontSize),
-                            color: _textColor,
-                            lineHeight: LineHeight(_lineHeight),
-                            backgroundColor: _backgroundColor.withValues(alpha: _brightness),
-                          ),
-                        },
-                      ),
-                    ),
-                  ),
-                  // Page indicator
-                  Container(
-                    alignment: Alignment.center,
-                    padding: EdgeInsets.only(top: 16),
-                    child: Text(
-                      '${index + 1} of ${_pages.length}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _textColor.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 
-  Widget _buildControlsOverlay() {
-    return AnimatedPositioned(
-      duration: Duration(milliseconds: 300),
-      top: _showControls ? 0 : -100,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top, left: 16, right: 16, bottom: 16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
-          ),
+  Future<void> _deleteBookmark(int bookmarkId) async {
+    await BookService.deleteBookmark(bookmarkId);
+    await _loadBookmarks();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bookmark deleted'),
+          backgroundColor: _isDarkTheme ? Colors.grey[800] : Colors.red,
         ),
-        child: Row(
-          children: [
-            IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            Expanded(
-              child: Text(
-                widget.book.title,
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            IconButton(
-              icon: Icon(Icons.bookmark_add, color: Colors.white),
-              onPressed: _addBookmark,
-            ),
-            IconButton(
-              icon: Icon(Icons.toc, color: Colors.white),
-              onPressed: _showTableOfContents,
-              tooltip: 'Table of Contents',
-            ),
-            IconButton(
-              icon: Icon(Icons.search, color: Colors.white),
-              onPressed: () {
-                setState(() {
-                  _showSearchResults = !_showSearchResults;
-                  _showSettings = false;
-                  _showChaptersList = false;
-                });
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.settings, color: Colors.white),
-              onPressed: () {
-                setState(() {
-                  _showSettings = !_showSettings;
-                  _showSearchResults = false;
-                  _showChaptersList = false;
-                });
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+      );
+    }
   }
 
-  Widget _buildBottomControls() {
-    return AnimatedPositioned(
-      duration: Duration(milliseconds: 300),
-      bottom: _showControls ? 0 : -100,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.of(context).padding.bottom + 16),
+  void _showTableOfContents() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Progress indicator
-            Container(
-              margin: EdgeInsets.only(bottom: 16),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Page ${_currentPageIndex + 1} of ${_pages.length}',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                      Text(
-                        '${(_currentPageIndex / _pages.length * 100).toInt()}%',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: _pages.isEmpty ? 0 : _currentPageIndex / _pages.length,
-                    backgroundColor: Colors.white.withValues(alpha: 0.3),
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
-                  ),
-                ],
-              ),
-            ),
-            // Navigation controls
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.skip_previous, color: Colors.white),
-                  onPressed: _currentPageIndex > 0 ? _previousPage : null,
-                ),
-                IconButton(
-                  icon: Icon(Icons.list, color: Colors.white),
-                  onPressed: () => _showBookmarksDialog(),
-                ),
-                IconButton(
-                  icon: Icon(Icons.highlight, color: Colors.white),
-                  onPressed: () => _showHighlightsDialog(),
-                ),
-                IconButton(
-                  icon: Icon(Icons.skip_next, color: Colors.white),
-                  onPressed: _currentPageIndex < _pages.length - 1 ? _nextPage : null,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsPanel() {
-    return AnimatedPositioned(
-      duration: Duration(milliseconds: 300),
-      right: _showSettings ? 0 : -300,
-      top: 100,
-      bottom: 100,
-      child: Container(
-        width: 300,
-        decoration: BoxDecoration(
-          color: _isDarkTheme ? Color(0xFF2D2D2D) : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            bottomLeft: Radius.circular(20),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: Offset(-5, 0),
-            ),
-          ],
+          color: _backgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _isDarkTheme ? Color(0xFF404040) : Colors.grey.shade100,
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(20)),
+                color: _isDarkTheme ? Colors.grey[800] : Colors.blue,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.settings,
-                    color: _isDarkTheme ? Colors.white : Colors.black87,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Reading Settings',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: _isDarkTheme ? Colors.white : Colors.black87,
+                  Icon(Icons.list, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Table of Contents',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
             ),
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.all(16),
-                children: [
-                  // Font size
-                  Text(
-                    'Font Size',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: _isDarkTheme ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  Slider(
-                    value: _fontSize,
-                    min: 12.0,
-                    max: 24.0,
-                    divisions: 12,
-                    label: _fontSize.round().toString(),
-                    activeColor: Colors.deepOrange,
-                    onChanged: (value) {
-                      setState(() {
-                        _fontSize = value;
-                      });
-                      _saveSettings();
-                      _generatePages(); // Regenerate pages with new font size
-                    },
-                  ),
-                  SizedBox(height: 16),
-
-                  // Line height
-                  Text(
-                    'Line Spacing',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: _isDarkTheme ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  Slider(
-                    value: _lineHeight,
-                    min: 1.0,
-                    max: 2.0,
-                    divisions: 10,
-                    label: _lineHeight.toStringAsFixed(1),
-                    activeColor: Colors.deepOrange,
-                    onChanged: (value) {
-                      setState(() {
-                        _lineHeight = value;
-                      });
-                      _saveSettings();
-                    },
-                  ),
-                  SizedBox(height: 16),
-
-                  // Brightness (only for dark themes)
-                  if (_isDarkTheme) ...[
-                    Text(
-                      'Brightness',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Slider(
-                      value: _brightness,
-                      min: 0.3,
-                      max: 1.0,
-                      divisions: 7,
-                      label: '${(_brightness * 100).round()}%',
-                      activeColor: Colors.deepOrange,
-                      onChanged: (value) {
-                        setState(() {
-                          _brightness = value;
-                        });
-                        _saveSettings();
-                      },
-                    ),
-                    SizedBox(height: 16),
-                  ],
-
-                  // Theme presets
-                  Text(
-                    'Theme',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: _isDarkTheme ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 12),
-
-                  // Theme preset buttons
-                  Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildThemePresetButton(
-                              'Light',
-                              Colors.white,
-                              Colors.black,
-                              Icons.light_mode,
-                              'light',
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: _buildThemePresetButton(
-                              'Dark',
-                              Color(0xFF1E1E1E),
-                              Colors.white,
-                              Icons.dark_mode,
-                              'dark',
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildThemePresetButton(
-                              'Sepia',
-                              Color(0xFFF5F5DC),
-                              Color(0xFF5D4037),
-                              Icons.auto_stories,
-                              'sepia',
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: _buildThemePresetButton(
-                              'Night',
-                              Colors.black,
-                              Color(0xFFE0E0E0),
-                              Icons.nightlight_round,
-                              'night',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-
-                  // Font family
-                  Text(
-                    'Font',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: _isDarkTheme ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Container(
+              child: ListView.builder(
+                itemCount: _chapterTitles.length,
+                itemBuilder: (context, index) {
+                  final isCurrentChapter = index == _currentChapterIndex;
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: _isDarkTheme ? Colors.grey.shade600 : Colors.grey.shade300,
-                      ),
+                      color: isCurrentChapter ? (_isDarkTheme ? Colors.grey[700] : Colors.blue[50]) : null,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _fontFamily,
-                        isExpanded: true,
-                        dropdownColor: _isDarkTheme ? Color(0xFF404040) : Colors.white,
-                        style: TextStyle(
-                          color: _isDarkTheme ? Colors.white : Colors.black87,
-                        ),
-                        items: [
-                          'Roboto',
-                          'Open Sans',
-                          'Lato',
-                          'Playfair Display',
-                          'Merriweather',
-                          'Georgia',
-                        ].map((font) => DropdownMenuItem(
-                          value: font,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(font),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: isCurrentChapter ? Colors.blue : Colors.grey,
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
-                        )).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              _fontFamily = value;
-                            });
-                            _saveSettings();
-                          }
-                        },
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThemePresetButton(String name, Color bg, Color text, IconData icon, String preset) {
-    final isSelected = _backgroundColor.value == bg.value && _textColor.value == text.value;
-
-    return GestureDetector(
-      onTap: () => _applyThemePreset(preset),
-      child: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.deepOrange : Colors.grey.shade400,
-            width: isSelected ? 3 : 1,
-          ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: Colors.deepOrange.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ] : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: text,
-              size: 20,
-            ),
-            SizedBox(height: 4),
-            Text(
-              name,
-              style: TextStyle(
-                color: text,
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showBookmarksDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Bookmarks'),
-        content: Container(
-          width: double.maxFinite,
-          height: 300,
-          child: _bookmarks.isEmpty
-              ? Center(child: Text('No bookmarks yet'))
-              : ListView.builder(
-                  itemCount: _bookmarks.length,
-                  itemBuilder: (context, index) {
-                    final bookmark = _bookmarks[index];
-                    return ListTile(
-                      title: Text(bookmark.chapterTitle),
-                      subtitle: Text('Added ${bookmark.createdAt.day}/${bookmark.createdAt.month}/${bookmark.createdAt.year}'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        setState(() {
-                          _currentPageIndex = bookmark.position.toInt().clamp(0, _pages.length - 1);
-                        });
-                        _pageController.animateToPage(
-                          _currentPageIndex,
-                          duration: Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      },
-                    );
-                  },
-                ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showHighlightsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Highlights'),
-        content: Container(
-          width: double.maxFinite,
-          height: 300,
-          child: _highlights.isEmpty
-              ? Center(child: Text('No highlights yet'))
-              : ListView.builder(
-                  itemCount: _highlights.length,
-                  itemBuilder: (context, index) {
-                    final highlight = _highlights[index];
-                    return ListTile(
                       title: Text(
-                        highlight.text,
+                        _chapterTitles[index],
+                        style: TextStyle(
+                          fontWeight: isCurrentChapter ? FontWeight.bold : FontWeight.normal,
+                          color: _textColor,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(backgroundColor: highlight.color.withValues(alpha: 0.3)),
                       ),
-                      subtitle: Text('Page ${highlight.pageIndex + 1}'),
                       onTap: () {
-                        Navigator.pop(context);
-                        setState(() {
-                          _currentPageIndex = highlight.pageIndex.clamp(0, _pages.length - 1);
-                        });
-                        _pageController.animateToPage(
-                          _currentPageIndex,
-                          duration: Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
+                        Navigator.of(context).pop();
+                        _jumpToChapter(index);
                       },
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
-          ),
-        ],
       ),
     );
   }
 
-  void _toggleTheme() {
+  void _jumpToChapter(int chapterIndex) {
     setState(() {
-      _isDarkTheme = !_isDarkTheme;
-      if (_isDarkTheme) {
-        _backgroundColor = Color(0xFF1E1E1E);
-        _textColor = Colors.white;
-      } else {
-        _backgroundColor = Colors.white;
-        _textColor = Colors.black;
-      }
+      _currentChapterIndex = chapterIndex.clamp(0, _chapterContent.length - 1);
     });
-    _saveSettings();
+    _scrollController.jumpTo(0);
+    _saveReadingProgressDebounced();
   }
 
-  void _applyThemePreset(String preset) {
-    setState(() {
-      switch (preset) {
-        case 'light':
-          _isDarkTheme = false;
-          _backgroundColor = Colors.white;
-          _textColor = Colors.black;
-          break;
-        case 'dark':
-          _isDarkTheme = true;
-          _backgroundColor = Color(0xFF1E1E1E);
-          _textColor = Colors.white;
-          break;
-        case 'sepia':
-          _isDarkTheme = false;
-          _backgroundColor = Color(0xFFF5F5DC);
-          _textColor = Color(0xFF5D4037);
-          break;
-        case 'night':
-          _isDarkTheme = true;
-          _backgroundColor = Colors.black;
-          _textColor = Color(0xFFE0E0E0);
-          break;
+  void _performSearch(String query) {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchResults.clear();
+        _showSearchResults = false;
+      });
+      return;
+    }
+
+    final results = <SearchResult>[];
+    final searchQuery = query.toLowerCase();
+
+    for (int i = 0; i < _chapterContent.length; i++) {
+      final content = _chapterContent[i]!.toLowerCase();
+      final originalContent = _chapterContent[i]!;
+
+      int index = content.indexOf(searchQuery);
+      while (index != -1) {
+        final start = (index - 50).clamp(0, content.length);
+        final end = (index + searchQuery.length + 50).clamp(0, content.length);
+        final excerpt = originalContent.substring(start, end);
+
+        results.add(SearchResult(
+          chapterIndex: i,
+          chapterTitle: _chapterTitles[i],
+          excerpt: '...$excerpt...',
+          position: index,
+        ));
+
+        index = content.indexOf(searchQuery, index + 1);
       }
+    }
+
+    setState(() {
+      _searchResults = results;
+      _showSearchResults = true;
     });
-    _saveSettings();
+  }
+
+  Future<void> _saveReadingProgressImmediate() async {
+    if (_chapterContent.isNotEmpty && widget.book.id != null) {
+      final progress = (_currentChapterIndex + 1) / _chapterContent.length;
+      await BookService.updateReadingProgress(
+        widget.book.id!,
+        _currentChapterIndex,
+        progress.clamp(0.0, 1.0),
+      );
+      await _saveLastReadPosition();
+      _hasUnsavedProgress = false;
+    }
+  }
+
+  void _saveReadingProgressDebounced() {
+    _hasUnsavedProgress = true;
+    _progressSaveTimer?.cancel();
+
+    _progressSaveTimer = Timer(const Duration(seconds: 2), () {
+      _saveReadingProgressImmediate();
+    });
+  }
+
+  // Helper method to get TextStyle with proper font handling
+  TextStyle _getTextStyle({
+    required double fontSize,
+    Color? color,
+    FontWeight? fontWeight,
+    double? height,
+    double? wordSpacing,
+    double? letterSpacing,
+  }) {
+    final fontOption = _fontOptions[_fontFamily];
+
+    if (fontOption == null || fontOption['isSystemFont'] == true) {
+      // Use system font
+      return TextStyle(
+        fontSize: fontSize,
+        color: color ?? _textColor,
+        fontWeight: fontWeight,
+        height: height ?? _lineHeight,
+        wordSpacing: wordSpacing ?? _wordSpacing,
+        letterSpacing: letterSpacing ?? _letterSpacing,
+        fontFamily: fontOption?['fontFamily'],
+      );
+    } else {
+      // Use Google Font
+      try {
+        return GoogleFonts.getFont(
+          fontOption['fontFamily'],
+          fontSize: fontSize,
+          color: color ?? _textColor,
+          fontWeight: fontWeight,
+          height: height ?? _lineHeight,
+          wordSpacing: wordSpacing ?? _wordSpacing,
+          letterSpacing: letterSpacing ?? _letterSpacing,
+        );
+      } catch (e) {
+        // Fallback to system font if Google Font fails
+        return TextStyle(
+          fontSize: fontSize,
+          color: color ?? _textColor,
+          fontWeight: fontWeight,
+          height: height ?? _lineHeight,
+          wordSpacing: wordSpacing ?? _wordSpacing,
+          letterSpacing: letterSpacing ?? _letterSpacing,
+        );
+      }
+    }
   }
 
   @override
@@ -1351,15 +848,21 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: _backgroundColor,
+        appBar: AppBar(
+          title: Text(widget.book.title),
+          backgroundColor: _backgroundColor,
+          foregroundColor: _textColor,
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
+              CircularProgressIndicator(color: _textColor),
+              const SizedBox(height: 16),
+              Text(
+                'Loading book...',
+                style: TextStyle(color: _textColor, fontSize: 16),
               ),
-              SizedBox(height: 16),
-              Text('Loading book...', style: TextStyle(fontSize: 16)),
             ],
           ),
         ),
@@ -1369,20 +872,26 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     if (_error.isNotEmpty) {
       return Scaffold(
         backgroundColor: _backgroundColor,
-        appBar: AppBar(title: Text('Error')),
+        appBar: AppBar(
+          title: Text(widget.book.title),
+          backgroundColor: _backgroundColor,
+          foregroundColor: _textColor,
+        ),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red),
-              SizedBox(height: 16),
-              Text(_error, textAlign: TextAlign.center),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Go Back'),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  _error,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: _textColor),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -1390,12 +899,428 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
 
     return Scaffold(
       backgroundColor: _backgroundColor,
+      appBar: _showControls ? AppBar(
+        title: Text(
+          widget.book.title,
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: _backgroundColor,
+        foregroundColor: _textColor,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              setState(() {
+                _showSearchResults = !_showSearchResults;
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.bookmark_add),
+            onPressed: _addBookmark,
+          ),
+          IconButton(
+            icon: const Icon(Icons.bookmarks),
+            onPressed: _showBookmarks,
+          ),
+          IconButton(
+            icon: const Icon(Icons.list),
+            onPressed: _showTableOfContents,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => setState(() {
+              _showSettings = !_showSettings;
+            }),
+          ),
+        ],
+      ) : null,
       body: Stack(
         children: [
-          _buildPageContent(),
-          _buildControlsOverlay(),
-          _buildBottomControls(),
-          _buildSettingsPanel(),
+          // Main reading content
+          GestureDetector(
+            onTap: _toggleControls,
+            child: SafeArea(
+              child: _chapterContent.isEmpty ?
+                Center(child: Text('No content available', style: TextStyle(color: _textColor))) :
+                SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  child: Container(
+                    padding: _textPadding,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Chapter title
+                        if (_chapterTitles.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 24.0),
+                            child: Text(
+                              _chapterTitles[_currentChapterIndex],
+                              style: _getTextStyle(
+                                fontSize: _fontSize + 6,
+                                fontWeight: FontWeight.bold,
+                                height: _lineHeight,
+                              ),
+                            ),
+                          ),
+                        // Chapter content with improved formatting
+                        SelectableText(
+                          _chapterContent[_currentChapterIndex] ?? 'No content available',
+                          style: _getTextStyle(
+                            fontSize: _fontSize,
+                            height: _lineHeight,
+                            wordSpacing: _wordSpacing,
+                            letterSpacing: _letterSpacing,
+                          ),
+                          textAlign: TextAlign.justify,
+                        ),
+                        // Navigation buttons at bottom
+                        const SizedBox(height: 40),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            if (_currentChapterIndex > 0)
+                              ElevatedButton.icon(
+                                onPressed: _previousChapter,
+                                icon: Icon(Icons.arrow_back),
+                                label: Text('Previous'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.blue,
+                                  foregroundColor: Colors.white,
+                                ),
+                              )
+                            else
+                              const SizedBox(),
+                            if (_currentChapterIndex < _chapterContent.length - 1)
+                              ElevatedButton.icon(
+                                onPressed: _nextChapter,
+                                icon: Icon(Icons.arrow_forward),
+                                label: Text('Next'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.blue,
+                                  foregroundColor: Colors.white,
+                                ),
+                              )
+                            else
+                              const SizedBox(),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+            ),
+          ),
+
+          // Progress indicator at bottom
+          if (_showControls && _chapterContent.isNotEmpty)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _backgroundColor.withValues(alpha: 0.9),
+                  border: Border(top: BorderSide(color: _textColor.withValues(alpha: 0.2))),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Chapter ${_currentChapterIndex + 1} of ${_chapterContent.length}',
+                          style: TextStyle(color: _textColor, fontSize: 12),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${((_currentChapterIndex + 1) / _chapterContent.length * 100).toInt()}%',
+                          style: TextStyle(color: _textColor, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: (_currentChapterIndex + 1) / _chapterContent.length,
+                      backgroundColor: _textColor.withValues(alpha: 0.3),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _isDarkTheme ? Colors.blue[300]! : Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Search results overlay
+          if (_showSearchResults)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                color: _backgroundColor.withValues(alpha: 0.95),
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      // Search input
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                style: TextStyle(color: _textColor),
+                                decoration: InputDecoration(
+                                  hintText: 'Search in book...',
+                                  hintStyle: TextStyle(color: _textColor.withValues(alpha: 0.6)),
+                                  prefixIcon: Icon(Icons.search, color: _textColor),
+                                  border: OutlineInputBorder(),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(color: _textColor.withValues(alpha: 0.3)),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(color: _isDarkTheme ? Colors.blue[300]! : Colors.blue),
+                                  ),
+                                ),
+                                onChanged: _performSearch,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _showSearchResults = false;
+                                  _searchController.clear();
+                                  _searchResults.clear();
+                                });
+                              },
+                              icon: Icon(Icons.close, color: _textColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Search results
+                      Expanded(
+                        child: _searchResults.isEmpty
+                            ? Center(
+                                child: Text(
+                                  _searchController.text.isEmpty
+                                      ? 'Enter search terms above'
+                                      : 'No results found',
+                                  style: TextStyle(color: _textColor.withValues(alpha: 0.6)),
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: _searchResults.length,
+                                itemBuilder: (context, index) {
+                                  final result = _searchResults[index];
+                                  return ListTile(
+                                    title: Text(
+                                      result.chapterTitle,
+                                      style: TextStyle(
+                                        color: _textColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      result.excerpt,
+                                      style: TextStyle(color: _textColor.withValues(alpha: 0.8)),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    onTap: () {
+                                      _jumpToChapter(result.chapterIndex);
+                                      setState(() {
+                                        _showSearchResults = false;
+                                        _searchController.clear();
+                                        _searchResults.clear();
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // Settings panel
+          if (_showSettings)
+            Positioned(
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: MediaQuery.of(context).size.width * 0.8,
+              child: Container(
+                color: _backgroundColor,
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      // Settings header
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _isDarkTheme ? Colors.grey[800] : Colors.blue,
+                          border: Border(bottom: BorderSide(color: _textColor.withValues(alpha: 0.2))),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.settings, color: Colors.white),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Reading Settings',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () => setState(() => _showSettings = false),
+                              icon: Icon(Icons.close, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Settings content
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            // Theme selection
+                            Text('Theme', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              children: _themePresets.entries.map((entry) {
+                                final isSelected = _currentTheme == entry.key;
+                                return ChoiceChip(
+                                  label: Text(entry.value['name']),
+                                  selected: isSelected,
+                                  onSelected: (_) => _applyTheme(entry.key),
+                                  selectedColor: _isDarkTheme ? Colors.blue[700] : Colors.blue[200],
+                                  backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.grey[200],
+                                  labelStyle: TextStyle(
+                                    color: isSelected ? Colors.white : _textColor,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Font size
+                            Text('Font Size', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
+                            Slider(
+                              value: _fontSize,
+                              min: 12.0,
+                              max: 30.0,
+                              divisions: 18,
+                              label: _fontSize.round().toString(),
+                              onChanged: (value) {
+                                setState(() => _fontSize = value);
+                                _saveSettings();
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Line height
+                            Text('Line Spacing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
+                            Slider(
+                              value: _lineHeight,
+                              min: 1.0,
+                              max: 2.5,
+                              divisions: 15,
+                              label: _lineHeight.toStringAsFixed(1),
+                              onChanged: (value) {
+                                setState(() => _lineHeight = value);
+                                _saveSettings();
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Font family
+                            Text('Font', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              children: _fontOptions.keys.map((font) {
+                                final fontOption = _fontOptions[font]!;
+                                return ChoiceChip(
+                                  label: Text(
+                                    font,
+                                    style: fontOption['isSystemFont'] == true
+                                        ? TextStyle(fontFamily: fontOption['fontFamily'])
+                                        : (fontOption['fontFamily'] != null
+                                            ? ((){
+                                                try {
+                                                  return GoogleFonts.getFont(fontOption['fontFamily']);
+                                                } catch (e) {
+                                                  return const TextStyle();
+                                                }
+                                              })()
+                                            : const TextStyle()),
+                                  ),
+                                  selected: _fontFamily == font,
+                                  onSelected: (_) {
+                                    setState(() => _fontFamily = font);
+                                    _saveSettings();
+                                  },
+                                  selectedColor: _isDarkTheme ? Colors.blue[700] : Colors.blue[200],
+                                  backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.grey[200],
+                                  labelStyle: TextStyle(
+                                    color: _fontFamily == font ? Colors.white : _textColor,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Word spacing
+                            Text('Word Spacing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
+                            Slider(
+                              value: _wordSpacing,
+                              min: 0.5,
+                              max: 2.0,
+                              divisions: 15,
+                              label: _wordSpacing.toStringAsFixed(1),
+                              onChanged: (value) {
+                                setState(() => _wordSpacing = value);
+                                _saveSettings();
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Letter spacing
+                            Text('Letter Spacing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
+                            Slider(
+                              value: _letterSpacing,
+                              min: -0.5,
+                              max: 2.0,
+                              divisions: 25,
+                              label: _letterSpacing.toStringAsFixed(1),
+                              onChanged: (value) {
+                                setState(() => _letterSpacing = value);
+                                _saveSettings();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1414,81 +1339,4 @@ class SearchResult {
     required this.excerpt,
     required this.position,
   });
-}
-
-class Bookmark {
-  final int chapterIndex;
-  final String chapterTitle;
-  final double position;
-  final DateTime createdAt;
-
-  Bookmark({
-    required this.chapterIndex,
-    required this.chapterTitle,
-    required this.position,
-    required this.createdAt,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'chapterIndex': chapterIndex,
-      'chapterTitle': chapterTitle,
-      'position': position,
-      'createdAt': createdAt.toIso8601String(),
-    };
-  }
-
-  factory Bookmark.fromJson(String json) {
-    final data = jsonDecode(json);
-    return Bookmark(
-      chapterIndex: data['chapterIndex'],
-      chapterTitle: data['chapterTitle'],
-      position: data['position'],
-      createdAt: DateTime.parse(data['createdAt']),
-    );
-  }
-}
-
-class Highlight {
-  final int? id;
-  final int pageIndex;
-  final String text;
-  final Color color;
-  final DateTime createdAt;
-  final String? note;
-
-  Highlight({
-    this.id,
-    required this.pageIndex,
-    required this.text,
-    required this.color,
-    required this.createdAt,
-    this.note,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'pageIndex': pageIndex,
-      'text': text,
-      'color': color.value,
-      'createdAt': createdAt.millisecondsSinceEpoch,
-      'note': note,
-    };
-  }
-
-  factory Highlight.fromMap(Map<String, dynamic> map) {
-    return Highlight(
-      id: map['id'],
-      pageIndex: map['pageIndex'],
-      text: map['text'],
-      color: Color(map['color']),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
-      note: map['note'],
-    );
-  }
-
-  String toJson() => jsonEncode(toMap());
-
-  factory Highlight.fromJson(String source) => Highlight.fromMap(jsonDecode(source));
 }

@@ -818,7 +818,7 @@ class HomePage extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.85,
+                    childAspectRatio: 1.0, // Changed from 0.85 to 1.0 to make boxes smaller
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
@@ -851,7 +851,7 @@ class HomePage extends StatelessWidget {
                           ),
                         ),
                         child: Padding(
-                          padding: EdgeInsets.all(12), // Reduced from 16 to 12
+                          padding: EdgeInsets.all(10), // Reduced from 12 to 10
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -1844,6 +1844,7 @@ class _ArticlesTabState extends State<ArticlesTab> {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      padding: EdgeInsets.only(top: 16, bottom: 80), // Add bottom padding to prevent cut-off
       itemCount: widget.articles.length,
       separatorBuilder: (context, index) => SizedBox(height: 12),
       itemBuilder: (context, i) {
@@ -2147,89 +2148,93 @@ class _AskTabState extends State<AskTab> {
       final firstLine = _lines.first.toLowerCase();
       showError = errorKeywords.any((kw) => firstLine.contains(kw));
     }
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Text(
-                loc.askDisclaimer,
-                style: TextStyle(
-                  fontSize: 13, // Revert disclaimer font size to original
-                  color: Colors.orange[800],
-                  fontStyle: FontStyle.italic,
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Text(
+                  loc.askDisclaimer,
+                  style: TextStyle(
+                    fontSize: 13, // Revert disclaimer font size to original
+                    color: Colors.orange[800],
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
-            ),
-            if (showError)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(_lines.join('\n'), style: TextStyle(color: Colors.red, fontSize: 15)),
+              if (showError)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(_lines.join('\n'), style: TextStyle(color: Colors.red, fontSize: 15)),
+                ),
+              TextField(
+                controller: _controller,
+                decoration: InputDecoration(labelText: loc.askAQuestion),
               ),
-            TextField(
-              controller: _controller,
-              decoration: InputDecoration(labelText: loc.askAQuestion),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _loading ? null : _askQuestion,
-              child: Text(loc.ask),
-            ),
-            if (_loading) CircularProgressIndicator(),
-            if (_answer != null)
-              Padding(
-                padding: EdgeInsets.only(top: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SelectableText('${loc.answer}: $_answer', style: TextStyle(fontSize: 20)),
-                    SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      icon: Icon(Icons.flag),
-                      label: Text('Flag as Incorrect'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () async {
-                        final url = (_config?.gradioServerLink ?? '') + '/gradio_api/call/flag_and_show';
-                        try {
-                          final response = await http.post(
-                            Uri.parse(url),
-                            headers: {'Content-Type': 'application/json'},
-                            body: jsonEncode({
-                              "data": []
-                            }),
-                          );
-                          if (response.statusCode == 200) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Flag submitted. Thank you!')),
-                              );
-                            }
-                          } else {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed to flag. Please try again.')),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error submitting flag.')),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: _loading ? null : _askQuestion,
+                child: Text(loc.ask),
+              ),
+              if (_loading) CircularProgressIndicator(),
+              if (_answer != null)
+                Padding(
+                  padding: EdgeInsets.only(top: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SelectableText('${loc.answer}: $_answer', style: TextStyle(fontSize: 20)),
+                      SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.flag),
+                        label: Text('Flag as Incorrect'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final url = (_config?.gradioServerLink ?? '') + '/gradio_api/call/flag_and_show';
+                          try {
+                            final response = await http.post(
+                              Uri.parse(url),
+                              headers: {'Content-Type': 'application/json'},
+                              body: jsonEncode({
+                                "data": []
+                              }),
                             );
+                            if (response.statusCode == 200) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Flag submitted. Thank you!')),
+                                );
+                              }
+                            } else {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to flag. Please try again.')),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error submitting flag.')),
+                              );
+                            }
                           }
-                        }
-                      },
-                    ),
-                  ],
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-          ],
+              // Add bottom padding to ensure content is visible above system UI
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+            ],
+          ),
         ),
       ),
     );
@@ -2244,6 +2249,12 @@ class HistoryTab extends StatelessWidget {
     final loc = AppLocalizations.of(context)!;
     if (history.isEmpty) return Center(child: Text(loc.noPreviousQuestions));
     return ListView.builder(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
       itemCount: history.length,
       itemBuilder: (context, i) => ListTile(
         title: Text('Q: \'${history[i]['question']}\''),
@@ -2370,7 +2381,12 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
     }
 
     return ListView.builder(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
       itemCount: _history.length,
       itemBuilder: (context, index) {
         final item = _history[index];
@@ -2700,31 +2716,35 @@ class AboutAppPage extends StatelessWidget {
     final loc = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(loc.aboutApp)),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Image.asset(
-                  'assets/images/apppic.png', // Use your available image as aboutapp.jpg is not present
-                  width: 180,
-                  height: 180,
-                  fit: BoxFit.contain,
+      body: SafeArea(
+        // Ensures content isn't hidden behind system UI (bottom nav / home indicator)
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/apppic.png', // Use your available image as aboutapp.jpg is not present
+                    width: 180,
+                    height: 180,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                loc.aboutApp,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
-              Text(
-                loc.aboutAppInstructions,
-                style: TextStyle(fontSize: 16),
-              ),
-            ],
+                SizedBox(height: 20),
+                Text(
+                  loc.aboutApp,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  loc.aboutAppInstructions,
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 20), // small bottom spacing to ensure visibility
+              ],
+            ),
           ),
         ),
       ),

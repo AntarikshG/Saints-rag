@@ -23,6 +23,7 @@ class _BooksLibraryPageState extends State<BooksLibraryPage> {
   void initState() {
     super.initState();
     _loadBooks();
+    _downloadSampleBooksOnceIfNeeded();
   }
 
   @override
@@ -49,6 +50,29 @@ class _BooksLibraryPageState extends State<BooksLibraryPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading books: $e')),
       );
+    }
+  }
+
+  Future<void> _downloadSampleBooksOnceIfNeeded() async {
+    // Download sample books if they haven't been downloaded before
+    try {
+      print('Checking if sample books need to be downloaded for library...');
+      await BookService.downloadSampleBooksOnce();
+      print('Sample books check for library completed!');
+
+      // Reload the books list to show the newly added books
+      await _loadBooks();
+    } catch (e) {
+      print('Error checking sample books in library: $e');
+      // Show error to user if needed
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading sample books. You can add books manually.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 
