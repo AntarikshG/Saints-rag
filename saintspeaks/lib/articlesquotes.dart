@@ -489,8 +489,8 @@ final saints = [
     ],
   ),
   Saint(
-    'shankaracharya',
-    'Adi Shankaracharya',
+    'Shankaracharya',
+    'Shankaracharya',
     'assets/images/shankaracharya.jpg',
     [
       'Brahman alone is real, the world is appearance.',

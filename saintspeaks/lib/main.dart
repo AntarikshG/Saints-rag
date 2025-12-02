@@ -27,6 +27,7 @@ import 'books_library.dart';
 import 'books_tab.dart';
 import 'pdf_reader.dart';
 import 'epub_reader.dart';
+import 'rating_share_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -536,7 +537,11 @@ class HomePage extends StatelessWidget {
                   Navigator.pop(context);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => AboutAppPage()));
                 }),
-                _buildDrawerItem(context, Icons.notifications_active, 'Test Notification', () async {
+                _buildDrawerItem(context, Icons.star, 'Rate & Share App', () {
+                  Navigator.pop(context);
+                  RatingShareService.showRatingShareDialog(context);
+                }),
+                _buildDrawerItem(context, Icons.notifications_active, 'Set Daily Notifications', () async {
                   Navigator.pop(context);
 
                   // Show current notification configuration
@@ -2015,7 +2020,7 @@ class _AskTabState extends State<AskTab> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "data": [
-            widget.userName + ": " + question,
+            "My name is " + widget.userName + ". " + question,
             getEnglishSaintName(widget.saintId), // Use English saint name consistently
             language // Pass language context to backend
           ]
@@ -2142,6 +2147,56 @@ class _AskTabState extends State<AskTab> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+
+    // Check if this is AnandMoyiMa and disable Ask AI feature
+    if (widget.saintId == 'anandmoyima') {
+      return SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.block,
+                  size: 64,
+                  color: Colors.grey,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Ask AI Feature Disabled',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'The Ask AI feature is not available for Anandamayi Ma.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Please explore her quotes and teachings in the other tabs.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     bool showError = false;
     if (_hasTriedAsk && _lines.isNotEmpty && _answer == null) {
       final errorKeywords = ['error', 'failed', 'not running', 'no response', 'did not respond'];

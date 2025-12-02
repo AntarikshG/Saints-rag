@@ -58,8 +58,28 @@ class NotificationService {
     // Initialize timezone database
     try {
       tzdata.initializeTimeZones();
-      tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
-      print('✓ Timezone set to Asia/Kolkata');
+
+      // Use device's local timezone by detecting the system timezone
+      final DateTime now = DateTime.now();
+      final String timeZoneOffset = now.timeZoneOffset.toString();
+      final int offsetHours = now.timeZoneOffset.inHours;
+
+      // Try to find the best matching timezone based on offset
+      String? detectedTimeZone = _getTimezoneFromOffset(offsetHours);
+
+      if (detectedTimeZone != null) {
+        try {
+          tz.setLocalLocation(tz.getLocation(detectedTimeZone));
+          print('✓ Timezone set to $detectedTimeZone (offset: $timeZoneOffset)');
+        } catch (e) {
+          print('Failed to set detected timezone $detectedTimeZone: $e');
+          tz.setLocalLocation(tz.UTC);
+          print('✓ Timezone set to UTC as fallback');
+        }
+      } else {
+        tz.setLocalLocation(tz.UTC);
+        print('✓ Timezone set to UTC (could not detect local timezone)');
+      }
     } catch (e) {
       print('Timezone init error: $e, using UTC');
       try {
@@ -373,7 +393,7 @@ class NotificationService {
       print('📋 Current pending notifications: $totalPending');
 
       // If we have less than 20 pending notifications or it's been more than 15 days since last reschedule
-      if (totalPending < 20 || lastReschedule == null) {
+      if (totalPending < 8 || lastReschedule == null) {
         print('🔄 Auto-rescheduling notifications (pending: $totalPending)');
         await scheduleDailyQuoteNotifications(locale);
         await prefs.setString('last_reschedule_date', today);
@@ -381,7 +401,7 @@ class NotificationService {
         final lastDate = DateTime.parse(lastReschedule);
         final daysSinceReschedule = DateTime.now().difference(lastDate).inDays;
 
-        if (daysSinceReschedule >= 15) {
+        if (daysSinceReschedule >= 5) {
           print('🔄 Auto-rescheduling notifications (15+ days since last reschedule)');
           await scheduleDailyQuoteNotifications(locale);
           await prefs.setString('last_reschedule_date', today);
@@ -427,6 +447,61 @@ class NotificationService {
     }
 
     return {'quote': 'Stay inspired!', 'saint': 'Talk with Saints'};
+  }
+
+  // Private method to map timezone offsets to IANA timezone names
+  static String? _getTimezoneFromOffset(int offsetHours) {
+    // Common timezone mapping based on UTC offset (using valid IANA names)
+    const Map<int, String> offsetMap = {
+      -12: 'Etc/GMT+12',
+      -11: 'Pacific/Midway',
+      -10: 'Pacific/Honolulu',
+      -9: 'America/Anchorage',
+      -8: 'America/Los_Angeles',
+      -7: 'America/Denver',
+      -6: 'America/Chicago',
+      -5: 'America/New_York',
+      -4: 'America/Halifax',
+      -3: 'America/Sao_Paulo',
+      -2: 'Atlantic/South_Georgia',
+      -1: 'Atlantic/Azores',
+      0: 'Europe/London',
+      1: 'Europe/Berlin',
+      2: 'Europe/Athens',
+      3: 'Europe/Moscow',
+      4: 'Asia/Dubai',
+      5: 'Asia/Karachi',
+      6: 'Asia/Dhaka',
+      7: 'Asia/Bangkok',
+      8: 'Asia/Shanghai',
+      9: 'Asia/Tokyo',
+      10: 'Australia/Sydney',
+      11: 'Pacific/Noumea',
+      12: 'Pacific/Auckland',
+    };
+
+    // For India Standard Time (UTC+5:30), check for half-hour offset
+    final DateTime now = DateTime.now();
+    final int offsetMinutes = now.timeZoneOffset.inMinutes;
+
+    // Handle special cases for half-hour and quarter-hour timezones
+    if (offsetMinutes == 330) { // +5:30 (India Standard Time)
+      return 'Asia/Kolkata';
+    } else if (offsetMinutes == -210) { // -3:30 (Newfoundland)
+      return 'America/St_Johns';
+    } else if (offsetMinutes == 270) { // +4:30 (Afghanistan)
+      return 'Asia/Kabul';
+    } else if (offsetMinutes == 345) { // +5:45 (Nepal)
+      return 'Asia/Kathmandu';
+    } else if (offsetMinutes == 390) { // +6:30 (Myanmar)
+      return 'Asia/Yangon';
+    } else if (offsetMinutes == 570) { // +9:30 (Central Australia)
+      return 'Australia/Adelaide';
+    } else if (offsetMinutes == 630) { // +10:30 (Lord Howe Island)
+      return 'Australia/Lord_Howe';
+    }
+
+    return offsetMap[offsetHours];
   }
 }
 

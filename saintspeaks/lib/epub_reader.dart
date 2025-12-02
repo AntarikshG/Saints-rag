@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:epubx/epubx.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'book_service.dart';
 
 class EpubReaderPage extends StatefulWidget {
@@ -85,6 +86,33 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   // Bookmarks
   List<Bookmark> _bookmarks = [];
 
+  // Text-to-Speech functionality
+  FlutterTts? _flutterTts;
+  bool _isTtsPlaying = false;
+  bool _isTtsPaused = false;
+  bool _isTtsInitialized = false;
+  bool _showTtsControls = false; // Add this line
+  double _ttsRate = 0.5;
+  double _ttsPitch = 1.0;
+  String _selectedLanguage = 'en-US';
+  String? _selectedVoice; // Add selected voice variable
+  List<dynamic> _availableLanguages = [];
+  List<dynamic> _availableVoices = [];
+
+  // TTS reading state - Enhanced for chunk-based reading
+  // Enhanced TTS variables for chunk-based reading
+  List<String> _textChunks = [];
+  int _currentChunkIndex = 0;
+  bool _isReadingChunks = false;
+  Timer? _chunkTimer;
+
+  // Enhanced TTS state management for pause/resume and position control
+  int _savedChunkIndex = 0; // For resuming from paused position
+  List<TextSpan> _highlightedTextSpans = []; // For highlighting current reading position
+
+  // Add variables for better text synchronization
+  Timer? _scrollSyncTimer; // Timer for delayed scroll synchronization
+
   // Available font options with both system and Google fonts
   Map<String, Map<String, dynamic>> _fontOptions = {
     'System Default': {'isSystemFont': true, 'fontFamily': null},
@@ -95,6 +123,12 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     'Libre Baskerville': {'isSystemFont': false, 'fontFamily': 'Libre Baskerville'},
     'Source Serif Pro': {'isSystemFont': false, 'fontFamily': 'Source Serif Pro'},
     'Lora': {'isSystemFont': false, 'fontFamily': 'Lora'},
+    // Add fonts that support Hindi/Devanagari
+    'Noto Sans': {'isSystemFont': false, 'fontFamily': 'Noto Sans'},
+    'Noto Serif': {'isSystemFont': false, 'fontFamily': 'Noto Serif'},
+    'Mukti': {'isSystemFont': false, 'fontFamily': 'Mukti'},
+    'Hind': {'isSystemFont': false, 'fontFamily': 'Hind'},
+    'Poppins': {'isSystemFont': false, 'fontFamily': 'Poppins'},
   };
 
   @override
@@ -113,13 +147,23 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       _scrollPosition = _scrollController.offset;
       _saveReadingProgressDebounced();
     });
+
+    // Initialize Text-to-Speech
+    _flutterTts = FlutterTts();
+    _initializeTts();
   }
 
   @override
   void dispose() {
     _progressSaveTimer?.cancel();
+    _chunkTimer?.cancel(); // Clean up chunk timer
     if (_hasUnsavedProgress) {
       _saveReadingProgressImmediate();
+    }
+    // Dispose TTS resources
+    if (_flutterTts != null) {
+      _flutterTts!.stop();
+      _flutterTts = null;
     }
     _pageController.dispose();
     _searchController.dispose();
@@ -453,14 +497,14 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                           Icon(
                             Icons.bookmark_border,
                             size: 64,
-                            color: _textColor.withValues(alpha: 0.5),
+                            color: _textColor.withAlpha((0.5 * 255).round()),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'No bookmarks yet',
                             style: TextStyle(
                               fontSize: 18,
-                              color: _textColor.withValues(alpha: 0.7),
+                              color: _textColor.withAlpha((0.7 * 255).round()),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -469,7 +513,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
-                              color: _textColor.withValues(alpha: 0.5),
+                              color: _textColor.withAlpha((0.5 * 255).round()),
                             ),
                           ),
                         ],
@@ -486,11 +530,11 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: isCurrentPosition
-                                ? (_isDarkTheme ? Colors.orange[900]?.withValues(alpha: 0.3) : Colors.orange[50])
+                                ? (_isDarkTheme ? Colors.orange[900]?.withAlpha((0.3 * 255).round()) : Colors.orange[50])
                                 : null,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _textColor.withValues(alpha: 0.1),
+                              color: _textColor.withAlpha((0.1 * 255).round()),
                               width: 1,
                             ),
                           ),
@@ -528,7 +572,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                                 Text(
                                   'Chapter ${bookmark.chapterIndex + 1}',
                                   style: TextStyle(
-                                    color: _textColor.withValues(alpha: 0.7),
+                                    color: _textColor.withAlpha((0.7 * 255).round()),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -536,7 +580,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                                 Text(
                                   'Added: ${_formatDate(bookmark.createdAt)}',
                                   style: TextStyle(
-                                    color: _textColor.withValues(alpha: 0.5),
+                                    color: _textColor.withAlpha((0.5 * 255).round()),
                                     fontSize: 11,
                                   ),
                                 ),
@@ -562,7 +606,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                               ],
                               icon: Icon(
                                 Icons.more_vert,
-                                color: _textColor.withValues(alpha: 0.6),
+                                color: _textColor.withAlpha((0.6 * 255).round()),
                               ),
                             ),
                             onTap: () {
@@ -843,25 +887,412 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     }
   }
 
+  // Get filtered TTS languages (only US, IN, UK)
+  List<String> _getFilteredLanguages() {
+    final allowedLanguages = ['en-US', 'en-IN', 'en-GB'];
+    final filtered = <String>[];
+
+    for (var language in _availableLanguages) {
+      final langStr = language.toString();
+      if (allowedLanguages.contains(langStr)) {
+        filtered.add(langStr);
+      }
+    }
+
+    // If no filtered languages found, add defaults
+    if (filtered.isEmpty) {
+      filtered.addAll(allowedLanguages);
+    }
+
+    return filtered;
+  }
+
+  Future<void> _initializeTts() async {
+    try {
+      print('TTS: Initializing Text-to-Speech...');
+
+      if (_flutterTts == null) {
+        print('TTS: FlutterTts instance is null, cannot initialize');
+        return;
+      }
+
+      // For Android, check if TTS is available
+      dynamic engines = await _flutterTts!.getEngines;
+      print('TTS: Available engines: $engines');
+
+      // Set up TTS handlers
+      _flutterTts!.setStartHandler(() {
+        print('TTS: Started speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = true;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setCompletionHandler(() {
+        print('TTS: Completed speaking chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+        if (mounted) {
+          if (_isReadingChunks && _currentChunkIndex < _textChunks.length - 1) {
+            // Move to next chunk
+            _currentChunkIndex++;
+            print('TTS: Moving to next chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+
+            // Start a timer to continue with next chunk (small delay for stability)
+            _chunkTimer = Timer(Duration(milliseconds: 500), () {
+              if (_isReadingChunks && _isTtsPlaying) {
+                _speakCurrentChunk();
+              }
+            });
+          } else {
+            // Finished reading entire chapter
+            print('TTS: Finished reading entire chapter');
+            setState(() {
+              _isTtsPlaying = false;
+              _isTtsPaused = false;
+              _isReadingChunks = false;
+              _currentChunkIndex = 0;
+            });
+
+            // Show completion message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Finished reading chapter: ${_chapterTitles.isNotEmpty ? _chapterTitles[_currentChapterIndex] : 'Chapter ${_currentChapterIndex + 1}'}'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      });
+
+      _flutterTts!.setCancelHandler(() {
+        print('TTS: Cancelled speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setPauseHandler(() {
+        print('TTS: Paused speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = true;
+          });
+        }
+      });
+
+      _flutterTts!.setContinueHandler(() {
+        print('TTS: Continued speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = true;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setErrorHandler((msg) {
+        print('TTS: Error - $msg');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = false;
+          });
+
+          String errorMessage = 'Text-to-Speech Error';
+          if (msg.toString().contains('-8')) {
+            errorMessage = 'TTS synthesis error. Try changing language or restart app.';
+          } else if (msg.toString().contains('-5')) {
+            errorMessage = 'TTS language not supported. Please install TTS data.';
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              action: SnackBarAction(
+                label: 'Retry',
+                textColor: Colors.white,
+                onPressed: () => _reinitializeTts(),
+              ),
+            ),
+          );
+        }
+      });
+
+      // Get available languages and voices
+      _availableLanguages = await _flutterTts!.getLanguages;
+      _availableVoices = await _flutterTts!.getVoices;
+
+      print('TTS: Available languages: $_availableLanguages');
+      print('TTS: Available voices: ${_availableVoices.length}');
+
+      // Set default TTS settings
+      await _flutterTts!.setLanguage(_selectedLanguage);
+      await _flutterTts!.setSpeechRate(_ttsRate);
+      await _flutterTts!.setPitch(_ttsPitch);
+
+      if (_selectedVoice != null) {
+        await _flutterTts!.setVoice({"name": _selectedVoice!, "locale": _selectedLanguage});
+      }
+
+      setState(() {
+        _isTtsInitialized = true;
+      });
+
+      print('TTS: Initialization completed successfully');
+    } catch (e) {
+      print('TTS: Initialization failed: $e');
+      setState(() {
+        _isTtsInitialized = false;
+      });
+    }
+  }
+
+  Future<void> _reinitializeTts() async {
+    print('TTS: Reinitializing...');
+    if (_flutterTts != null) {
+      await _flutterTts!.stop();
+    }
+    setState(() {
+      _isTtsInitialized = false;
+      _isTtsPlaying = false;
+      _isTtsPaused = false;
+    });
+    await _initializeTts();
+  }
+
+  // Enhanced TTS methods for chunk-based reading with highlighting
+  void _startTtsReading() {
+    if (!_isTtsInitialized || _chapterContent.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Text-to-Speech not available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _showTtsControls = true;
+    });
+
+    final currentChapterText = _chapterContent[_currentChapterIndex] ?? '';
+    if (currentChapterText.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No text to read in current chapter'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Prepare text chunks for reading
+    _prepareTextChunks(currentChapterText);
+
+    setState(() {
+      _isReadingChunks = true;
+      _currentChunkIndex = 0;
+    });
+
+    _speakCurrentChunk();
+  }
+
+  void _startReadingFromText(String searchText) {
+    if (!_isTtsInitialized || _chapterContent.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Text-to-Speech not available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final currentChapterText = _chapterContent[_currentChapterIndex] ?? '';
+    if (currentChapterText.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No text to read in current chapter'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Find the position of search text in the chapter
+    final searchIndex = currentChapterText.toLowerCase().indexOf(searchText.toLowerCase());
+    if (searchIndex == -1) {
+      // If search text not found, start from beginning
+      _startTtsReading();
+      return;
+    }
+
+    // Extract text from search position onwards
+    final textFromSearch = currentChapterText.substring(searchIndex);
+
+    // Prepare text chunks starting from search position
+    _prepareTextChunks(textFromSearch);
+
+    setState(() {
+      _isReadingChunks = true;
+      _currentChunkIndex = 0;
+    });
+
+    _speakCurrentChunk();
+
+    // Show feedback to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Starting reading from search result'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _prepareTextChunks(String text) {
+    _textChunks.clear();
+
+    // Split text into sentences for better highlighting and pausing
+    final sentences = text.split(RegExp(r'[.!?]+\s+'));
+
+    // Group sentences into chunks of reasonable size (2-3 sentences per chunk)
+    List<String> currentChunk = [];
+
+    for (String sentence in sentences) {
+      sentence = sentence.trim();
+      if (sentence.isEmpty) continue;
+
+      currentChunk.add(sentence);
+
+      // If chunk has 2-3 sentences or is getting long, create a chunk
+      if (currentChunk.length >= 2 || currentChunk.join(' ').length > 200) {
+        _textChunks.add(currentChunk.join('. ') + '.');
+        currentChunk.clear();
+      }
+    }
+
+    // Add remaining sentences as final chunk
+    if (currentChunk.isNotEmpty) {
+      _textChunks.add(currentChunk.join('. ') + '.');
+    }
+
+    print('TTS: Prepared ${_textChunks.length} text chunks for reading');
+  }
+
+  void _speakCurrentChunk() async {
+    if (_currentChunkIndex >= _textChunks.length || !_isReadingChunks) {
+      return;
+    }
+
+    final chunkText = _textChunks[_currentChunkIndex];
+    print('TTS: Speaking chunk ${_currentChunkIndex + 1}/${_textChunks.length}: ${chunkText.substring(0, 50)}...');
+
+    // Update highlighting to show current chunk
+    _updateTextHighlighting();
+
+    try {
+      await _flutterTts!.speak(chunkText);
+    } catch (e) {
+      print('TTS: Error speaking chunk: $e');
+      _stopTtsReading();
+    }
+  }
+
+  void _updateTextHighlighting() {
+    // Simplified highlighting - only update if TTS is actively playing
+    if (!_isTtsPlaying || _chapterContent.isEmpty || _currentChunkIndex >= _textChunks.length) {
+      return;
+    }
+
+    // Use a simpler approach without heavy calculations
+    setState(() {
+      // Clear highlighting to prevent UI freezing - we'll use a simpler indicator
+      _highlightedTextSpans.clear();
+    });
+  }
+
+  void _pauseTtsReading() {
+    if (_isTtsPlaying && _flutterTts != null) {
+      _flutterTts!.pause();
+      _chunkTimer?.cancel();
+      setState(() {
+        _savedChunkIndex = _currentChunkIndex;
+      });
+    }
+  }
+
+  void _resumeTtsReading() {
+    if (_isTtsPaused && _flutterTts != null) {
+      setState(() {
+        _currentChunkIndex = _savedChunkIndex;
+        _isReadingChunks = true;
+      });
+      _speakCurrentChunk();
+    }
+  }
+
+  void _stopTtsReading() {
+    _chunkTimer?.cancel();
+    _scrollSyncTimer?.cancel(); // Cancel any pending scroll operations
+    if (_flutterTts != null) {
+      _flutterTts!.stop();
+    }
+    setState(() {
+      _isTtsPlaying = false;
+      _isTtsPaused = false;
+      _isReadingChunks = false;
+      _currentChunkIndex = 0;
+      _highlightedTextSpans.clear();
+      _showTtsControls = false; // Hide TTS controls when stopped
+    });
+  }
+
+  void _nextTtsChunk() {
+    if (_isReadingChunks && _currentChunkIndex < _textChunks.length - 1) {
+      _flutterTts?.stop(); // This will trigger completion handler to move to next chunk
+    }
+  }
+
+  void _previousTtsChunk() {
+    if (_isReadingChunks && _currentChunkIndex > 0) {
+      _currentChunkIndex = (_currentChunkIndex - 1).clamp(0, _textChunks.length - 1);
+      _flutterTts?.stop();
+
+      // Start reading from previous chunk after a short delay
+      Timer(Duration(milliseconds: 300), () {
+        if (_isReadingChunks) {
+          _speakCurrentChunk();
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: _backgroundColor,
-        appBar: AppBar(
-          title: Text(widget.book.title),
-          backgroundColor: _backgroundColor,
-          foregroundColor: _textColor,
-        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: _textColor),
+              CircularProgressIndicator(
+                color: _isDarkTheme ? Colors.orange : Colors.blue,
+              ),
               const SizedBox(height: 16),
               Text(
-                'Loading book...',
-                style: TextStyle(color: _textColor, fontSize: 16),
+                'Loading EPUB...',
+                style: _getTextStyle(fontSize: 16, color: _textColor),
               ),
             ],
           ),
@@ -873,9 +1304,13 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       return Scaffold(
         backgroundColor: _backgroundColor,
         appBar: AppBar(
-          title: Text(widget.book.title),
           backgroundColor: _backgroundColor,
-          foregroundColor: _textColor,
+          elevation: 0,
+          iconTheme: IconThemeData(color: _textColor),
+          title: Text(
+            'Error',
+            style: _getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ),
         body: Center(
           child: Padding(
@@ -883,12 +1318,30 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error, size: 64, color: Colors.red),
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red,
+                ),
                 const SizedBox(height: 16),
+                Text(
+                  'Failed to load book',
+                  style: _getTextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   _error,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: _textColor),
+                  style: _getTextStyle(fontSize: 14, color: _textColor.withAlpha((0.7 * 255).round())),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Go Back'),
                 ),
               ],
             ),
@@ -899,434 +1352,903 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
 
     return Scaffold(
       backgroundColor: _backgroundColor,
-      appBar: _showControls ? AppBar(
-        title: Text(
-          widget.book.title,
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: _backgroundColor,
-        foregroundColor: _textColor,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              setState(() {
-                _showSearchResults = !_showSearchResults;
-              });
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.bookmark_add),
-            onPressed: _addBookmark,
-          ),
-          IconButton(
-            icon: const Icon(Icons.bookmarks),
-            onPressed: _showBookmarks,
-          ),
-          IconButton(
-            icon: const Icon(Icons.list),
-            onPressed: _showTableOfContents,
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => setState(() {
-              _showSettings = !_showSettings;
-            }),
-          ),
-        ],
-      ) : null,
       body: Stack(
         children: [
-          // Main reading content
-          GestureDetector(
-            onTap: _toggleControls,
+          // Main content with brightness adjustment
+          Opacity(
+            opacity: _brightness,
             child: SafeArea(
-              child: _chapterContent.isEmpty ?
-                Center(child: Text('No content available', style: TextStyle(color: _textColor))) :
-                SingleChildScrollView(
-                  controller: _scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  child: Container(
-                    padding: _textPadding,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: _chapterContent.isNotEmpty
+                  ? Stack(
                       children: [
-                        // Chapter title
-                        if (_chapterTitles.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 24.0),
-                            child: Text(
-                              _chapterTitles[_currentChapterIndex],
-                              style: _getTextStyle(
-                                fontSize: _fontSize + 6,
-                                fontWeight: FontWeight.bold,
-                                height: _lineHeight,
-                              ),
-                            ),
-                          ),
-                        // Chapter content with improved formatting
-                        SelectableText(
-                          _chapterContent[_currentChapterIndex] ?? 'No content available',
-                          style: _getTextStyle(
-                            fontSize: _fontSize,
-                            height: _lineHeight,
-                            wordSpacing: _wordSpacing,
-                            letterSpacing: _letterSpacing,
-                          ),
-                          textAlign: TextAlign.justify,
-                        ),
-                        // Navigation buttons at bottom
-                        const SizedBox(height: 40),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            if (_currentChapterIndex > 0)
-                              ElevatedButton.icon(
-                                onPressed: _previousChapter,
-                                icon: Icon(Icons.arrow_back),
-                                label: Text('Previous'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.blue,
-                                  foregroundColor: Colors.white,
-                                ),
-                              )
-                            else
-                              const SizedBox(),
-                            if (_currentChapterIndex < _chapterContent.length - 1)
-                              ElevatedButton.icon(
-                                onPressed: _nextChapter,
-                                icon: Icon(Icons.arrow_forward),
-                                label: Text('Next'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.blue,
-                                  foregroundColor: Colors.white,
-                                ),
-                              )
-                            else
-                              const SizedBox(),
-                          ],
-                        ),
-                        const SizedBox(height: 40),
-                      ],
-                    ),
-                  ),
-                ),
-            ),
-          ),
-
-          // Progress indicator at bottom
-          if (_showControls && _chapterContent.isNotEmpty)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _backgroundColor.withValues(alpha: 0.9),
-                  border: Border(top: BorderSide(color: _textColor.withValues(alpha: 0.2))),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Chapter ${_currentChapterIndex + 1} of ${_chapterContent.length}',
-                          style: TextStyle(color: _textColor, fontSize: 12),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '${((_currentChapterIndex + 1) / _chapterContent.length * 100).toInt()}%',
-                          style: TextStyle(color: _textColor, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: (_currentChapterIndex + 1) / _chapterContent.length,
-                      backgroundColor: _textColor.withValues(alpha: 0.3),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _isDarkTheme ? Colors.blue[300]! : Colors.blue,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          // Search results overlay
-          if (_showSearchResults)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                color: _backgroundColor.withValues(alpha: 0.95),
-                child: SafeArea(
-                  child: Column(
-                    children: [
-                      // Search input
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                style: TextStyle(color: _textColor),
-                                decoration: InputDecoration(
-                                  hintText: 'Search in book...',
-                                  hintStyle: TextStyle(color: _textColor.withValues(alpha: 0.6)),
-                                  prefixIcon: Icon(Icons.search, color: _textColor),
-                                  border: OutlineInputBorder(),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(color: _textColor.withValues(alpha: 0.3)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(color: _isDarkTheme ? Colors.blue[300]! : Colors.blue),
-                                  ),
-                                ),
-                                onChanged: _performSearch,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _showSearchResults = false;
-                                  _searchController.clear();
-                                  _searchResults.clear();
-                                });
-                              },
-                              icon: Icon(Icons.close, color: _textColor),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Search results
-                      Expanded(
-                        child: _searchResults.isEmpty
-                            ? Center(
-                                child: Text(
-                                  _searchController.text.isEmpty
-                                      ? 'Enter search terms above'
-                                      : 'No results found',
-                                  style: TextStyle(color: _textColor.withValues(alpha: 0.6)),
-                                ),
-                              )
-                            : ListView.builder(
-                                itemCount: _searchResults.length,
-                                itemBuilder: (context, index) {
-                                  final result = _searchResults[index];
-                                  return ListTile(
-                                    title: Text(
-                                      result.chapterTitle,
-                                      style: TextStyle(
-                                        color: _textColor,
+                        // Main scrollable content
+                        GestureDetector(
+                          onTap: _toggleControls,
+                          behavior: HitTestBehavior.deferToChild, // Allow scroll gestures to pass through
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            padding: _textPadding,
+                            physics: AlwaysScrollableScrollPhysics(), // Ensure scrolling is always enabled
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Chapter title
+                                if (_chapterTitles.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 24.0),
+                                    child: Text(
+                                      _chapterTitles[_currentChapterIndex],
+                                      style: _getTextStyle(
+                                        fontSize: _fontSize + 4,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    subtitle: Text(
-                                      result.excerpt,
-                                      style: TextStyle(color: _textColor.withValues(alpha: 0.8)),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    onTap: () {
-                                      _jumpToChapter(result.chapterIndex);
-                                      setState(() {
-                                        _showSearchResults = false;
-                                        _searchController.clear();
-                                        _searchResults.clear();
-                                      });
-                                    },
-                                  );
-                                },
-                              ),
+                                  ),
+
+                                // Main text content with highlighting
+                                _highlightedTextSpans.isNotEmpty
+                                    ? RichText(
+                                        text: TextSpan(children: _highlightedTextSpans),
+                                        textAlign: TextAlign.justify,
+                                      )
+                                    : Text(
+                                        _chapterContent[_currentChapterIndex] ?? '',
+                                        style: _getTextStyle(fontSize: _fontSize),
+                                        textAlign: TextAlign.justify,
+                                      ),
+
+                                const SizedBox(height: 100), // Bottom padding for controls
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Center(
+                      child: GestureDetector(
+                        onTap: _toggleControls,
+                        child: Text(
+                          'No content available',
+                          style: _getTextStyle(fontSize: 16),
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
+                    ),
             ),
+          ),
+
+          // TTS Controls Bar (shown when TTS is active or controls are explicitly shown)
+          if (_showTtsControls)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _buildTtsControlsPanel(),
+            ),
+
+          // Reading controls (shown on tap)
+          if (_showControls)
+            _buildControlsOverlay(),
 
           // Settings panel
           if (_showSettings)
-            Positioned(
-              top: 0,
-              right: 0,
-              bottom: 0,
-              width: MediaQuery.of(context).size.width * 0.8,
-              child: Container(
-                color: _backgroundColor,
-                child: SafeArea(
-                  child: Column(
+            _buildSettingsPanel(),
+
+          // Search results
+          if (_showSearchResults)
+            _buildSearchResults(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlsOverlay() {
+    return Column(
+      children: [
+        // Top controls
+        Container(
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 16,
+            right: 16,
+            bottom: 8,
+          ),
+          decoration: BoxDecoration(
+            color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha((0.1 * 255).round()),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.arrow_back, color: _textColor),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              Expanded(
+                child: Text(
+                  widget.book.title,
+                  style: _getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.search, color: _textColor),
+                onPressed: () {
+                  setState(() {
+                    _showSearchResults = !_showSearchResults;
+                    _showSettings = false;
+                  });
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.bookmark_add, color: _textColor),
+                onPressed: _addBookmark,
+              ),
+              IconButton(
+                icon: Icon(Icons.settings, color: _textColor),
+                onPressed: () {
+                  setState(() {
+                    _showSettings = !_showSettings;
+                    _showSearchResults = false;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+
+        Spacer(),
+
+        // Bottom controls
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha((0.1 * 255).round()),
+                blurRadius: 4,
+                offset: Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // TTS Controls
+              if (_isTtsInitialized)
+                Container(
+                  padding: EdgeInsets.all(12),
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: _isDarkTheme ? Colors.grey[800] : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      // Settings header
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: _isDarkTheme ? Colors.grey[800] : Colors.blue,
-                          border: Border(bottom: BorderSide(color: _textColor.withValues(alpha: 0.2))),
+                      IconButton(
+                        icon: Icon(
+                          _isTtsPlaying || _isTtsPaused ? Icons.stop : Icons.play_arrow,
+                          color: _isTtsPlaying || _isTtsPaused ? Colors.red : Colors.green,
+                          size: 32,
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.settings, color: Colors.white),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Reading Settings',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              onPressed: () => setState(() => _showSettings = false),
-                              icon: Icon(Icons.close, color: Colors.white),
-                            ),
-                          ],
-                        ),
+                        onPressed: _isTtsPlaying || _isTtsPaused ? _stopTtsReading : _startTtsReading,
                       ),
-                      // Settings content
+                      if (_isTtsPlaying || _isTtsPaused) ...[
+                        IconButton(
+                          icon: Icon(
+                            _isTtsPlaying ? Icons.pause : Icons.play_arrow,
+                            color: Colors.orange,
+                            size: 28,
+                          ),
+                          onPressed: _isTtsPlaying ? _pauseTtsReading : _resumeTtsReading,
+                        ),
+                      ],
                       Expanded(
-                        child: ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: [
-                            // Theme selection
-                            Text('Theme', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              children: _themePresets.entries.map((entry) {
-                                final isSelected = _currentTheme == entry.key;
-                                return ChoiceChip(
-                                  label: Text(entry.value['name']),
-                                  selected: isSelected,
-                                  onSelected: (_) => _applyTheme(entry.key),
-                                  selectedColor: _isDarkTheme ? Colors.blue[700] : Colors.blue[200],
-                                  backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.grey[200],
-                                  labelStyle: TextStyle(
-                                    color: isSelected ? Colors.white : _textColor,
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Font size
-                            Text('Font Size', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
-                            Slider(
-                              value: _fontSize,
-                              min: 12.0,
-                              max: 30.0,
-                              divisions: 18,
-                              label: _fontSize.round().toString(),
-                              onChanged: (value) {
-                                setState(() => _fontSize = value);
-                                _saveSettings();
-                              },
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Line height
-                            Text('Line Spacing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
-                            Slider(
-                              value: _lineHeight,
-                              min: 1.0,
-                              max: 2.5,
-                              divisions: 15,
-                              label: _lineHeight.toStringAsFixed(1),
-                              onChanged: (value) {
-                                setState(() => _lineHeight = value);
-                                _saveSettings();
-                              },
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Font family
-                            Text('Font', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              children: _fontOptions.keys.map((font) {
-                                final fontOption = _fontOptions[font]!;
-                                return ChoiceChip(
-                                  label: Text(
-                                    font,
-                                    style: fontOption['isSystemFont'] == true
-                                        ? TextStyle(fontFamily: fontOption['fontFamily'])
-                                        : (fontOption['fontFamily'] != null
-                                            ? ((){
-                                                try {
-                                                  return GoogleFonts.getFont(fontOption['fontFamily']);
-                                                } catch (e) {
-                                                  return const TextStyle();
-                                                }
-                                              })()
-                                            : const TextStyle()),
-                                  ),
-                                  selected: _fontFamily == font,
-                                  onSelected: (_) {
-                                    setState(() => _fontFamily = font);
-                                    _saveSettings();
-                                  },
-                                  selectedColor: _isDarkTheme ? Colors.blue[700] : Colors.blue[200],
-                                  backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.grey[200],
-                                  labelStyle: TextStyle(
-                                    color: _fontFamily == font ? Colors.white : _textColor,
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Word spacing
-                            Text('Word Spacing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
-                            Slider(
-                              value: _wordSpacing,
-                              min: 0.5,
-                              max: 2.0,
-                              divisions: 15,
-                              label: _wordSpacing.toStringAsFixed(1),
-                              onChanged: (value) {
-                                setState(() => _wordSpacing = value);
-                                _saveSettings();
-                              },
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Letter spacing
-                            Text('Letter Spacing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textColor)),
-                            Slider(
-                              value: _letterSpacing,
-                              min: -0.5,
-                              max: 2.0,
-                              divisions: 25,
-                              label: _letterSpacing.toStringAsFixed(1),
-                              onChanged: (value) {
-                                setState(() => _letterSpacing = value);
-                                _saveSettings();
-                              },
-                            ),
-                          ],
+                        child: Text(
+                          _isTtsPlaying || _isTtsPaused
+                              ? 'Reading: ${_currentChunkIndex + 1}/${_textChunks.length}'
+                              : 'Text-to-Speech',
+                          style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ],
                   ),
                 ),
+
+              // Navigation controls
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.list, color: _textColor),
+                        onPressed: _showTableOfContents,
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.bookmarks, color: _textColor),
+                        onPressed: _showBookmarks,
+                      ),
+                    ],
+                  ),
+
+                  // Chapter navigation
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.chevron_left, color: _textColor),
+                        onPressed: _currentChapterIndex > 0 ? _previousChapter : null,
+                      ),
+                      Text(
+                        '${_currentChapterIndex + 1} / ${_chapterContent.length}',
+                        style: _getTextStyle(fontSize: 14),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.chevron_right, color: _textColor),
+                        onPressed: _currentChapterIndex < _chapterContent.length - 1 ? _nextChapter : null,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTtsControlsPanel() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((0.1 * 255).round()),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Text-to-Speech',
+                style: _getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: Icon(Icons.close, color: _textColor),
+                onPressed: () => setState(() => _showTtsControls = false),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_isTtsInitialized)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.skip_previous, color: _textColor),
+                  onPressed: _currentChunkIndex > 0 ? _previousTtsChunk : null,
+                ),
+                IconButton(
+                  icon: Icon(
+                    _isTtsPlaying ? Icons.pause : Icons.play_arrow,
+                    color: Colors.orange,
+                    size: 32,
+                  ),
+                  onPressed: _isTtsPlaying ? _pauseTtsReading : (_isTtsPaused ? _resumeTtsReading : _startTtsReading),
+                ),
+                IconButton(
+                  icon: Icon(Icons.stop, color: Colors.red),
+                  onPressed: _stopTtsReading,
+                ),
+                IconButton(
+                  icon: Icon(Icons.skip_next, color: _textColor),
+                  onPressed: _currentChunkIndex < _textChunks.length - 1 ? _nextTtsChunk : null,
+                ),
+              ],
+            )
+          else
+            Text('TTS is initializing...', style: _getTextStyle(fontSize: 14)),
+          if (_isTtsPlaying || _isTtsPaused)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                'Reading chunk: ${_currentChunkIndex + 1}/${_textChunks.length}',
+                style: _getTextStyle(fontSize: 12),
               ),
             ),
         ],
       ),
     );
   }
+
+  Widget _buildSettingsPanel() {
+    return Container(
+      color: Colors.black.withAlpha((0.3 * 255).round()),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: BoxDecoration(
+              color: _backgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                // Handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _textColor.withAlpha((0.3 * 255).round()),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _isDarkTheme ? Colors.grey[800] : Colors.grey[100],
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, color: _textColor),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Reading Settings',
+                          style: _getTextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: _textColor),
+                        onPressed: () => setState(() => _showSettings = false),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Settings content
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildThemeSelector(),
+                      const SizedBox(height: 24),
+                      _buildFontSettings(),
+                      const SizedBox(height: 24),
+                      _buildTtsSettings(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildThemeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Theme',
+          style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: _themePresets.entries.map((entry) {
+            final isSelected = _currentTheme == entry.key;
+            return GestureDetector(
+              onTap: () => _applyTheme(entry.key),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: entry.value['backgroundColor'] as Color,
+                  border: Border.all(
+                    color: isSelected
+                        ? (_isDarkTheme ? Colors.orange : Colors.blue)
+                        : Colors.grey.withAlpha((0.3 * 255).round()),
+                    width: isSelected ? 2 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  entry.value['name'] as String,
+                  style: TextStyle(
+                    color: entry.value['textColor'] as Color,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),);
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFontSettings() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Font Settings',
+          style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 16),
+
+        // Font size slider
+        Text('Font Size: ${_fontSize.round()}pt'),
+        Slider(
+          value: _fontSize,
+          min: 12.0,
+          max: 32.0,
+          divisions: 20,
+          onChanged: (value) {
+            setState(() => _fontSize = value);
+            _saveSettings();
+          },
+        ),
+
+        const SizedBox(height: 16),
+
+        // Line height slider
+        Text('Line Height: ${_lineHeight.toStringAsFixed(1)}x'),
+        Slider(
+          value: _lineHeight,
+          min: 1.0,
+          max: 2.5,
+          divisions: 15,
+          onChanged: (value) {
+            setState(() => _lineHeight = value);
+            _saveSettings();
+          },
+        ),
+
+        const SizedBox(height: 16),
+
+        // Brightness slider
+        Text('Brightness: ${(_brightness * 100).round()}%'),
+        Slider(
+          value: _brightness,
+          min: 0.3,
+          max: 1.0,
+          divisions: 7,
+          onChanged: (value) {
+            setState(() => _brightness = value);
+            _saveSettings();
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTtsSettings() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Text-to-Speech',
+          style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 16),
+
+        if (_isTtsInitialized) ...[
+          // Voice Selection
+          Text('Voice Selection'),
+          const SizedBox(height: 8),
+          _buildVoiceSelector(),
+          const SizedBox(height: 16),
+
+          // TTS Rate
+          Text('Speech Rate: ${(_ttsRate * 100).round()}%'),
+          Slider(
+            value: _ttsRate,
+            min: 0.1,
+            max: 1.0,
+            divisions: 9,
+            onChanged: (value) async {
+              setState(() => _ttsRate = value);
+              await _flutterTts?.setSpeechRate(value);
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // TTS Pitch
+          Text('Pitch: ${_ttsPitch.toStringAsFixed(1)}x'),
+          Slider(
+            value: _ttsPitch,
+            min: 0.5,
+            max: 2.0,
+            divisions: 15,
+            onChanged: (value) async {
+              setState(() => _ttsPitch = value);
+              await _flutterTts?.setPitch(value);
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // Language Selection
+          Text('Language'),
+          const SizedBox(height: 8),
+          DropdownButton<String>(
+            value: _selectedLanguage,
+            isExpanded: true,
+            items: _getFilteredLanguages().map<DropdownMenuItem<String>>((language) {
+              String displayName = language;
+              // Make display names more user-friendly
+              switch (language) {
+                case 'en-US':
+                  displayName = 'English (US)';
+                  break;
+                case 'en-IN':
+                  displayName = 'English (India)';
+                  break;
+                case 'en-GB':
+                  displayName = 'English (UK)';
+                  break;
+              }
+              return DropdownMenuItem<String>(
+                value: language,
+                child: Text(displayName, style: _getTextStyle(fontSize: 14)),
+              );
+            }).toList(),
+            onChanged: (String? newLanguage) async {
+              if (newLanguage != null) {
+                setState(() => _selectedLanguage = newLanguage);
+                await _flutterTts?.setLanguage(newLanguage);
+                // Reset voice when language changes
+                _selectedVoice = null;
+                await _updateAvailableVoices();
+              }
+            },
+          ),
+        ] else
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.withAlpha((0.1 * 255).round()),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Text-to-Speech is initializing...',
+              style: _getTextStyle(fontSize: 14, color: Colors.orange),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildVoiceSelector() {
+    if (_availableVoices.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.withAlpha((0.1 * 255).round()),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'Loading voices...',
+          style: _getTextStyle(fontSize: 14, color: _textColor.withAlpha((0.7 * 255).round())),
+        ),
+      );
+    }
+
+    // Categorize voices by gender
+    List<Map<String, dynamic>> maleVoices = [];
+    List<Map<String, dynamic>> femaleVoices = [];
+    List<Map<String, dynamic>> otherVoices = [];
+
+    for (var voice in _availableVoices) {
+      if (voice is Map<String, dynamic>) {
+        String voiceName = voice['name']?.toString() ?? '';
+        String voiceNameLower = voiceName.toLowerCase();
+
+        if (voiceNameLower.contains('male') && !voiceNameLower.contains('female')) {
+          maleVoices.add(voice);
+        } else if (voiceNameLower.contains('female') || voiceNameLower.contains('woman')) {
+          femaleVoices.add(voice);
+        } else {
+          // Try to categorize by common naming patterns
+          if (voiceNameLower.contains('man') || voiceNameLower.contains('boy') ||
+              voiceNameLower.contains('alex') || voiceNameLower.contains('tom') ||
+              voiceNameLower.contains('john') || voiceNameLower.contains('david')) {
+            maleVoices.add(voice);
+          } else if (voiceNameLower.contains('woman') || voiceNameLower.contains('girl') ||
+                     voiceNameLower.contains('mary') || voiceNameLower.contains('susan') ||
+                     voiceNameLower.contains('anna') || voiceNameLower.contains('sarah')) {
+            femaleVoices.add(voice);
+          } else {
+            otherVoices.add(voice);
+          }
+        }
+      }
+    }
+
+    return Column(
+      children: [
+        // Male voices section
+        if (maleVoices.isNotEmpty) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withAlpha((0.1 * 255).round()),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.man, color: Colors.blue, size: 20),
+                const SizedBox(width: 8),
+                Text('Male Voices', style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...maleVoices.map((voice) => _buildVoiceOption(voice)).toList(),
+          const SizedBox(height: 12),
+        ],
+
+        // Female voices section
+        if (femaleVoices.isNotEmpty) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.pink.withAlpha((0.1 * 255).round()),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.woman, color: Colors.pink, size: 20),
+                const SizedBox(width: 8),
+                Text('Female Voices', style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...femaleVoices.map((voice) => _buildVoiceOption(voice)).toList(),
+          const SizedBox(height: 12),
+        ],
+
+        // Other voices section
+        if (otherVoices.isNotEmpty) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.withAlpha((0.1 * 255).round()),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.record_voice_over, color: Colors.grey, size: 20),
+                const SizedBox(width: 8),
+                Text('Other Voices', style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...otherVoices.map((voice) => _buildVoiceOption(voice)).toList(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildVoiceOption(Map<String, dynamic> voice) {
+    String voiceName = voice['name']?.toString() ?? 'Unknown Voice';
+    String voiceLocale = voice['locale']?.toString() ?? '';
+    bool isSelected = _selectedVoice == voiceName;
+
+    return GestureDetector(
+      onTap: () async {
+        setState(() => _selectedVoice = voiceName);
+        await _flutterTts?.setVoice({"name": voiceName, "locale": voiceLocale});
+
+        // Test the voice with a short sample
+        await _flutterTts?.speak("Hello, this is how I sound.");
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.orange.withAlpha((0.2 * 255).round()) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? Colors.orange : Colors.grey.withAlpha((0.3 * 255).round()),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              color: isSelected ? Colors.orange : Colors.grey,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    voiceName,
+                    style: _getTextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                  if (voiceLocale.isNotEmpty)
+                    Text(
+                      voiceLocale,
+                      style: _getTextStyle(
+                        fontSize: 12,
+                        color: _textColor.withAlpha((0.6 * 255).round()),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.play_arrow, color: Colors.orange, size: 20),
+              onPressed: () async {
+                // Test voice without changing selection
+                await _flutterTts?.setVoice({"name": voiceName, "locale": voiceLocale});
+                await _flutterTts?.speak("This is a voice preview.");
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateAvailableVoices() async {
+    try {
+      _availableVoices = await _flutterTts!.getVoices;
+      setState(() {});
+    } catch (e) {
+      print('Error updating available voices: $e');
+    }
+  }
+
+  Widget _buildSearchResults() {
+    return Container(
+      color: Colors.black.withAlpha((0.3 * 255).round()),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.8,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: BoxDecoration(
+              color: _backgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                // Header with search
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _isDarkTheme ? Colors.grey[800] : Colors.grey[100],
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: _textColor),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search in book...',
+                            border: InputBorder.none,
+                            hintStyle: _getTextStyle(fontSize: 16, color: _textColor.withAlpha((0.6 * 255).round())),
+                          ),
+                          style: _getTextStyle(fontSize: 16),
+                          onChanged: _performSearch,
+                          onSubmitted: _performSearch,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: _textColor),
+                        onPressed: () => setState(() => _showSearchResults = false),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Results
+                Expanded(
+                  child: _searchResults.isEmpty
+                      ? Center(
+                          child: Text(
+                            _searchController.text.trim().isEmpty
+                                ? 'Enter text to search'
+                                : 'No results found',
+                            style: _getTextStyle(fontSize: 16, color: _textColor.withAlpha((0.6 * 255).round())),
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: _searchResults.length,
+                          itemBuilder: (context, index) {
+                            final result = _searchResults[index];
+                            return ListTile(
+                              title: Text(
+                                result.chapterTitle,
+                                style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                result.excerpt,
+                                style: _getTextStyle(fontSize: 12, color: _textColor.withAlpha((0.7 * 255).round())),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: IconButton(
+                                icon: Icon(Icons.play_circle_outline, color: Colors.orange),
+                                onPressed: () {
+                                  setState(() {
+                                    _showSearchResults = false;
+                                    _showControls = false;
+                                  });
+                                  _jumpToChapter(result.chapterIndex);
+                                  _startReadingFromText(_searchController.text);
+                                },
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  _currentChapterIndex = result.chapterIndex;
+                                  _showSearchResults = false;
+                                  _showControls = false;
+                                });
+
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  _scrollController.jumpTo(0);
+                                });
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
+// Helper classes
 class SearchResult {
   final int chapterIndex;
   final String chapterTitle;

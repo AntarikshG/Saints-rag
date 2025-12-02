@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'book_service.dart';
 
@@ -143,7 +142,14 @@ class _PdfReaderPageState extends State<PdfReaderPage> with WidgetsBindingObserv
           ),
           if (_isLoading)
             const Center(
-              child: CircularProgressIndicator(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading PDF...'),
+                ],
+              ),
             ),
           if (_error != null)
             Center(
@@ -162,9 +168,12 @@ class _PdfReaderPageState extends State<PdfReaderPage> with WidgetsBindingObserv
         child: Container(
           height: 50,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Text('Page ${_currentPage + 1} of $_totalPages'),
+              Padding(
+                padding: EdgeInsets.only(left: 16),
+                child: Text('Page ${_currentPage + 1} of $_totalPages'),
+              ),
             ],
           ),
         ),
@@ -172,4 +181,3 @@ class _PdfReaderPageState extends State<PdfReaderPage> with WidgetsBindingObserv
     );
   }
 }
-

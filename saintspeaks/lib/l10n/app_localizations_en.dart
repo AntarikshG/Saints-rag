@@ -36,7 +36,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dark => 'Dark';
 
   @override
-  String get setName => 'Set Name';
+  String get setName => 'Set your Name';
 
   @override
   String get enterYourName => 'Enter your name';
