@@ -27,6 +27,8 @@ import 'books_library.dart';
 import 'books_tab.dart';
 import 'pdf_reader.dart';
 import 'epub_reader.dart';
+import 'rating_share_service.dart';
+import 'ekadashi_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -122,8 +124,23 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _loadPrefs();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await NotificationService.initialize(context);
-      await NotificationService.scheduleDailyQuoteNotifications(_locale);
+      try {
+        print('🚀 Initializing app notifications...');
+        await NotificationService.initialize(context);
+
+        // Check and auto-reschedule if needed instead of always scheduling
+        await NotificationService.checkAndRescheduleIfNeeded(_locale);
+
+        print('✅ App notification setup complete');
+      } catch (e) {
+        print('❌ Error setting up notifications: $e');
+        // Still try to schedule notifications as fallback
+        try {
+          await NotificationService.scheduleDailyQuoteNotifications(_locale);
+        } catch (e2) {
+          print('❌ Fallback notification scheduling failed: $e2');
+        }
+      }
     });
   }
 
@@ -429,108 +446,136 @@ class HomePage extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: drawerGradient,
             ),
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    gradient: appBarGradient,
-                  ),
-                  child: DrawerHeader(
-                    margin: EdgeInsets.zero,
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.self_improvement,
-                            size: 35,
-                            color: Colors.deepOrange,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          loc.menu,
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
+            child: SafeArea(
+              child: ListView(
+                padding: EdgeInsets.only(bottom: 24), // Add bottom padding for system nav bar
+                children: [
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      gradient: appBarGradient,
                     ),
-                  ),
-                ),
-                _buildDrawerItem(context, Icons.contact_page, loc.contact, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => ContactPage()));
-                }),
-                _buildDrawerItem(context, Icons.color_lens, loc.selectTheme, () {
-                  Navigator.pop(context);
-                  _showThemeDialog(context);
-                }),
-                _buildDrawerItem(context, Icons.language, loc.language, () {
-                  Navigator.pop(context);
-                  _showLanguageDialog(context);
-                }),
-                _buildDrawerItem(context, Icons.person, loc.setName, () {
-                  Navigator.pop(context);
-                  _showNameDialog(context);
-                }),
-                _buildDrawerItem(context, Icons.note, loc.spiritualDiary, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => SpiritualDiaryPage()));
-                }),
-                _buildDrawerItem(context, Icons.bookmark, loc.bookmarkedQuotes, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
-                }),
-                _buildDrawerItem(context, Icons.library_books, 'My Books Library', () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => BooksLibraryPage()));
-                }),
-                _buildDrawerItem(context, Icons.info, loc.aboutApp, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => AboutAppPage()));
-                }),
-                _buildDrawerItem(context, Icons.format_quote, loc.quoteOfTheDay, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()));
-                }),
-                _buildDrawerItem(context, Icons.notifications_active, 'Test Notification', () async {
-                  Navigator.pop(context);
-
-                  // Show current notification configuration
-                  final configInfo = NotificationService.getNotificationConfigInfo();
-                  await NotificationService.showTestNotification();
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
+                    child: DrawerHeader(
+                      margin: EdgeInsets.zero,
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Text('✅ Test notification sent!'),
-                          SizedBox(height: 4),
-                          Text(configInfo, style: TextStyle(fontSize: 12)),
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.deepOrange.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: ClipOval(
+                                child: Image.asset(
+                                  'assets/images/antarikshverse.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                      Icons.self_improvement,
+                                      size: 35,
+                                      color: Colors.deepOrange,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            loc.menu,
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ],
                       ),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 5),
                     ),
-                  );
-                }),
-                _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
-                }),
-              ],
+                  ),
+                  _buildDrawerItem(context, Icons.contact_page, loc.contact, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ContactPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.color_lens, loc.selectTheme, () {
+                    Navigator.pop(context);
+                    _showThemeDialog(context);
+                  }),
+                  _buildDrawerItem(context, Icons.language, loc.language, () {
+                    Navigator.pop(context);
+                    _showLanguageDialog(context);
+                  }),
+                  _buildDrawerItem(context, Icons.person, loc.setName, () {
+                    Navigator.pop(context);
+                    _showNameDialog(context);
+                  }),
+                  _buildDrawerItem(context, Icons.note, loc.spiritualDiary, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => SpiritualDiaryPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.bookmark, loc.bookmarkedQuotes, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.brightness_2, 'Next Ekadashi', () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => EkadashiPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.library_books, 'My Books Library', () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => BooksLibraryPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.info, loc.aboutApp, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => AboutAppPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.star, 'Rate & Share App', () {
+                    Navigator.pop(context);
+                    RatingShareService.showRatingShareDialog(context);
+                  }),
+                  _buildDrawerItem(context, Icons.notifications_active, 'Set Daily Notifications', () async {
+                    Navigator.pop(context);
+
+                    // Show current notification configuration
+                    final configInfo = NotificationService.getNotificationConfigInfo();
+                    await NotificationService.showTestNotification();
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('✅ Test notification sent!'),
+                            SizedBox(height: 4),
+                            Text(configInfo, style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 5),
+                      ),
+                    );
+                  }),
+                  _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
+                  }),
+                ],
+              ),
             ),
           ),
         ),
@@ -576,44 +621,44 @@ class HomePage extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 16),
-              // Quote of the Day Card
+              // Quote of the Day Card - Made smaller
               Container(
-                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   gradient: brightness == Brightness.dark
                       ? LinearGradient(colors: [Colors.grey.shade900, Colors.grey.shade800])
                       : LinearGradient(colors: [Colors.white, Colors.orange.shade50]),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.deepOrange.withOpacity(0.18),
-                      blurRadius: 12,
-                      offset: Offset(0, 6),
+                      color: Colors.deepOrange.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()),
                     ),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       child: Row(
                         children: [
                           Container(
-                            width: 60,
-                            height: 60,
+                            width: 40,
+                            height: 40,
                             decoration: BoxDecoration(
                               color: Colors.deepOrange.shade50,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.deepOrange.withOpacity(0.2),
-                                  blurRadius: 8,
+                                  blurRadius: 6,
                                   offset: Offset(0, 2),
                                 ),
                               ],
@@ -621,10 +666,10 @@ class HomePage extends StatelessWidget {
                             child: Icon(
                               Icons.format_quote,
                               color: Colors.deepOrange.shade700,
-                              size: 30,
+                              size: 20,
                             ),
                           ),
-                          SizedBox(width: 20),
+                          SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -632,20 +677,20 @@ class HomePage extends StatelessWidget {
                                 Text(
                                   loc.quoteOfTheDay,
                                   style: GoogleFonts.playfairDisplay(
-                                    fontSize: 18,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: brightness == Brightness.dark
                                         ? Colors.orange.shade300
                                         : Colors.deepOrange.shade800,
                                   ),
                                 ),
-                                SizedBox(height: 6),
+                                SizedBox(height: 2),
                                 Text(
-                                  'Discover today\'s inspirational wisdom',
+                                  'Daily wisdom',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     color: brightness == Brightness.dark
-                                        ? Colors.grey.shade300
+                                        ? Colors.grey.shade400
                                         : Colors.grey.shade600,
                                     fontStyle: FontStyle.italic,
                                   ),
@@ -654,15 +699,15 @@ class HomePage extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.all(8),
+                            padding: EdgeInsets.all(6),
                             decoration: BoxDecoration(
                               color: Colors.deepOrange.shade100,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               Icons.arrow_forward_ios,
                               color: Colors.deepOrange.shade700,
-                              size: 18,
+                              size: 14,
                             ),
                           ),
                         ],
@@ -671,119 +716,195 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 12),
+              // Ask AI Button - New addition
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(colors: [Colors.purple.shade900, Colors.purple.shade800])
+                      : LinearGradient(colors: [Colors.white, Colors.purple.shade50]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.purple.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AskAIPage(userName: userName)),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade50,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.purple.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.psychology,
+                              color: Colors.purple.shade700,
+                              size: 20,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Talk to spiritual AI friend',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.purple.shade300
+                                        : Colors.purple.shade800,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Get wisdom from all saints',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.purple.shade700,
+                              size: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
                   AppLocalizations.of(context)!.chooseSpiritualGuide,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Colors.deepOrange.shade800,
+                    fontSize: 20,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 12),
               Expanded(
-                child: ListView.builder(
+                child: GridView.builder(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 1.0, // Changed from 0.85 to 1.0 to make boxes smaller
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
                   itemCount: saintList.length,
-                  itemBuilder: (context, i) => Container(
-                    margin: EdgeInsets.symmetric(vertical: 8),
-                    child: Material(
-                      elevation: 8,
-                      borderRadius: BorderRadius.circular(25),
-                      shadowColor: Colors.deepOrange.withOpacity(0.3),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(25),
-                          gradient: LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [
-                              Colors.white,
-                              Colors.deepOrange.shade50 ?? Colors.deepOrange.shade50,
-                            ],
-                          ),
+                  itemBuilder: (context, i) => Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(20),
+                    shadowColor: Colors.deepOrange.withOpacity(0.25),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white,
+                            Colors.deepOrange.shade50,
+                          ],
                         ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(25),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SaintPage(
-                                saint: saintList[i],
-                                userName: userName,
-                              ),
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SaintPage(
+                              saint: saintList[i],
+                              userName: userName,
                             ),
                           ),
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Row(
-                              children: [
-                                Hero(
-                                  tag: 'saint_${saintList[i].id}',
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.deepOrange.withOpacity(0.3),
-                                          blurRadius: 10,
-                                          offset: Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 40,
-                                      backgroundColor: Colors.white,
-                                      child: CircleAvatar(
-                                        radius: 36,
-                                        backgroundImage: saintList[i].image.startsWith('assets/')
-                                            ? AssetImage(saintList[i].image) as ImageProvider
-                                            : NetworkImage(saintList[i].image),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 20),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        saintList[i].name,
-                                        style: GoogleFonts.playfairDisplay(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.deepOrange.shade800,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        '${saintList[i].quotes.length} inspiring quotes',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey.shade600,
-                                          fontStyle: FontStyle.italic,
-                                        ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(10), // Reduced from 12 to 10
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Hero(
+                                tag: 'saint_${saintList[i].id}',
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.deepOrange.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 4),
                                       ),
                                     ],
                                   ),
-                                ),
-                                Container(
-                                  padding: EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.deepOrange.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    Icons.arrow_forward_ios,
-                                    color: Colors.deepOrange.shade700,
-                                    size: 18,
+                                  child: CircleAvatar(
+                                    radius: 30, // Reduced from 35 to 30
+                                    backgroundColor: Colors.white,
+                                    child: CircleAvatar(
+                                      radius: 27, // Reduced from 32 to 27
+                                      backgroundImage: saintList[i].image.startsWith('assets/')
+                                          ? AssetImage(saintList[i].image) as ImageProvider
+                                          : NetworkImage(saintList[i].image),
+                                    ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              SizedBox(height: 8), // Reduced from 12 to 8
+                              Text(
+                                saintList[i].name,
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 14, // Reduced from 16 to 14
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.deepOrange.shade800,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -1360,6 +1481,11 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
 
   // Helper function to get English saint name based on saint ID
   String getEnglishSaintName(String saintId) {
+    // Handle the special "ALL" case
+    if (saintId == "ALL") {
+      return "All";
+    }
+
     final englishSaint = saints.firstWhere(
       (saint) => saint.id == saintId,
       orElse: () => saints[0], // fallback to first saint if not found
@@ -1639,9 +1765,9 @@ class _QuotesTabState extends State<QuotesTab> {
                     _loadBookmarkedQuotes();
                   },
                   child: Padding(
-                    padding: EdgeInsets.all(20),
+                    padding: EdgeInsets.all(12), // Reduced from 16 to 12
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1730,6 +1856,7 @@ class _ArticlesTabState extends State<ArticlesTab> {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      padding: EdgeInsets.only(top: 16, bottom: 80), // Add bottom padding to prevent cut-off
       itemCount: widget.articles.length,
       separatorBuilder: (context, index) => SizedBox(height: 12),
       itemBuilder: (context, i) {
@@ -1801,6 +1928,11 @@ class _AskTabState extends State<AskTab> {
 
   // Helper function to get English saint name based on saint ID
   String getEnglishSaintName(String saintId) {
+    // Handle the special "ALL" case
+    if (saintId == "ALL") {
+      return "All";
+    }
+
     final englishSaint = saints.firstWhere(
       (saint) => saint.id == saintId,
       orElse: () => saints[0], // fallback to first saint if not found
@@ -1895,7 +2027,7 @@ class _AskTabState extends State<AskTab> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "data": [
-            widget.userName + ": " + question,
+            "My name is " + widget.userName + ". " + question,
             getEnglishSaintName(widget.saintId), // Use English saint name consistently
             language // Pass language context to backend
           ]
@@ -2022,95 +2154,149 @@ class _AskTabState extends State<AskTab> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+
+    // Check if this is AnandMoyiMa and disable Ask AI feature
+    if (widget.saintId == 'anandmoyima') {
+      return SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.block,
+                  size: 64,
+                  color: Colors.grey,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Ask AI Feature Disabled',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'The Ask AI feature is not available for Anandamayi Ma.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Please explore her quotes and teachings in the other tabs.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     bool showError = false;
     if (_hasTriedAsk && _lines.isNotEmpty && _answer == null) {
       final errorKeywords = ['error', 'failed', 'not running', 'no response', 'did not respond'];
       final firstLine = _lines.first.toLowerCase();
       showError = errorKeywords.any((kw) => firstLine.contains(kw));
     }
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Text(
-                loc.askDisclaimer,
-                style: TextStyle(
-                  fontSize: 13, // Revert disclaimer font size to original
-                  color: Colors.orange[800],
-                  fontStyle: FontStyle.italic,
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Text(
+                  loc.askDisclaimer,
+                  style: TextStyle(
+                    fontSize: 13, // Revert disclaimer font size to original
+                    color: Colors.orange[800],
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
-            ),
-            if (showError)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(_lines.join('\n'), style: TextStyle(color: Colors.red, fontSize: 15)),
+              if (showError)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(_lines.join('\n'), style: TextStyle(color: Colors.red, fontSize: 15)),
+                ),
+              TextField(
+                controller: _controller,
+                decoration: InputDecoration(labelText: loc.askAQuestion),
               ),
-            TextField(
-              controller: _controller,
-              decoration: InputDecoration(labelText: loc.askAQuestion),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _loading ? null : _askQuestion,
-              child: Text(loc.ask),
-            ),
-            if (_loading) CircularProgressIndicator(),
-            if (_answer != null)
-              Padding(
-                padding: EdgeInsets.only(top: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SelectableText('${loc.answer}: $_answer', style: TextStyle(fontSize: 20)),
-                    SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      icon: Icon(Icons.flag),
-                      label: Text('Flag as Incorrect'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () async {
-                        final url = (_config?.gradioServerLink ?? '') + '/gradio_api/call/flag_and_show';
-                        try {
-                          final response = await http.post(
-                            Uri.parse(url),
-                            headers: {'Content-Type': 'application/json'},
-                            body: jsonEncode({
-                              "data": []
-                            }),
-                          );
-                          if (response.statusCode == 200) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Flag submitted. Thank you!')),
-                              );
-                            }
-                          } else {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed to flag. Please try again.')),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error submitting flag.')),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: _loading ? null : _askQuestion,
+                child: Text(loc.ask),
+              ),
+              if (_loading) CircularProgressIndicator(),
+              if (_answer != null)
+                Padding(
+                  padding: EdgeInsets.only(top: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SelectableText('${loc.answer}: $_answer', style: TextStyle(fontSize: 20)),
+                      SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.flag),
+                        label: Text('Flag as Incorrect'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final url = (_config?.gradioServerLink ?? '') + '/gradio_api/call/flag_and_show';
+                          try {
+                            final response = await http.post(
+                              Uri.parse(url),
+                              headers: {'Content-Type': 'application/json'},
+                              body: jsonEncode({
+                                "data": []
+                              }),
                             );
+                            if (response.statusCode == 200) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Flag submitted. Thank you!')),
+                                );
+                              }
+                            } else {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to flag. Please try again.')),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error submitting flag.')),
+                              );
+                            }
                           }
-                        }
-                      },
-                    ),
-                  ],
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-          ],
+              // Add bottom padding to ensure content is visible above system UI
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+            ],
+          ),
         ),
       ),
     );
@@ -2125,11 +2311,174 @@ class HistoryTab extends StatelessWidget {
     final loc = AppLocalizations.of(context)!;
     if (history.isEmpty) return Center(child: Text(loc.noPreviousQuestions));
     return ListView.builder(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
       itemCount: history.length,
       itemBuilder: (context, i) => ListTile(
         title: Text('Q: \'${history[i]['question']}\''),
         subtitle: Text('${loc.answer}: ${history[i]['answer']}'),
       ),
+    );
+  }
+}
+
+// Standalone Ask AI page for accessing all saints
+class AskAIPage extends StatefulWidget {
+  final String userName;
+
+  const AskAIPage({required this.userName, Key? key}) : super(key: key);
+
+  @override
+  _AskAIPageState createState() => _AskAIPageState();
+}
+
+class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<Map<String, String>> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadHistory();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final historyJson = prefs.getStringList('ask_all_history') ?? [];
+    setState(() {
+      _history = historyJson.map((item) => Map<String, String>.from(jsonDecode(item))).toList();
+    });
+  }
+
+  Future<void> _saveToHistory(String question, String answer) async {
+    final prefs = await SharedPreferences.getInstance();
+    final newEntry = {'question': question, 'answer': answer, 'timestamp': DateTime.now().toIso8601String()};
+    _history.insert(0, newEntry);
+    if (_history.length > 50) _history = _history.take(50).toList();
+
+    final historyJson = _history.map((item) => jsonEncode(item)).toList();
+    await prefs.setStringList('ask_all_history', historyJson);
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final brightness = Theme.of(context).brightness;
+
+    final gradient = brightness == Brightness.dark
+        ? LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.grey.shade900, Colors.grey.shade800, Colors.black],
+          )
+        : LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.deepOrange.shade50, Colors.orange.shade50, Colors.white],
+          );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Talk to spiritual AI friend',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: brightness == Brightness.dark
+                ? LinearGradient(colors: [Colors.grey.shade900, Colors.grey.shade800])
+                : LinearGradient(colors: [Colors.deepOrange.shade100.withOpacity(0.9), Colors.orange.shade50.withOpacity(0.9)]),
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: loc.ask),
+            Tab(text: loc.history),
+          ],
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(gradient: gradient),
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            AskTab(
+              saintId: "ALL",
+              userName: widget.userName,
+              onSubmit: _saveToHistory,
+            ),
+            _buildHistoryTab(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryTab() {
+    final loc = AppLocalizations.of(context)!;
+    if (_history.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(loc.noPreviousQuestions, style: TextStyle(fontSize: 18, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
+      itemCount: _history.length,
+      itemBuilder: (context, index) {
+        final item = _history[index];
+        final date = DateTime.parse(item['timestamp']!);
+        return Card(
+          margin: EdgeInsets.only(bottom: 16),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['question']!,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  item['answer']!,
+                  style: TextStyle(fontSize: 14),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -2143,48 +2492,144 @@ class _SpiritualDiaryPageState extends State<SpiritualDiaryPage> {
   final TextEditingController _controller = TextEditingController();
   bool _loading = true;
   Database? _db;
+  List<Map<String, dynamic>> _entries = [];
 
   @override
   void initState() {
     super.initState();
-    _initDbAndLoadNote();
+    _initDbAndLoadEntries();
   }
 
-  Future<void> _initDbAndLoadNote() async {
+  Future<void> _initDbAndLoadEntries() async {
     final db = await openDatabase(
-      p.join(await getDatabasesPath(), 'notepad.db'),
+      p.join(await getDatabasesPath(), 'spiritual_diary.db'),
       onCreate: (db, version) async {
         await db.execute(
-          'CREATE TABLE IF NOT EXISTS notepad(id INTEGER PRIMARY KEY, content TEXT, updated_at TEXT)'
+          'CREATE TABLE IF NOT EXISTS diary_entries(id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT, created_at TEXT, title TEXT)'
         );
-        await db.insert('notepad', {'id': 1, 'content': '', 'updated_at': DateTime.now().toIso8601String()});
       },
       version: 1,
     );
     _db = db;
-    final List<Map<String, dynamic>> notes = await db.query('notepad', where: 'id = ?', whereArgs: [1]);
-    if (notes.isNotEmpty) {
-      _controller.text = notes.first['content'] ?? '';
-    }
+    await _loadEntries();
     setState(() {
       _loading = false;
     });
   }
 
-  Future<void> _saveNote() async {
+  Future<void> _loadEntries() async {
     if (_db == null) return;
-    await _db!.update(
-      'notepad',
-      {
-        'content': _controller.text,
-        'updated_at': DateTime.now().toIso8601String(),
-      },
-      where: 'id = ?',
-      whereArgs: [1],
+    final List<Map<String, dynamic>> entries = await _db!.query(
+      'diary_entries',
+      orderBy: 'created_at DESC',
     );
+    setState(() {
+      _entries = entries;
+    });
+  }
+
+  Future<void> _saveEntry() async {
+    if (_db == null || _controller.text.trim().isEmpty) return;
+
+    final now = DateTime.now();
+    final title = _controller.text.trim().length > 50
+        ? _controller.text.trim().substring(0, 50) + '...'
+        : _controller.text.trim();
+
+    await _db!.insert('diary_entries', {
+      'content': _controller.text.trim(),
+      'created_at': now.toIso8601String(),
+      'title': title,
+    });
+
+    _controller.clear();
+    await _loadEntries();
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Note saved!')),
+      SnackBar(content: Text('Entry saved successfully!')),
     );
+  }
+
+  Future<void> _exportDiary() async {
+    if (_entries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No entries to export')),
+      );
+      return;
+    }
+
+    try {
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/spiritual_diary_export.txt');
+
+      String exportContent = 'Spiritual Diary Export\n';
+      exportContent += '=' * 30 + '\n\n';
+
+      for (var entry in _entries.reversed) {
+        final date = DateTime.parse(entry['created_at']);
+        exportContent += 'Date: ${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}\n';
+        exportContent += '-' * 40 + '\n';
+        exportContent += '${entry['content']}\n\n';
+        exportContent += '=' * 40 + '\n\n';
+      }
+
+      await file.writeAsString(exportContent);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'My Spiritual Diary Export',
+        subject: 'Spiritual Diary',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error exporting diary: $e')),
+      );
+    }
+  }
+
+  Future<void> _deleteEntry(int id) async {
+    if (_db == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Entry'),
+        content: Text('Are you sure you want to delete this entry?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _db!.delete('diary_entries', where: 'id = ?', whereArgs: [id]);
+      await _loadEntries();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Entry deleted')),
+      );
+    }
+  }
+
+  String _formatDate(String dateString) {
+    final date = DateTime.parse(dateString);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final entryDate = DateTime(date.year, date.month, date.day);
+
+    if (entryDate == today) {
+      return 'Today at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (entryDate == today.subtract(Duration(days: 1))) {
+      return 'Yesterday at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } else {
+      return '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    }
   }
 
   @override
@@ -2198,32 +2643,130 @@ class _SpiritualDiaryPageState extends State<SpiritualDiaryPage> {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(loc.spiritualDiary)),
+      appBar: AppBar(
+        title: Text(loc.spiritualDiary),
+        actions: [
+          if (_entries.isNotEmpty)
+            IconButton(
+              icon: Icon(Icons.share),
+              onPressed: _exportDiary,
+              tooltip: 'Export Diary',
+            ),
+        ],
+      ),
       body: _loading
           ? Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      maxLines: null,
-                      expands: true,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: loc.spiritualDiary,
+          : Column(
+              children: [
+                // New entry section
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                        offset: Offset(0, 1),
                       ),
-                    ),
+                    ],
                   ),
-                  SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _saveNote,
-                    icon: Icon(Icons.save),
-                    label: Text(loc.save),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Write a new entry',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      SizedBox(height: 8),
+                      TextField(
+                        controller: _controller,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Share your thoughts, reflections, and spiritual insights...',
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      ElevatedButton.icon(
+                        onPressed: _saveEntry,
+                        icon: Icon(Icons.add),
+                        label: Text('Add Entry'),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                // Entries list
+                Expanded(
+                  child: _entries.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.book,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'No entries yet',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Start writing your spiritual journey',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.all(16),
+                          itemCount: _entries.length,
+                          itemBuilder: (context, index) {
+                            final entry = _entries[index];
+                            return Card(
+                              margin: EdgeInsets.only(bottom: 12),
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          _formatDate(entry['created_at']),
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: Colors.grey[600],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.delete, size: 20),
+                                          onPressed: () => _deleteEntry(entry['id']),
+                                          padding: EdgeInsets.zero,
+                                          constraints: BoxConstraints(),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      entry['content'],
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
     );
   }
@@ -2235,31 +2778,35 @@ class AboutAppPage extends StatelessWidget {
     final loc = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(loc.aboutApp)),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Image.asset(
-                  'assets/images/apppic.png', // Use your available image as aboutapp.jpg is not present
-                  width: 180,
-                  height: 180,
-                  fit: BoxFit.contain,
+      body: SafeArea(
+        // Ensures content isn't hidden behind system UI (bottom nav / home indicator)
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/apppic.png', // Use your available image as aboutapp.jpg is not present
+                    width: 180,
+                    height: 180,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                loc.aboutApp,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
-              Text(
-                loc.aboutAppInstructions,
-                style: TextStyle(fontSize: 16),
-              ),
-            ],
+                SizedBox(height: 20),
+                Text(
+                  loc.aboutApp,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  loc.aboutAppInstructions,
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 20), // small bottom spacing to ensure visibility
+              ],
+            ),
           ),
         ),
       ),
@@ -2638,6 +3185,7 @@ class ContactPage extends StatelessWidget {
                       ],
                     ),
                   ),
+                  SizedBox(height: 50), // Add bottom padding to ensure content is fully visible
                 ],
               ),
             ),
@@ -3053,8 +3601,8 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                       boxShadow: [
                         BoxShadow(
                           color: Colors.deepOrange.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: Offset(0, 8),
+                          blurRadius: 15,
+                          offset: Offset(0, 5),
                         ),
                       ],
                     ),

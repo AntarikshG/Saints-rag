@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'book_service.dart';
 
 class PdfReaderPage extends StatefulWidget {
@@ -13,19 +14,45 @@ class PdfReaderPage extends StatefulWidget {
   _PdfReaderPageState createState() => _PdfReaderPageState();
 }
 
-class _PdfReaderPageState extends State<PdfReaderPage> {
-  late PdfViewerController _pdfViewerController;
-  bool _showControls = false;
-  bool _showBookmarks = false;
-  List<Bookmark> _bookmarks = [];
-  int _currentPage = 1;
+class _PdfReaderPageState extends State<PdfReaderPage> with WidgetsBindingObserver {
+  PDFViewController? _pdfViewController;
+  bool _isLoading = true;
+  String? _error;
+  int _currentPage = 0;
   int _totalPages = 0;
+  final Completer<PDFViewController> _controller = Completer<PDFViewController>();
 
   @override
   void initState() {
     super.initState();
-    _pdfViewerController = PdfViewerController();
-    _loadBookmarks();
+    _loadLastReadPosition();
+  }
+
+  Future<void> _loadLastReadPosition() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _currentPage = prefs.getInt('pdf_last_page_${widget.book.id}') ?? 0;
+      });
+    } catch (e) {
+      print('Error loading last read position: $e');
+    }
+  }
+
+  Future<void> _saveReadingProgress() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('pdf_last_page_${widget.book.id}', _currentPage);
+      if (_totalPages > 0) {
+        await BookService.updateReadingProgress(
+          widget.book.id!,
+          0,
+          _currentPage / _totalPages,
+        );
+      }
+    } catch (e) {
+      print('Error saving reading progress: $e');
+    }
   }
 
   @override
@@ -34,235 +61,122 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     super.dispose();
   }
 
-  Future<void> _loadBookmarks() async {
-    final bookmarks = await BookService.getBookmarks(widget.book.id!);
-    setState(() {
-      _bookmarks = bookmarks;
-    });
-  }
-
-  Future<void> _saveReadingProgress() async {
-    if (_totalPages > 0) {
-      final progress = _currentPage / _totalPages;
-      await BookService.updateReadingProgress(
-        widget.book.id!,
-        0, // PDF doesn't have chapters
-        progress,
-      );
-    }
-  }
-
-  void _toggleControls() {
-    setState(() {
-      _showControls = !_showControls;
-    });
-  }
-
-  void _addBookmark() async {
-    final bookmark = Bookmark(
-      chapterIndex: 0,
-      chapterTitle: 'Page $_currentPage',
-      position: _currentPage.toDouble(),
-      createdAt: DateTime.now(),
-      note: 'Bookmark at page $_currentPage',
-    );
-
-    await BookService.addBookmark(widget.book.id!, bookmark);
-    await _loadBookmarks();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Bookmark added')),
-    );
-  }
-
-  void _jumpToBookmark(Bookmark bookmark) {
-    _pdfViewerController.jumpToPage(bookmark.position.toInt());
-    setState(() {
-      _showBookmarks = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.book.title,
-          style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.w600),
-        ),
-        actions: [
+        title: Text(widget.book.title),
+        actions: <Widget>[
           IconButton(
-            icon: const Icon(Icons.bookmark_add),
-            onPressed: _addBookmark,
+            icon: const Icon(Icons.first_page),
+            onPressed: () {
+              _pdfViewController?.setPage(0);
+            },
           ),
           IconButton(
-            icon: const Icon(Icons.bookmarks),
-            onPressed: () => setState(() => _showBookmarks = !_showBookmarks),
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (_currentPage > 0) {
+                _pdfViewController?.setPage(_currentPage - 1);
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.arrow_forward),
+            onPressed: () {
+              if (_currentPage < _totalPages - 1) {
+                _pdfViewController?.setPage(_currentPage + 1);
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.last_page),
+            onPressed: () {
+              _pdfViewController?.setPage(_totalPages - 1);
+            },
           ),
         ],
       ),
       body: Stack(
-        children: [
-          GestureDetector(
-            onTap: _toggleControls,
-            child: SfPdfViewer.file(
-              File(widget.book.filePath),
-              controller: _pdfViewerController,
-              onPageChanged: (PdfPageChangedDetails details) {
-                setState(() {
-                  _currentPage = details.newPageNumber;
-                });
-                _saveReadingProgress();
-              },
-              onDocumentLoaded: (PdfDocumentLoadedDetails details) {
-                setState(() {
-                  _totalPages = details.document.pages.count;
-                });
-
-                // Navigate to last read page after document is loaded
-                if (widget.book.progress > 0 && _totalPages > 0) {
-                  Future.delayed(Duration(milliseconds: 200), () {
-                    final lastPage = (widget.book.progress * _totalPages)
-                        .round()
-                        .clamp(1, _totalPages);
-                    if (lastPage > 1) {
-                      _pdfViewerController.jumpToPage(lastPage);
-                      setState(() {
-                        _currentPage = lastPage;
-                      });
-                      print(
-                          'PDF: Navigating to last read page: $lastPage of $_totalPages (${(widget.book.progress * 100).toStringAsFixed(1)}%)');
-                    }
-                  });
-                }
-              },
-            ),
+        children: <Widget>[
+          PDFView(
+            filePath: widget.book.filePath,
+            enableSwipe: true,
+            swipeHorizontal: false,
+            autoSpacing: false,
+            pageFling: true,
+            pageSnap: true,
+            defaultPage: _currentPage,
+            fitPolicy: FitPolicy.BOTH,
+            preventLinkNavigation: false,
+            onRender: (_pages) {
+              setState(() {
+                _totalPages = _pages!;
+                _isLoading = false;
+              });
+            },
+            onError: (error) {
+              setState(() {
+                _error = error.toString();
+                _isLoading = false;
+              });
+              print(error.toString());
+            },
+            onPageError: (page, error) {
+              setState(() {
+                _error = '$page: ${error.toString()}';
+                _isLoading = false;
+              });
+              print('$page: ${error.toString()}');
+            },
+            onViewCreated: (PDFViewController pdfViewController) {
+              _controller.complete(pdfViewController);
+              _pdfViewController = pdfViewController;
+            },
+            onPageChanged: (int? page, int? total) {
+              setState(() {
+                _currentPage = page!;
+              });
+              _saveReadingProgress();
+            },
           ),
-
-          // Controls overlay
-          if (_showControls)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-                  ),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Page $_currentPage of $_totalPages',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        Text(
-                          '${(_currentPage / _totalPages * 100).toStringAsFixed(1)}%',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () => _pdfViewerController.previousPage(),
-                          icon: const Icon(Icons.navigate_before),
-                          label: const Text('Previous'),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () => _pdfViewerController.nextPage(),
-                          icon: const Icon(Icons.navigate_next),
-                          label: const Text('Next'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+          if (_isLoading)
+            const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading PDF...'),
+                ],
               ),
             ),
-
-          // Bookmarks panel
-          if (_showBookmarks)
-            Positioned(
-              top: 0,
-              right: 0,
-              bottom: 0,
-              width: MediaQuery.of(context).size.width * 0.7,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor,
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(16),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Bookmarks',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            onPressed: () => setState(() => _showBookmarks = false),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: _bookmarks.length,
-                        itemBuilder: (context, index) {
-                          final bookmark = _bookmarks[index];
-                          return ListTile(
-                            leading: const Icon(Icons.bookmark),
-                            title: Text(bookmark.chapterTitle),
-                            subtitle: Text(bookmark.note ?? ''),
-                            onTap: () => _jumpToBookmark(bookmark),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () async {
-                                await BookService.deleteBookmark(bookmark.id!);
-                                await _loadBookmarks();
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+          if (_error != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Error loading PDF: $_error',
+                  style: const TextStyle(color: Colors.red, fontSize: 18),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),
         ],
+      ),
+      bottomNavigationBar: BottomAppBar(
+        child: Container(
+          height: 50,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Padding(
+                padding: EdgeInsets.only(left: 16),
+                child: Text('Page ${_currentPage + 1} of $_totalPages'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

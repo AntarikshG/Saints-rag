@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'book_service.dart';
 import 'epub_reader.dart';
+import 'pdf_reader.dart'; // Add PDF reader import
 import 'l10n/app_localizations.dart';
 
 class BooksTab extends StatefulWidget {
@@ -23,17 +25,75 @@ class _BooksTabState extends State<BooksTab> {
   double _downloadProgress = 0.0;
   String _downloadStatus = '';
 
+  // Add sample books download tracking
+  StreamSubscription<bool>? _sampleDownloadInProgressSub;
+  StreamSubscription<double>? _sampleDownloadProgressSub;
+  bool _isSampleBooksDownloading = false;
+  double _sampleDownloadProgress = 0.0;
+
   @override
   void initState() {
     super.initState();
     _loadBooks();
-    _addSampleBooksIfNeeded();
+    _setupSampleDownloadListeners();
+    _downloadSampleBooksOnceIfNeeded();
   }
 
   @override
   void dispose() {
     _urlController.dispose();
+    _sampleDownloadInProgressSub?.cancel();
+    _sampleDownloadProgressSub?.cancel();
     super.dispose();
+  }
+
+  void _setupSampleDownloadListeners() {
+    // Listen for sample download start/stop
+    _sampleDownloadInProgressSub = BookService.sampleDownloadInProgressStream.listen((inProgress) {
+      if (mounted) {
+        setState(() {
+          _isSampleBooksDownloading = inProgress;
+        });
+
+        if (inProgress) {
+          // Show SnackBar when downloads start
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Downloading sample books...'),
+              duration: Duration(days: 1), // Keep it until dismissed
+              backgroundColor: Colors.blue,
+              action: SnackBarAction(
+                label: 'Hide',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
+              ),
+            ),
+          );
+        } else {
+          // Hide current SnackBar and show completion message
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Sample books download complete!'),
+              duration: Duration(seconds: 3),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Reload books to show newly downloaded ones
+          _loadBooks();
+        }
+      }
+    });
+
+    // Listen for sample download progress
+    _sampleDownloadProgressSub = BookService.sampleDownloadProgressStream.listen((progress) {
+      if (mounted) {
+        setState(() {
+          _sampleDownloadProgress = progress;
+        });
+      }
+    });
   }
 
   Future<void> _loadBooks() async {
@@ -58,35 +118,29 @@ class _BooksTabState extends State<BooksTab> {
     }
   }
 
-  Future<void> _addSampleBooksIfNeeded() async {
-    // Add sample books for Swami Sivananda
-    if (widget.saintName.toLowerCase().contains('sivananda')) {
-      try {
-        await BookService.addSampleBooksForSivananda();
-        // Also try to download the actual EPUB from the provided URL
-        await _downloadSampleBook();
-      } catch (e) {
-        print('Error adding sample books: $e');
-      }
-    }
-  }
-
-  Future<void> _downloadSampleBook() async {
-    const sampleUrl = 'https://www.dlshq.org/download2/hinduismbk.epub';
+  Future<void> _downloadSampleBooksOnceIfNeeded() async {
+    // Only download sample books if they haven't been downloaded before
     try {
-      // Check if this book already exists
-      final existingBooks = await BookService.searchBooks('Bliss Divine');
-      bool hasRealBook = existingBooks.any((book) => !book.filePath.startsWith('sample_'));
+      print('Checking if sample spiritual books need to be downloaded...');
+      await BookService.downloadSampleBooksOnce();
+      print('Sample books check completed!');
 
-      if (!hasRealBook) {
-        await BookService.downloadBookFromUrl(sampleUrl);
-        _loadBooks(); // Refresh the list
-      }
+      // Reload the books list to show the newly added books
+      await _loadBooks();
     } catch (e) {
-      print('Could not download sample book: $e');
-      // This is fine, we'll fall back to the placeholder
+      print('Error checking sample books: $e');
+      // Show error to user if needed
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading sample books. You can add books manually.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
+
 
   Future<void> _downloadBook(String url) async {
     if (url.isEmpty) {
@@ -105,10 +159,37 @@ class _BooksTabState extends State<BooksTab> {
       return;
     }
 
-    // Check if URL points to an EPUB file
-    if (!url.toLowerCase().endsWith('.epub')) {
+    // Enhanced URL validation - support various EPUB and PDF sources
+    bool isValidUrl = false;
+
+    // Check for direct EPUB files
+    if (url.toLowerCase().endsWith('.epub')) {
+      isValidUrl = true;
+    }
+    // Check for direct PDF files
+    else if (url.toLowerCase().endsWith('.pdf')) {
+      isValidUrl = true;
+    }
+    // Check for Gutenberg EPUB/PDF links
+    else if (url.contains('gutenberg.org') && (url.contains('.epub') || url.contains('.pdf') || url.contains('ebooks'))) {
+      isValidUrl = true;
+    }
+    // Check for Archive.org EPUB/PDF links
+    else if (url.contains('archive.org') && (url.toLowerCase().contains('.epub') || url.toLowerCase().contains('.pdf'))) {
+      isValidUrl = true;
+    }
+    // Check for other common book hosting patterns
+    else if (url.contains('.epub') || url.contains('.pdf') ||
+             (url.contains('download') && (url.contains('epub') || url.contains('pdf') || url.contains('book')))) {
+      isValidUrl = true;
+    }
+
+    if (!isValidUrl) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('URL must point to an EPUB file (.epub)')),
+        SnackBar(
+          content: Text('URL must point to an EPUB or PDF file, or be from a supported book source'),
+          duration: Duration(seconds: 4),
+        ),
       );
       return;
     }
@@ -150,8 +231,8 @@ class _BooksTabState extends State<BooksTab> {
         backgroundColor = Colors.orange;
       } else if (e.toString().contains('HTTP')) {
         errorMessage = 'Failed to download: Network error';
-      } else if (e.toString().contains('Failed to process EPUB')) {
-        errorMessage = 'Invalid EPUB file format';
+      } else if (e.toString().contains('Failed to process')) {
+        errorMessage = 'Invalid file format';
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -171,12 +252,27 @@ class _BooksTabState extends State<BooksTab> {
   }
 
   void _openBook(Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EpubReaderPage(book: book),
-      ),
-    );
+    // Check the file extension to determine the reader
+    String fileExtension = book.filePath.split('.').last.toLowerCase();
+    if (fileExtension == 'epub') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EpubReaderPage(book: book),
+        ),
+      );
+    } else if (fileExtension == 'pdf') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PdfReaderPage(book: book), // Open PDF reader
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unsupported file type: ${book.filePath}')),
+      );
+    }
   }
 
   void _deleteBook(Book book) {
@@ -220,7 +316,7 @@ class _BooksTabState extends State<BooksTab> {
               TextField(
                 controller: _urlController,
                 decoration: InputDecoration(
-                  hintText: 'Enter EPUB URL (e.g., https://example.com/book.epub)',
+                  hintText: 'Enter EPUB or PDF URL (e.g., https://example.com/book.epub)',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.link),
                 ),
@@ -243,7 +339,7 @@ class _BooksTabState extends State<BooksTab> {
                         Icon(Icons.info_outline, size: 16, color: Colors.orange.shade700),
                         SizedBox(width: 8),
                         Text(
-                          'Sample URL:',
+                          'Sample URLs:',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.orange.shade700,
@@ -253,16 +349,25 @@ class _BooksTabState extends State<BooksTab> {
                     ),
                     SizedBox(height: 4),
                     SelectableText(
-                      'https://www.dlshq.org/download2/hinduismbk.epub',
+                      'EPUB: https://www.dlshq.org/download2/hinduismbk.epub',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
+                        color: Colors.orange.shade600,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    SelectableText(
+                      'PDF: https://www.gutenberg.org/files/2346/2346-pdf.pdf',
+                      style: TextStyle(
+                        fontSize: 11,
                         color: Colors.orange.shade600,
                         fontFamily: 'monospace',
                       ),
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Tap to copy this sample URL and paste it above.',
+                      'Copy and paste any sample URL above.',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.orange.shade600,
@@ -273,7 +378,7 @@ class _BooksTabState extends State<BooksTab> {
               ),
               SizedBox(height: 8),
               Text(
-                'Only EPUB files are supported. The book will be downloaded and added to your library.',
+                'Both EPUB and PDF files are supported. The book will be downloaded and added to your library.',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               if (_isDownloading) ...[
@@ -304,7 +409,13 @@ class _BooksTabState extends State<BooksTab> {
               onPressed: () {
                 _urlController.text = 'https://www.dlshq.org/download2/hinduismbk.epub';
               },
-              child: Text('Use Sample URL'),
+              child: Text('Use EPUB Sample'),
+            ),
+            TextButton(
+              onPressed: () {
+                _urlController.text = 'https://www.gutenberg.org/files/2346/2346-pdf.pdf';
+              },
+              child: Text('Use PDF Sample'),
             ),
             TextButton(
               onPressed: _isDownloading
@@ -467,6 +578,62 @@ class _BooksTabState extends State<BooksTab> {
       ),
       child: Column(
         children: [
+          // Sample books download progress banner
+          if (_isSampleBooksDownloading)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16),
+              margin: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Downloading sample books...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_sampleDownloadProgress > 0) ...[
+                    SizedBox(height: 12),
+                    LinearProgressIndicator(
+                      value: _sampleDownloadProgress,
+                      backgroundColor: Colors.blue.shade100,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Progress: ${(_sampleDownloadProgress * 100).toInt()}%',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           // Header with add book button
           Container(
             padding: EdgeInsets.all(16),
@@ -616,14 +783,31 @@ class _AllBooksLibraryPageState extends State<AllBooksLibraryPage> {
   }
 
   void _openBook(Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => EpubReaderPage(book: book),
-      ),
-    ).then((_) {
-      _loadAllBooks(); // Refresh when returning from reader
-    });
+    // Check the file extension to determine the reader
+    String fileExtension = book.filePath.split('.').last.toLowerCase();
+    if (fileExtension == 'epub') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EpubReaderPage(book: book),
+        ),
+      ).then((_) {
+        _loadAllBooks(); // Refresh when returning from reader
+      });
+    } else if (fileExtension == 'pdf') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PdfReaderPage(book: book), // Open PDF reader
+        ),
+      ).then((_) {
+        _loadAllBooks(); // Refresh when returning from reader
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unsupported file type: ${book.filePath}')),
+      );
+    }
   }
 
   @override

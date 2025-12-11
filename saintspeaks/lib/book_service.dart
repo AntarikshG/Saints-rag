@@ -1,12 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:epubx/epubx.dart';
 import 'package:image/image.dart' as img;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Book {
   final int? id;
@@ -160,6 +161,57 @@ class BookService {
   static const String _databaseName = 'books.db';
   static const int _databaseVersion = 1;
 
+  // Streams to notify UI of sample-download state and progress
+  static final StreamController<bool> _sampleDownloadInProgressController = StreamController<bool>.broadcast();
+  static final StreamController<double> _sampleDownloadProgressController = StreamController<double>.broadcast();
+
+  /// Stream that emits `true` when sample downloads start and `false` when they finish
+  static Stream<bool> get sampleDownloadInProgressStream => _sampleDownloadInProgressController.stream;
+
+  /// Stream that emits progress values in range [0.0, 1.0] for the currently downloading sample book
+  static Stream<double> get sampleDownloadProgressStream => _sampleDownloadProgressController.stream;
+
+  /// Call this to close the sample download streams (optional)
+  static void disposeSampleDownloadStreams() {
+    if (!_sampleDownloadInProgressController.isClosed) _sampleDownloadInProgressController.close();
+    if (!_sampleDownloadProgressController.isClosed) _sampleDownloadProgressController.close();
+  }
+
+  // Sample books data moved to the top of the class
+  static const List<Map<String, String>> _sampleBooksData = [
+    {
+      'title': 'Bhagavad Gita',
+      'author': 'Swami Sivananda',
+      'url': 'https://www.dlshq.org/download2/bgita.epub',
+    },
+    {
+      'title': 'Brahmacharya',
+      'author': 'Swami Sivananda',
+      'url': 'https://www.dlshq.org/download2/brahmacharya.pdf',
+    },
+    {
+      'title': 'Thought Power',
+      'author': 'Swami Sivananda',
+      'url': 'https://www.dlshq.org/download2/thought_power.epub',
+    },
+    {
+      'title': 'Vedanta for Beginners',
+      'author': 'Swami Sivananda',
+      'url': 'https://www.dlshq.org/download2/vedbegin.pdf',
+    },
+
+    {
+      'title': 'Autobiography of a Yogi',
+      'author': 'Paramahansa Yogananda',
+      'url': 'https://www.gutenberg.org/ebooks/7452.epub.images',
+    },
+    {
+      'title': 'Hindu Sanskrit Tales',
+      'author': 'Traditional',
+      'url': 'https://www.gutenberg.org/ebooks/11310.epub3.images',
+    },
+  ];
+
   static Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -244,7 +296,37 @@ class BookService {
     );
   }
 
+  // Enhanced delete method that tracks deleted sample books
   static Future<void> deleteBook(int id) async {
+    // Get book details before deleting
+    final book = await getBook(id);
+    if (book != null) {
+      // Check if this is a sample book by checking against our sample book list
+      final isSampleBook = _sampleBooksData.any((sample) =>
+        sample['title'] == book.title && sample['author'] == book.author);
+
+      if (isSampleBook) {
+        await addDeletedSampleBook(book.title, book.author);
+      }
+
+      // Delete the physical file if it exists
+      if (book.filePath.isNotEmpty && !book.filePath.startsWith('placeholder_')) {
+        final file = File(book.filePath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+
+      // Delete cover file if it exists
+      if (book.coverPath != null && book.coverPath!.isNotEmpty) {
+        final coverFile = File(book.coverPath!);
+        if (await coverFile.exists()) {
+          await coverFile.delete();
+        }
+      }
+    }
+
+    // Delete from database
     final db = await database;
     await db.delete(
       'books',
@@ -338,83 +420,337 @@ class BookService {
     return List.generate(maps.length, (i) => Book.fromMap(maps[i]));
   }
 
+  // Helper method to find author from sample books based on title or URL
+  static String _findAuthorFromSampleBooks(String title, String url, String currentAuthor) {
+    // If we already have a valid author, return it
+    if (currentAuthor != 'Unknown Author' && currentAuthor.isNotEmpty) {
+      return currentAuthor;
+    }
+
+    // First, try to match by URL
+    for (final sample in _sampleBooksData) {
+      if (sample['url'] == url) {
+        return sample['author']!;
+      }
+    }
+
+    // Then, try to match by title (case-insensitive, flexible matching)
+    final normalizedTitle = title.toLowerCase().trim();
+    for (final sample in _sampleBooksData) {
+      final sampleTitle = sample['title']!.toLowerCase().trim();
+
+      // Exact match
+      if (normalizedTitle == sampleTitle) {
+        return sample['author']!;
+      }
+
+      // Partial match (check if titles contain each other)
+      if (normalizedTitle.contains(sampleTitle) || sampleTitle.contains(normalizedTitle)) {
+        return sample['author']!;
+      }
+
+      // Check for key words match (for cases like "Complete Works of Swami Vivekananda")
+      final titleWords = normalizedTitle.split(' ');
+      final sampleWords = sampleTitle.split(' ');
+      int matchCount = 0;
+
+      for (final word in titleWords) {
+        if (word.length > 3 && sampleWords.contains(word)) { // Only count significant words
+          matchCount++;
+        }
+      }
+
+      // If more than half of the significant words match, consider it a match
+      if (matchCount >= 2 && matchCount >= titleWords.where((w) => w.length > 3).length / 2) {
+        return sample['author']!;
+      }
+    }
+
+    // If no match found, return the current author
+    return currentAuthor;
+  }
+
   static Future<Book> downloadBookFromUrl(
     String url, {
     Function(double)? onProgress,
   }) async {
     final uri = Uri.parse(url);
-    final fileName = uri.pathSegments.last;
 
     // Check if book already exists by URL
     if (await bookExists(url)) {
       throw Exception('This book has already been downloaded');
     }
 
-    final response = await http.get(uri);
+    // Create HTTP client with headers to handle different sources
+    final client = http.Client();
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to download book: HTTP ${response.statusCode}');
-    }
-
-    // Get application documents directory
-    final documentsDir = await getApplicationDocumentsDirectory();
-    final booksDir = Directory('${documentsDir.path}/books');
-    if (!await booksDir.exists()) {
-      await booksDir.create(recursive: true);
-    }
-
-    // Generate unique filename
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final filePath = '${booksDir.path}/${timestamp}_$fileName';
-
-    // Save file
-    final file = File(filePath);
-    await file.writeAsBytes(response.bodyBytes);
-
-    // Parse EPUB to extract metadata
     try {
-      final epubBook = await EpubReader.readBook(response.bodyBytes);
-      final title = epubBook.Title ?? 'Unknown Title';
-      final author = epubBook.Author ?? 'Unknown Author';
+      // Add headers to handle various download sources
+      final request = http.Request('GET', uri);
+      request.headers.addAll({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/epub+zip,application/pdf,application/octet-stream,*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+      });
 
-      // Check if book exists by title and author
-      if (await bookExistsByTitle(title, author)) {
-        // Delete the downloaded file since it's a duplicate
-        await file.delete();
-        throw Exception('A book with the same title and author already exists in your library');
+      final streamedResponse = await client.send(request);
+
+      if (streamedResponse.statusCode != 200) {
+        throw Exception('Failed to download book: HTTP ${streamedResponse.statusCode}');
       }
 
-      // Extract cover image if available
-      String? coverPath;
-      try {
-        final cover = epubBook.CoverImage;
-        if (cover != null) {
-          final jpegBytes = img.encodeJpg(cover);
-          final coverFile = File('${booksDir.path}/${timestamp}_cover.jpg');
-          await coverFile.writeAsBytes(jpegBytes);
-          coverPath = coverFile.path;
+      // Check content type to determine file type
+      final contentType = streamedResponse.headers['content-type'] ?? '';
+      final contentDisposition = streamedResponse.headers['content-disposition'] ?? '';
+
+      // Validate that we're getting a supported file format
+      bool isValidFile = false;
+      String expectedExtension = '.epub'; // Default
+
+      // Check for EPUB
+      if (contentType.contains('epub') ||
+          contentType.contains('application/epub+zip') ||
+          contentDisposition.contains('.epub') ||
+          url.toLowerCase().contains('.epub')) {
+        isValidFile = true;
+        expectedExtension = '.epub';
+      }
+      // Check for PDF
+      else if (contentType.contains('pdf') ||
+               contentType.contains('application/pdf') ||
+               contentDisposition.contains('.pdf') ||
+               url.toLowerCase().contains('.pdf')) {
+        isValidFile = true;
+        expectedExtension = '.pdf';
+      }
+      // Check for generic binary content from trusted sources
+      else if (contentType.contains('application/octet-stream') &&
+               (url.contains('gutenberg.org') || url.contains('archive.org'))) {
+        isValidFile = true;
+        // Try to determine from URL
+        if (url.toLowerCase().contains('pdf')) {
+          expectedExtension = '.pdf';
+        } else {
+          expectedExtension = '.epub'; // Default to EPUB for trusted sources
         }
-      } catch (e) {
-        print('Could not extract cover: $e');
       }
 
-      // Create book record
-      final book = Book(
-        title: title,
-        author: author,
-        filePath: filePath,
-        coverPath: coverPath,
-        dateAdded: DateTime.now(),
-      );
+      if (!isValidFile) {
+        throw Exception('The downloaded file does not appear to be a supported format (EPUB or PDF)');
+      }
 
-      // Add to database
-      final bookId = await addBook(book);
-      return book.copyWith(id: bookId);
+      // Download the file with progress tracking
+      final List<int> bytes = [];
+      final contentLength = streamedResponse.contentLength ?? 0;
+      int downloadedBytes = 0;
 
-    } catch (e) {
-      // Clean up file if there was an error
-      await file.delete();
-      throw Exception('Failed to process EPUB file: $e');
+      await for (final chunk in streamedResponse.stream) {
+        bytes.addAll(chunk);
+        downloadedBytes += chunk.length;
+
+        if (contentLength > 0 && onProgress != null) {
+          final progress = downloadedBytes / contentLength;
+          onProgress(progress.clamp(0.0, 1.0));
+        }
+      }
+
+      final response = http.Response.bytes(bytes, streamedResponse.statusCode);
+
+      // Get application documents directory
+      final documentsDir = await getApplicationDocumentsDirectory();
+      final booksDir = Directory('${documentsDir.path}/books');
+      if (!await booksDir.exists()) {
+        await booksDir.create(recursive: true);
+      }
+
+      // Generate filename based on URL or content disposition
+      String fileName = 'book$expectedExtension';
+
+      if (contentDisposition.isNotEmpty) {
+        // Extract filename from Content-Disposition header - simple approach
+        if (contentDisposition.contains('filename=')) {
+          final startIndex = contentDisposition.indexOf('filename=') + 9;
+          var endIndex = contentDisposition.indexOf(';', startIndex);
+          if (endIndex == -1) endIndex = contentDisposition.length;
+          var extractedName = contentDisposition.substring(startIndex, endIndex).trim();
+          // Remove quotes if present
+          if (extractedName.startsWith('"') && extractedName.endsWith('"')) {
+            extractedName = extractedName.substring(1, extractedName.length - 1);
+          }
+          if (extractedName.startsWith("'") && extractedName.endsWith("'")) {
+            extractedName = extractedName.substring(1, extractedName.length - 1);
+          }
+          if (extractedName.isNotEmpty) {
+            fileName = extractedName;
+          }
+        }
+      } else if (uri.pathSegments.isNotEmpty) {
+        // Extract from URL path
+        final lastSegment = uri.pathSegments.last;
+        if (lastSegment.isNotEmpty && !lastSegment.contains('?')) {
+          fileName = lastSegment;
+        }
+      }
+
+      // Ensure correct extension
+      if (!fileName.toLowerCase().endsWith(expectedExtension)) {
+        fileName = '$fileName$expectedExtension';
+      }
+
+      // Generate unique filename
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '${booksDir.path}/${timestamp}_$fileName';
+
+      // Save file
+      final file = File(filePath);
+      await file.writeAsBytes(response.bodyBytes);
+
+      // Parse file to extract metadata based on type
+      try {
+        String title = 'Unknown Title';
+        String author = 'Unknown Author';
+        String? coverPath;
+
+        if (expectedExtension == '.epub') {
+          // Handle EPUB files
+          final epubBook = await EpubReader.readBook(response.bodyBytes);
+          title = epubBook.Title ?? 'Unknown Title';
+          author = epubBook.Author ?? 'Unknown Author';
+
+          // Use sample books data as fallback for author
+          author = _findAuthorFromSampleBooks(title, url, author);
+
+          // Enhanced EPUB3 cover extraction
+          try {
+            final cover = epubBook.CoverImage;
+            if (cover != null) {
+              final jpegBytes = img.encodeJpg(cover);
+              final coverFile = File('${booksDir.path}/${timestamp}_cover.jpg');
+              await coverFile.writeAsBytes(jpegBytes);
+              coverPath = coverFile.path;
+            } else {
+              // Try alternative method for EPUB3 covers
+              final manifestItems = epubBook.Schema?.Package?.Manifest?.Items;
+              if (manifestItems != null && manifestItems is Map) {
+                final items = manifestItems as Map<String, dynamic>;
+                for (final item in items.values) {
+                  if (item.Properties?.contains('cover-image') == true ||
+                      item.Id?.toLowerCase().contains('cover') == true ||
+                      item.Href?.toLowerCase().contains('cover') == true) {
+                    try {
+                      final imageContent = epubBook.Content?.Images?[item.Href];
+                      if (imageContent != null) {
+                        final coverFile = File('${booksDir.path}/${timestamp}_cover.jpg');
+
+                        // Handle different image formats
+                        if (item.Href?.toLowerCase().endsWith('.jpg') == true ||
+                            item.Href?.toLowerCase().endsWith('.jpeg') == true) {
+                          await coverFile.writeAsBytes(imageContent.Content!);
+                        } else if (item.Href?.toLowerCase().endsWith('.png') == true) {
+                          final image = img.decodePng(imageContent.Content!);
+                          if (image != null) {
+                            final jpegBytes = img.encodeJpg(image);
+                            await coverFile.writeAsBytes(jpegBytes);
+                          } else {
+                            await coverFile.writeAsBytes(imageContent.Content!);
+                          }
+                        } else {
+                          final image = img.decodeImage(imageContent.Content!);
+                          if (image != null) {
+                            final jpegBytes = img.encodeJpg(image);
+                            await coverFile.writeAsBytes(jpegBytes);
+                          }
+                        }
+                        coverPath = coverFile.path;
+                        break;
+                      }
+                    } catch (e) {
+                      print('Could not process cover image ${item.Href}: $e');
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            print('Could not extract cover: $e');
+          }
+        } else if (expectedExtension == '.pdf') {
+          // Handle PDF files - validate and extract title from filename or URL
+          try {
+            // Additional PDF validation
+            final fileBytes = await file.readAsBytes();
+            if (fileBytes.length >= 4) {
+              final header = String.fromCharCodes(fileBytes.take(4));
+              if (!header.startsWith('%PDF')) {
+                await file.delete();
+                throw Exception('Downloaded file is not a valid PDF format');
+              }
+            } else {
+              await file.delete();
+              throw Exception('Downloaded PDF file is too small or corrupted');
+            }
+
+            // Extract title from filename or URL
+            if (fileName.isNotEmpty) {
+              title = fileName
+                  .replaceAll('.pdf', '')
+                  .replaceAll('_', ' ')
+                  .replaceAll('-', ' ')
+                  .split(' ')
+                  .map((word) => word.isNotEmpty
+                      ? word[0].toUpperCase() + word.substring(1).toLowerCase()
+                      : word)
+                  .join(' ');
+            }
+
+            // Try to extract author from URL patterns
+            if (url.contains('gutenberg.org')) {
+              author = 'Project Gutenberg';
+            } else if (url.contains('archive.org')) {
+              author = 'Internet Archive';
+            } else if (url.contains('dlshq.org')) {
+              author = 'Divine Life Society';
+            } else {
+              author = 'Unknown Author';
+            }
+
+            // Use sample books data as fallback for author
+            author = _findAuthorFromSampleBooks(title, url, author);
+
+            print('PDF processed successfully: $title by $author');
+          } catch (e) {
+            await file.delete();
+            throw Exception('Failed to process PDF file: $e');
+          }
+        }
+
+        // Check if book exists by title and author
+        if (await bookExistsByTitle(title, author)) {
+          // Delete the downloaded file since it's a duplicate
+          await file.delete();
+          throw Exception('A book with the same title and author already exists in your library');
+        }
+
+        // Create book record
+        final book = Book(
+          title: title,
+          author: author,
+          filePath: filePath,
+          coverPath: coverPath,
+          dateAdded: DateTime.now(),
+        );
+
+        // Add to database
+        final bookId = await addBook(book);
+        return book.copyWith(id: bookId);
+
+      } catch (e) {
+        // Clean up file if there was an error
+        await file.delete();
+        throw Exception('Failed to process ${expectedExtension.toUpperCase()} file: $e');
+      }
+    } finally {
+      client.close();
     }
   }
 
@@ -513,24 +849,188 @@ class BookService {
     }
   }
 
-  // Add sample books method for compatibility
-  static Future<void> addSampleBooksForSivananda() async {
-    // This method is called from BooksTab for backward compatibility
-    // We'll create a sample book entry if needed
+  // New methods to track sample books
+  static Future<bool> areSampleBooksDownloaded() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('sample_books_downloaded') ?? false;
+  }
+
+  static Future<void> setSampleBooksDownloaded(bool downloaded) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sample_books_downloaded', downloaded);
+  }
+
+  static Future<Set<String>> getDeletedSampleBooks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final deletedList = prefs.getStringList('deleted_sample_books') ?? [];
+    return deletedList.toSet();
+  }
+
+  static Future<void> addDeletedSampleBook(String title, String author) async {
+    final prefs = await SharedPreferences.getInstance();
+    final deletedBooks = await getDeletedSampleBooks();
+    final bookKey = '$title|$author';
+    deletedBooks.add(bookKey);
+    await prefs.setStringList('deleted_sample_books', deletedBooks.toList());
+  }
+
+  static Future<void> removeDeletedSampleBook(String title, String author) async {
+    final prefs = await SharedPreferences.getInstance();
+    final deletedBooks = await getDeletedSampleBooks();
+    final bookKey = '$title|$author';
+    deletedBooks.remove(bookKey);
+    await prefs.setStringList('deleted_sample_books', deletedBooks.toList());
+  }
+
+  // Comprehensive method to add all sample books
+  static Future<void> addSampleBooks() async {
+    // Remove any leftover placeholder books first
     try {
-      final existingBooks = await searchBooks('Sivananda');
-      if (existingBooks.isEmpty) {
-        // Create a placeholder book entry for Sivananda
-        final sampleBook = Book(
-          title: 'Bliss Divine',
-          author: 'Swami Sivananda',
-          filePath: 'sample_sivananda_bliss_divine.epub', // Placeholder path
-          dateAdded: DateTime.now(),
-        );
-        await addBook(sampleBook);
-      }
+      await removePlaceholderBooks();
     } catch (e) {
-      print('Error adding sample books: $e');
+      // ignore errors from cleanup
+      print('Placeholder cleanup failed: $e');
+    }
+
+    // Check if sample books have already been downloaded
+    final alreadyDownloaded = await areSampleBooksDownloaded();
+    final deletedBooks = await getDeletedSampleBooks();
+
+    print('Checking sample spiritual books...');
+
+    // Notify UI that downloads are starting
+    _sampleDownloadInProgressController.add(true);
+
+    int downloadedCount = 0;
+    try {
+      for (final bookData in _sampleBooksData) {
+        try {
+          final bookKey = '${bookData['title']}|${bookData['author']}';
+
+          // Skip if user has deleted this book
+          if (deletedBooks.contains(bookKey)) {
+            print('Book "${bookData['title']}" was deleted by user, skipping...');
+            continue;
+          }
+
+          // Check if book already exists by title and author
+          if (await bookExistsByTitle(bookData['title']!, bookData['author']!)) {
+            print('Book "${bookData['title']}" by ${bookData['author']} already exists, skipping...');
+            continue;
+          }
+
+          print('Downloading "${bookData['title']}" by ${bookData['author']}...');
+
+          // Download and add the book; forward per-file progress to UI
+          await downloadBookFromUrl(
+            bookData['url']!,
+            onProgress: (progress) {
+              // Emit per-file progress (0.0 - 1.0)
+              final p = progress.clamp(0.0, 1.0);
+              _sampleDownloadProgressController.add(p);
+              if (p >= 1.0) {
+                print('Downloaded "${bookData['title']}" successfully');
+              }
+            },
+          );
+          downloadedCount++;
+
+        } catch (e) {
+          print('Failed to add "${bookData['title']}" by ${bookData['author']}: $e');
+
+          // If download fails, create a placeholder entry only if not already downloaded
+          if (!alreadyDownloaded) {
+            try {
+              final placeholderBook = Book(
+                title: bookData['title']!,
+                author: bookData['author']!,
+                filePath: 'placeholder_${bookData['title']!.toLowerCase().replaceAll(' ', '_')}.epub',
+                dateAdded: DateTime.now(),
+              );
+              await addBook(placeholderBook);
+              print('Added placeholder for "${bookData['title']}"');
+            } catch (placeholderError) {
+              print('Failed to add placeholder for "${bookData['title']}": $placeholderError');
+            }
+          }
+        }
+      }
+    } finally {
+      // Ensure we always notify that downloads are finished
+      try {
+        _sampleDownloadInProgressController.add(false);
+      } catch (_) {}
+      // Reset per-file progress to 0.0 when done
+      try {
+        _sampleDownloadProgressController.add(0.0);
+      } catch (_) {}
+    }
+
+    // Mark sample books as downloaded if we actually downloaded any or if this is the first time
+    if (downloadedCount > 0 || !alreadyDownloaded) {
+      await setSampleBooksDownloaded(true);
+    }
+
+    print('Sample books setup complete! Downloaded: $downloadedCount books');
+  }
+
+  // New method to download sample books only once (for library page)
+  static Future<void> downloadSampleBooksOnce() async {
+    final alreadyDownloaded = await areSampleBooksDownloaded();
+    if (!alreadyDownloaded) {
+      await addSampleBooks();
+    } else {
+      print('Sample books already downloaded previously.');
     }
   }
+
+  // Remove placeholder book records (filePath starting with 'placeholder_') and any related files
+  static Future<int> removePlaceholderBooks() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'books',
+      where: "filePath LIKE ?",
+      whereArgs: ['placeholder_%'],
+    );
+
+    int removed = 0;
+    for (final map in maps) {
+      try {
+        final book = Book.fromMap(map);
+
+        // Attempt to delete physical files if they exist
+        if (book.filePath.isNotEmpty) {
+          try {
+            final f = File(book.filePath);
+            if (await f.exists()) await f.delete();
+          } catch (e) {
+            // ignore file deletion errors
+            print('Could not delete placeholder file ${book.filePath}: $e');
+          }
+        }
+
+        if (book.coverPath != null && book.coverPath!.isNotEmpty) {
+          try {
+            final cf = File(book.coverPath!);
+            if (await cf.exists()) await cf.delete();
+          } catch (e) {
+            print('Could not delete placeholder cover ${book.coverPath}: $e');
+          }
+        }
+
+        await db.delete('books', where: 'id = ?', whereArgs: [book.id]);
+        removed++;
+      } catch (e) {
+        print('Error removing placeholder book entry: $e');
+      }
+    }
+
+    return removed;
+  }
+
+  // Method to get sample book URLs for manual download
+  static List<Map<String, String>> getSampleBookUrls() {
+    return List<Map<String, String>>.from(_sampleBooksData);
+  }
 }
+
