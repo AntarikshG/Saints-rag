@@ -4,14 +4,20 @@ import 'package:http/http.dart' as http;
 class AppConfig {
   final bool gradioServerRunning;
   final String gradioServerLink;
+  final List<String> ekadashiDates;
 
-  AppConfig({required this.gradioServerRunning, required this.gradioServerLink});
+  AppConfig({
+    required this.gradioServerRunning,
+    required this.gradioServerLink,
+    required this.ekadashiDates,
+  });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
     print('[AppConfig] Parsing config JSON: ' + json.toString());
     return AppConfig(
       gradioServerRunning: json['gradio_server_running'] ?? false,
       gradioServerLink: json['gradio_server_link'] ?? '',
+      ekadashiDates: List<String>.from(json['ekadashi_dates'] ?? []),
     );
   }
 }

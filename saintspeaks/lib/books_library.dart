@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'book_service.dart';
@@ -19,17 +20,75 @@ class _BooksLibraryPageState extends State<BooksLibraryPage> {
   double _downloadProgress = 0.0;
   String _downloadStatus = '';
 
+  // Add sample books download tracking
+  StreamSubscription<bool>? _sampleDownloadInProgressSub;
+  StreamSubscription<double>? _sampleDownloadProgressSub;
+  bool _isSampleBooksDownloading = false;
+  double _sampleDownloadProgress = 0.0;
+
   @override
   void initState() {
     super.initState();
     _loadBooks();
+    _setupSampleDownloadListeners();
     _downloadSampleBooksOnceIfNeeded();
   }
 
   @override
   void dispose() {
     _urlController.dispose();
+    _sampleDownloadInProgressSub?.cancel();
+    _sampleDownloadProgressSub?.cancel();
     super.dispose();
+  }
+
+  void _setupSampleDownloadListeners() {
+    // Listen for sample download start/stop
+    _sampleDownloadInProgressSub = BookService.sampleDownloadInProgressStream.listen((inProgress) {
+      if (mounted) {
+        setState(() {
+          _isSampleBooksDownloading = inProgress;
+        });
+
+        if (inProgress) {
+          // Show SnackBar when downloads start
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Downloading sample books to your library...'),
+              duration: Duration(days: 1), // Keep it until dismissed
+              backgroundColor: Colors.blue,
+              action: SnackBarAction(
+                label: 'Hide',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
+              ),
+            ),
+          );
+        } else {
+          // Hide current SnackBar and show completion message
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Sample books added to your library!'),
+              duration: Duration(seconds: 3),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Reload books to show newly downloaded ones
+          _loadBooks();
+        }
+      }
+    });
+
+    // Listen for sample download progress
+    _sampleDownloadProgressSub = BookService.sampleDownloadProgressStream.listen((progress) {
+      if (mounted) {
+        setState(() {
+          _sampleDownloadProgress = progress;
+        });
+      }
+    });
   }
 
   Future<void> _loadBooks() async {
@@ -358,11 +417,74 @@ class _BooksLibraryPageState extends State<BooksLibraryPage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _books.isEmpty
-              ? _buildEmptyState()
-              : _buildBooksList(),
+      body: Column(
+        children: [
+          // Sample books download progress banner
+          if (_isSampleBooksDownloading)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16),
+              margin: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Adding sample books to your library...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_sampleDownloadProgress > 0) ...[
+                    SizedBox(height: 12),
+                    LinearProgressIndicator(
+                      value: _sampleDownloadProgress,
+                      backgroundColor: Colors.blue.shade100,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Progress: ${(_sampleDownloadProgress * 100).toInt()}%',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          // Main content area
+          Expanded(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : _books.isEmpty
+                    ? _buildEmptyState()
+                    : _buildBooksList(),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddBookDialog,
         child: Icon(Icons.add),

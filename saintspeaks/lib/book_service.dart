@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -159,6 +160,22 @@ class BookService {
   static Database? _database;
   static const String _databaseName = 'books.db';
   static const int _databaseVersion = 1;
+
+  // Streams to notify UI of sample-download state and progress
+  static final StreamController<bool> _sampleDownloadInProgressController = StreamController<bool>.broadcast();
+  static final StreamController<double> _sampleDownloadProgressController = StreamController<double>.broadcast();
+
+  /// Stream that emits `true` when sample downloads start and `false` when they finish
+  static Stream<bool> get sampleDownloadInProgressStream => _sampleDownloadInProgressController.stream;
+
+  /// Stream that emits progress values in range [0.0, 1.0] for the currently downloading sample book
+  static Stream<double> get sampleDownloadProgressStream => _sampleDownloadProgressController.stream;
+
+  /// Call this to close the sample download streams (optional)
+  static void disposeSampleDownloadStreams() {
+    if (!_sampleDownloadInProgressController.isClosed) _sampleDownloadInProgressController.close();
+    if (!_sampleDownloadProgressController.isClosed) _sampleDownloadProgressController.close();
+  }
 
   // Sample books data moved to the top of the class
   static const List<Map<String, String>> _sampleBooksData = [
@@ -867,62 +884,86 @@ class BookService {
 
   // Comprehensive method to add all sample books
   static Future<void> addSampleBooks() async {
+    // Remove any leftover placeholder books first
+    try {
+      await removePlaceholderBooks();
+    } catch (e) {
+      // ignore errors from cleanup
+      print('Placeholder cleanup failed: $e');
+    }
+
     // Check if sample books have already been downloaded
     final alreadyDownloaded = await areSampleBooksDownloaded();
     final deletedBooks = await getDeletedSampleBooks();
 
     print('Checking sample spiritual books...');
 
+    // Notify UI that downloads are starting
+    _sampleDownloadInProgressController.add(true);
+
     int downloadedCount = 0;
-    for (final bookData in _sampleBooksData) {
-      try {
-        final bookKey = '${bookData['title']}|${bookData['author']}';
+    try {
+      for (final bookData in _sampleBooksData) {
+        try {
+          final bookKey = '${bookData['title']}|${bookData['author']}';
 
-        // Skip if user has deleted this book
-        if (deletedBooks.contains(bookKey)) {
-          print('Book "${bookData['title']}" was deleted by user, skipping...');
-          continue;
-        }
+          // Skip if user has deleted this book
+          if (deletedBooks.contains(bookKey)) {
+            print('Book "${bookData['title']}" was deleted by user, skipping...');
+            continue;
+          }
 
-        // Check if book already exists by title and author
-        if (await bookExistsByTitle(bookData['title']!, bookData['author']!)) {
-          print('Book "${bookData['title']}" by ${bookData['author']} already exists, skipping...');
-          continue;
-        }
+          // Check if book already exists by title and author
+          if (await bookExistsByTitle(bookData['title']!, bookData['author']!)) {
+            print('Book "${bookData['title']}" by ${bookData['author']} already exists, skipping...');
+            continue;
+          }
 
-        print('Downloading "${bookData['title']}" by ${bookData['author']}...');
+          print('Downloading "${bookData['title']}" by ${bookData['author']}...');
 
-        // Download and add the book
-        await downloadBookFromUrl(
-          bookData['url']!,
-          onProgress: (progress) {
-            // You could add progress tracking here if needed
-            if (progress == 1.0) {
-              print('Downloaded "${bookData['title']}" successfully');
+          // Download and add the book; forward per-file progress to UI
+          await downloadBookFromUrl(
+            bookData['url']!,
+            onProgress: (progress) {
+              // Emit per-file progress (0.0 - 1.0)
+              final p = progress.clamp(0.0, 1.0);
+              _sampleDownloadProgressController.add(p);
+              if (p >= 1.0) {
+                print('Downloaded "${bookData['title']}" successfully');
+              }
+            },
+          );
+          downloadedCount++;
+
+        } catch (e) {
+          print('Failed to add "${bookData['title']}" by ${bookData['author']}: $e');
+
+          // If download fails, create a placeholder entry only if not already downloaded
+          if (!alreadyDownloaded) {
+            try {
+              final placeholderBook = Book(
+                title: bookData['title']!,
+                author: bookData['author']!,
+                filePath: 'placeholder_${bookData['title']!.toLowerCase().replaceAll(' ', '_')}.epub',
+                dateAdded: DateTime.now(),
+              );
+              await addBook(placeholderBook);
+              print('Added placeholder for "${bookData['title']}"');
+            } catch (placeholderError) {
+              print('Failed to add placeholder for "${bookData['title']}": $placeholderError');
             }
-          },
-        );
-        downloadedCount++;
-
-      } catch (e) {
-        print('Failed to add "${bookData['title']}" by ${bookData['author']}: $e');
-
-        // If download fails, create a placeholder entry only if not already downloaded
-        if (!alreadyDownloaded) {
-          try {
-            final placeholderBook = Book(
-              title: bookData['title']!,
-              author: bookData['author']!,
-              filePath: 'placeholder_${bookData['title']!.toLowerCase().replaceAll(' ', '_')}.epub',
-              dateAdded: DateTime.now(),
-            );
-            await addBook(placeholderBook);
-            print('Added placeholder for "${bookData['title']}"');
-          } catch (placeholderError) {
-            print('Failed to add placeholder for "${bookData['title']}": $placeholderError');
           }
         }
       }
+    } finally {
+      // Ensure we always notify that downloads are finished
+      try {
+        _sampleDownloadInProgressController.add(false);
+      } catch (_) {}
+      // Reset per-file progress to 0.0 when done
+      try {
+        _sampleDownloadProgressController.add(0.0);
+      } catch (_) {}
     }
 
     // Mark sample books as downloaded if we actually downloaded any or if this is the first time
@@ -943,8 +984,53 @@ class BookService {
     }
   }
 
+  // Remove placeholder book records (filePath starting with 'placeholder_') and any related files
+  static Future<int> removePlaceholderBooks() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'books',
+      where: "filePath LIKE ?",
+      whereArgs: ['placeholder_%'],
+    );
+
+    int removed = 0;
+    for (final map in maps) {
+      try {
+        final book = Book.fromMap(map);
+
+        // Attempt to delete physical files if they exist
+        if (book.filePath.isNotEmpty) {
+          try {
+            final f = File(book.filePath);
+            if (await f.exists()) await f.delete();
+          } catch (e) {
+            // ignore file deletion errors
+            print('Could not delete placeholder file ${book.filePath}: $e');
+          }
+        }
+
+        if (book.coverPath != null && book.coverPath!.isNotEmpty) {
+          try {
+            final cf = File(book.coverPath!);
+            if (await cf.exists()) await cf.delete();
+          } catch (e) {
+            print('Could not delete placeholder cover ${book.coverPath}: $e');
+          }
+        }
+
+        await db.delete('books', where: 'id = ?', whereArgs: [book.id]);
+        removed++;
+      } catch (e) {
+        print('Error removing placeholder book entry: $e');
+      }
+    }
+
+    return removed;
+  }
+
   // Method to get sample book URLs for manual download
   static List<Map<String, String>> getSampleBookUrls() {
     return List<Map<String, String>>.from(_sampleBooksData);
   }
 }
+

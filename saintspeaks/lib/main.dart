@@ -28,6 +28,7 @@ import 'books_tab.dart';
 import 'pdf_reader.dart';
 import 'epub_reader.dart';
 import 'rating_share_service.dart';
+import 'ekadashi_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -445,130 +446,136 @@ class HomePage extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: drawerGradient,
             ),
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    gradient: appBarGradient,
-                  ),
-                  child: DrawerHeader(
-                    margin: EdgeInsets.zero,
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.deepOrange.withOpacity(0.3),
-                                blurRadius: 10,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.all(8),
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/images/antarikshverse.png',
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.self_improvement,
-                                    size: 35,
-                                    color: Colors.deepOrange,
-                                  );
-                                },
+            child: SafeArea(
+              child: ListView(
+                padding: EdgeInsets.only(bottom: 24), // Add bottom padding for system nav bar
+                children: [
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      gradient: appBarGradient,
+                    ),
+                    child: DrawerHeader(
+                      margin: EdgeInsets.zero,
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.deepOrange.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: ClipOval(
+                                child: Image.asset(
+                                  'assets/images/antarikshverse.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                      Icons.self_improvement,
+                                      size: 35,
+                                      color: Colors.deepOrange,
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          loc.menu,
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                          SizedBox(height: 12),
+                          Text(
+                            loc.menu,
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                _buildDrawerItem(context, Icons.contact_page, loc.contact, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => ContactPage()));
-                }),
-                _buildDrawerItem(context, Icons.color_lens, loc.selectTheme, () {
-                  Navigator.pop(context);
-                  _showThemeDialog(context);
-                }),
-                _buildDrawerItem(context, Icons.language, loc.language, () {
-                  Navigator.pop(context);
-                  _showLanguageDialog(context);
-                }),
-                _buildDrawerItem(context, Icons.person, loc.setName, () {
-                  Navigator.pop(context);
-                  _showNameDialog(context);
-                }),
-                _buildDrawerItem(context, Icons.note, loc.spiritualDiary, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => SpiritualDiaryPage()));
-                }),
-                _buildDrawerItem(context, Icons.bookmark, loc.bookmarkedQuotes, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
-                }),
-                _buildDrawerItem(context, Icons.library_books, 'My Books Library', () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => BooksLibraryPage()));
-                }),
-                _buildDrawerItem(context, Icons.info, loc.aboutApp, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => AboutAppPage()));
-                }),
-                _buildDrawerItem(context, Icons.star, 'Rate & Share App', () {
-                  Navigator.pop(context);
-                  RatingShareService.showRatingShareDialog(context);
-                }),
-                _buildDrawerItem(context, Icons.notifications_active, 'Set Daily Notifications', () async {
-                  Navigator.pop(context);
-
-                  // Show current notification configuration
-                  final configInfo = NotificationService.getNotificationConfigInfo();
-                  await NotificationService.showTestNotification();
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('✅ Test notification sent!'),
-                          SizedBox(height: 4),
-                          Text(configInfo, style: TextStyle(fontSize: 12)),
                         ],
                       ),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 5),
                     ),
-                  );
-                }),
-                _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
-                }),
-              ],
+                  ),
+                  _buildDrawerItem(context, Icons.contact_page, loc.contact, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ContactPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.color_lens, loc.selectTheme, () {
+                    Navigator.pop(context);
+                    _showThemeDialog(context);
+                  }),
+                  _buildDrawerItem(context, Icons.language, loc.language, () {
+                    Navigator.pop(context);
+                    _showLanguageDialog(context);
+                  }),
+                  _buildDrawerItem(context, Icons.person, loc.setName, () {
+                    Navigator.pop(context);
+                    _showNameDialog(context);
+                  }),
+                  _buildDrawerItem(context, Icons.note, loc.spiritualDiary, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => SpiritualDiaryPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.bookmark, loc.bookmarkedQuotes, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.brightness_2, 'Next Ekadashi', () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => EkadashiPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.library_books, 'My Books Library', () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => BooksLibraryPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.info, loc.aboutApp, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => AboutAppPage()));
+                  }),
+                  _buildDrawerItem(context, Icons.star, 'Rate & Share App', () {
+                    Navigator.pop(context);
+                    RatingShareService.showRatingShareDialog(context);
+                  }),
+                  _buildDrawerItem(context, Icons.notifications_active, 'Set Daily Notifications', () async {
+                    Navigator.pop(context);
+
+                    // Show current notification configuration
+                    final configInfo = NotificationService.getNotificationConfigInfo();
+                    await NotificationService.showTestNotification();
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('✅ Test notification sent!'),
+                            SizedBox(height: 4),
+                            Text(configInfo, style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 5),
+                      ),
+                    );
+                  }),
+                  _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
+                  }),
+                ],
+              ),
             ),
           ),
         ),

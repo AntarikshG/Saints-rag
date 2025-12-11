@@ -7,6 +7,7 @@ import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:permission_handler/permission_handler.dart';
 import 'articlesquotes.dart';
 import 'articlesquotes_hi.dart';
+import 'ekadashi_service.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -15,6 +16,9 @@ class NotificationService {
   // Configurable notification settings - Changed from 60 to 2 for better reliability
   static const int NOTIFICATIONS_PER_DAY = 2; // Morning and evening notifications
   static const int SCHEDULE_DAYS_AHEAD = 7; // Schedule for a full week
+
+  // Ekadashi notification IDs - separate range to avoid conflicts
+  static const int EKADASHI_NOTIFICATION_ID_START = 5000;
 
   // Calculate notification times based on notifications per day
   static List<int> get _notificationHours {
@@ -50,7 +54,7 @@ class NotificationService {
     return '✨ Night Contemplation';
   }
 
-  static Future<void> initialize(BuildContext context) async {
+  static Future<void> initialize(BuildContext? context) async {
     if (_initialized) return;
 
     print('🚀 Initializing NotificationService...');
@@ -90,18 +94,8 @@ class NotificationService {
       }
     }
 
-    // Create notification channel first (Android 8.0+)
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'daily_quotes',
-      'Daily Quotes',
-      description: 'Daily motivational quotes from saints',
-      importance: Importance.high,
-    );
-
-    // Create the notification channel
-    await _notificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+    // Create notification channels
+    await _createNotificationChannels();
 
     // Initialize notification plugin
     const AndroidInitializationSettings androidSettings =
@@ -131,6 +125,34 @@ class NotificationService {
 
     // Request all necessary permissions
     await _requestAllPermissions();
+  }
+
+  static Future<void> _createNotificationChannels() async {
+    // Daily quotes channel
+    const AndroidNotificationChannel quotesChannel = AndroidNotificationChannel(
+      'daily_quotes',
+      'Daily Quotes',
+      description: 'Daily motivational quotes from saints',
+      importance: Importance.high,
+    );
+
+    // Ekadashi notifications channel
+    const AndroidNotificationChannel ekadashiChannel = AndroidNotificationChannel(
+      'ekadashi_notifications',
+      'Ekadashi Reminders',
+      description: 'Notifications for upcoming Ekadashi dates',
+      importance: Importance.high,
+    );
+
+    // Create the notification channels
+    final androidPlugin = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+    if (androidPlugin != null) {
+      await androidPlugin.createNotificationChannel(quotesChannel);
+      await androidPlugin.createNotificationChannel(ekadashiChannel);
+      print('✓ Created notification channels');
+    }
   }
 
   static Future<bool> _requestAllPermissions() async {
@@ -165,9 +187,8 @@ class NotificationService {
 
     if (!_initialized) {
       print('✗ Notifications not initialized - initializing now...');
-      // Try to initialize with a dummy context
       try {
-        await initialize(null as BuildContext);
+        await initialize(null);
       } catch (e) {
         print('✗ Failed to initialize notifications: $e');
         return;
@@ -180,19 +201,22 @@ class NotificationService {
       print('⚠️ Notification permissions missing, but proceeding with scheduling');
     }
 
-    // Cancel existing notifications
+    // Cancel existing quote notifications (keep Ekadashi notifications)
     try {
-      await _notificationsPlugin.cancelAll();
-      print('✓ Cancelled existing notifications');
+      await _cancelQuoteNotifications();
+      print('✓ Cancelled existing quote notifications');
     } catch (e) {
-      print('Error canceling notifications: $e');
+      print('Error canceling quote notifications: $e');
     }
 
     // Wait a bit to ensure cancellation completes
     await Future.delayed(Duration(milliseconds: 500));
 
-    // Schedule notifications
+    // Schedule quote notifications
     await _scheduleConfigurableNotifications(locale);
+
+    // Also schedule Ekadashi notifications
+    await scheduleEkadashiNotifications();
 
     // Save scheduling timestamp
     try {
@@ -204,6 +228,332 @@ class NotificationService {
     }
 
     print('=== Notification scheduling complete ===');
+  }
+
+  // Method to schedule Ekadashi notifications
+  static Future<void> scheduleEkadashiNotifications() async {
+    print('🌙 === Starting Ekadashi notification scheduling ===');
+
+    try {
+      // Get only the next 2 upcoming Ekadashi dates instead of 12
+      final upcomingEkadashis = await EkadashiService.getUpcomingEkadashis(count: 2);
+
+      if (upcomingEkadashis.isEmpty) {
+        print('⚠️ No upcoming Ekadashi dates found');
+        return;
+      }
+
+      // Cancel existing Ekadashi notifications
+      await _cancelEkadashiNotifications();
+
+      int notificationId = EKADASHI_NOTIFICATION_ID_START;
+      int scheduledCount = 0;
+
+      print('📅 Scheduling notifications for next ${upcomingEkadashis.length} Ekadashis only');
+
+      for (final ekadashi in upcomingEkadashis) {
+        final now = tz.TZDateTime.now(tz.local);
+
+        // Schedule day-before notification (evening at 7 PM)
+        final dayBeforeDate = tz.TZDateTime(
+          tz.local,
+          ekadashi.date.year,
+          ekadashi.date.month,
+          ekadashi.date.day - 1,
+          19, // 7 PM
+        );
+
+        // Schedule day-of notification (morning at 6 AM)
+        final dayOfDate = tz.TZDateTime(
+          tz.local,
+          ekadashi.date.year,
+          ekadashi.date.month,
+          ekadashi.date.day,
+          6, // 6 AM
+        );
+
+        // Schedule day-before notification if it's in the future
+        if (dayBeforeDate.isAfter(now)) {
+          try {
+            await _notificationsPlugin.zonedSchedule(
+              notificationId++,
+              '🌙 Tomorrow is Ekadashi',
+              'Prepare for ${ekadashi.name} tomorrow. Consider fasting and spiritual practices.',
+              dayBeforeDate,
+              _getEkadashiNotificationDetails(isPreReminder: true),
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+              payload: 'ekadashi_reminder',
+            );
+            scheduledCount++;
+            print('✓ Scheduled day-before notification for ${ekadashi.name}: $dayBeforeDate');
+          } catch (e) {
+            print('✗ Failed to schedule day-before notification for ${ekadashi.name}: $e');
+          }
+        }
+
+        // Schedule day-of notification if it's in the future
+        if (dayOfDate.isAfter(now)) {
+          try {
+            await _notificationsPlugin.zonedSchedule(
+              notificationId++,
+              '🕉️ Today is Ekadashi',
+              '${ekadashi.name} - A sacred day for fasting, meditation, and devotion.',
+              dayOfDate,
+              _getEkadashiNotificationDetails(isPreReminder: false),
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+              payload: 'ekadashi_today',
+            );
+            scheduledCount++;
+            print('✓ Scheduled day-of notification for ${ekadashi.name}: $dayOfDate');
+          } catch (e) {
+            print('✗ Failed to schedule day-of notification for ${ekadashi.name}: $e');
+          }
+        }
+      }
+
+      // Save Ekadashi scheduling timestamp
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('last_ekadashi_schedule_date', DateTime.now().toIso8601String());
+        print('✓ Saved Ekadashi scheduling timestamp');
+      } catch (e) {
+        print('Error saving Ekadashi schedule timestamp: $e');
+      }
+
+      print('🎉 Successfully scheduled $scheduledCount Ekadashi notifications for next 2 Ekadashis');
+
+    } catch (e) {
+      print('✗ Error scheduling Ekadashi notifications: $e');
+    }
+
+    print('🌙 === Ekadashi notification scheduling complete ===');
+  }
+
+  static NotificationDetails _getEkadashiNotificationDetails({required bool isPreReminder}) {
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        'ekadashi_notifications',
+        'Ekadashi Reminders',
+        channelDescription: 'Notifications for upcoming Ekadashi dates',
+        importance: Importance.high,
+        priority: Priority.high,
+        showWhen: true,
+        icon: '@mipmap/ic_launcher',
+        enableVibration: true,
+        playSound: true,
+        autoCancel: true,
+        styleInformation: BigTextStyleInformation(''),
+        ticker: isPreReminder ? 'Ekadashi Tomorrow' : 'Ekadashi Today',
+        visibility: NotificationVisibility.public,
+        color: Color(0xFFFF6F00), // Orange color for Ekadashi notifications
+      ),
+    );
+  }
+
+  static Future<void> _cancelQuoteNotifications() async {
+    try {
+      final pendingNotifications = await _notificationsPlugin.pendingNotificationRequests();
+
+      // Cancel notifications in the quote ID range (1000-4999)
+      for (final notification in pendingNotifications) {
+        if (notification.id >= 1000 && notification.id < EKADASHI_NOTIFICATION_ID_START) {
+          await _notificationsPlugin.cancel(notification.id);
+        }
+      }
+      print('✓ Cancelled quote notifications');
+    } catch (e) {
+      print('✗ Error cancelling quote notifications: $e');
+    }
+  }
+
+  static Future<void> _cancelEkadashiNotifications() async {
+    try {
+      final pendingNotifications = await _notificationsPlugin.pendingNotificationRequests();
+
+      // Cancel notifications in the Ekadashi ID range (5000+)
+      for (final notification in pendingNotifications) {
+        if (notification.id >= EKADASHI_NOTIFICATION_ID_START) {
+          await _notificationsPlugin.cancel(notification.id);
+        }
+      }
+      print('✓ Cancelled Ekadashi notifications');
+    } catch (e) {
+      print('✗ Error cancelling Ekadashi notifications: $e');
+    }
+  }
+
+  // Method to show immediate Ekadashi test notification
+  static Future<void> showTestEkadashiNotification() async {
+    try {
+      final nextEkadashi = await EkadashiService.getNextEkadashi();
+      final title = nextEkadashi != null
+          ? '🌙 Next Ekadashi: ${nextEkadashi.name}'
+          : '🌙 Ekadashi Reminder Test';
+      final body = nextEkadashi != null
+          ? 'Coming up on ${nextEkadashi.date.day}/${nextEkadashi.date.month}/${nextEkadashi.date.year}'
+          : 'This is a test notification for Ekadashi reminders.';
+
+      await _notificationsPlugin.show(
+        998,
+        title,
+        body,
+        _getEkadashiNotificationDetails(isPreReminder: false),
+        payload: 'ekadashi_test',
+      );
+      print('✓ Test Ekadashi notification sent');
+    } catch (e) {
+      print('✗ Error showing test Ekadashi notification: $e');
+    }
+  }
+
+  // Enhanced method to check and reschedule notifications including Ekadashi
+  static Future<void> checkAndRescheduleIfNeeded(Locale locale) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastReschedule = prefs.getString('last_reschedule_date');
+      final lastEkadashiSchedule = prefs.getString('last_ekadashi_schedule_date');
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+
+      // Get pending notifications count
+      final pendingNotifications = await _notificationsPlugin.pendingNotificationRequests();
+      final totalPending = pendingNotifications.length;
+
+      // Count Ekadashi notifications
+      final ekadashiNotifications = pendingNotifications
+          .where((n) => n.id >= EKADASHI_NOTIFICATION_ID_START)
+          .length;
+
+      print('📋 Current pending notifications: $totalPending (Ekadashi: $ekadashiNotifications)');
+
+      bool needsReschedule = false;
+
+      // Check if we need to reschedule quotes
+      if (totalPending < 8 || lastReschedule == null) {
+        needsReschedule = true;
+      } else if (lastReschedule != null) {
+        final lastDate = DateTime.parse(lastReschedule);
+        final daysSinceReschedule = DateTime.now().difference(lastDate).inDays;
+        if (daysSinceReschedule >= 5) {
+          needsReschedule = true;
+        }
+      }
+
+      // Check if we need to reschedule Ekadashi notifications
+      bool needsEkadashiReschedule = false;
+      if (ekadashiNotifications < 4 || lastEkadashiSchedule == null) {
+        needsEkadashiReschedule = true;
+      } else if (lastEkadashiSchedule != null) {
+        final lastDate = DateTime.parse(lastEkadashiSchedule);
+        final daysSinceReschedule = DateTime.now().difference(lastDate).inDays;
+        if (daysSinceReschedule >= 30) { // Reschedule Ekadashi notifications monthly
+          needsEkadashiReschedule = true;
+        }
+      }
+
+      if (needsReschedule) {
+        print('🔄 Auto-rescheduling all notifications');
+        await scheduleDailyQuoteNotifications(locale);
+      } else if (needsEkadashiReschedule) {
+        print('🔄 Auto-rescheduling Ekadashi notifications');
+        await scheduleEkadashiNotifications();
+        await prefs.setString('last_ekadashi_schedule_date', today);
+      }
+
+    } catch (e) {
+      print('✗ Error in auto-reschedule check: $e');
+    }
+  }
+
+  static String _getRandomQuoteText(Locale locale) {
+    final quote = _getRandomQuote(locale);
+    return '"${quote['quote']}"\n\n- ${quote['saint']}';
+  }
+
+  static Map<String, String> _getRandomQuote(Locale locale) {
+    final random = Random();
+
+    try {
+      if (locale.languageCode == 'hi') {
+        final allQuotes = <Map<String, String>>[];
+        for (final s in saintsHi) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+        if (allQuotes.isNotEmpty) {
+          return allQuotes[random.nextInt(allQuotes.length)];
+        }
+      } else {
+        final allQuotes = <Map<String, String>>[];
+        for (final s in saints) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+        if (allQuotes.isNotEmpty) {
+          return allQuotes[random.nextInt(allQuotes.length)];
+        }
+      }
+    } catch (e) {
+      print('Error getting random quote: $e');
+    }
+
+    return {'quote': 'Stay inspired!', 'saint': 'Talk with Saints'};
+  }
+
+  // Private method to map timezone offsets to IANA timezone names
+  static String? _getTimezoneFromOffset(int offsetHours) {
+    // Common timezone mapping based on UTC offset (using valid IANA names)
+    const Map<int, String> offsetMap = {
+      -12: 'Etc/GMT+12',
+      -11: 'Pacific/Midway',
+      -10: 'Pacific/Honolulu',
+      -9: 'America/Anchorage',
+      -8: 'America/Los_Angeles',
+      -7: 'America/Denver',
+      -6: 'America/Chicago',
+      -5: 'America/New_York',
+      -4: 'America/Halifax',
+      -3: 'America/Sao_Paulo',
+      -2: 'Atlantic/South_Georgia',
+      -1: 'Atlantic/Azores',
+      0: 'Europe/London',
+      1: 'Europe/Berlin',
+      2: 'Europe/Athens',
+      3: 'Europe/Moscow',
+      4: 'Asia/Dubai',
+      5: 'Asia/Karachi',
+      6: 'Asia/Dhaka',
+      7: 'Asia/Bangkok',
+      8: 'Asia/Shanghai',
+      9: 'Asia/Tokyo',
+      10: 'Australia/Sydney',
+      11: 'Pacific/Noumea',
+      12: 'Pacific/Auckland',
+    };
+
+    // For India Standard Time (UTC+5:30), check for half-hour offset
+    final DateTime now = DateTime.now();
+    final int offsetMinutes = now.timeZoneOffset.inMinutes;
+
+    // Handle special cases for half-hour and quarter-hour timezones
+    if (offsetMinutes == 330) { // +5:30 (India Standard Time)
+      return 'Asia/Kolkata';
+    } else if (offsetMinutes == -210) { // -3:30 (Newfoundland)
+      return 'America/St_Johns';
+    } else if (offsetMinutes == 270) { // +4:30 (Afghanistan)
+      return 'Asia/Kabul';
+    } else if (offsetMinutes == 345) { // +5:45 (Nepal)
+      return 'Asia/Kathmandu';
+    } else if (offsetMinutes == 390) { // +6:30 (Myanmar)
+      return 'Asia/Yangon';
+    } else if (offsetMinutes == 570) { // +9:30 (Central Australia)
+      return 'Australia/Adelaide';
+    } else if (offsetMinutes == 630) { // +10:30 (Lord Howe Island)
+      return 'Australia/Lord_Howe';
+    }
+
+    return offsetMap[offsetHours];
   }
 
   static Future<void> _scheduleConfigurableNotifications(Locale locale) async {
@@ -377,131 +727,6 @@ class NotificationService {
   // New method to get a fresh random quote each time (for quote of the day page)
   static Map<String, String> getRandomQuoteNow(Locale locale) {
     return _getRandomQuote(locale);
-  }
-
-  // Add automatic rescheduling method that should be called periodically
-  static Future<void> checkAndRescheduleIfNeeded(Locale locale) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final lastReschedule = prefs.getString('last_reschedule_date');
-      final today = DateTime.now().toIso8601String().substring(0, 10);
-
-      // Get pending notifications count
-      final pendingNotifications = await _notificationsPlugin.pendingNotificationRequests();
-      final totalPending = pendingNotifications.length;
-
-      print('📋 Current pending notifications: $totalPending');
-
-      // If we have less than 20 pending notifications or it's been more than 15 days since last reschedule
-      if (totalPending < 8 || lastReschedule == null) {
-        print('🔄 Auto-rescheduling notifications (pending: $totalPending)');
-        await scheduleDailyQuoteNotifications(locale);
-        await prefs.setString('last_reschedule_date', today);
-      } else if (lastReschedule != null) {
-        final lastDate = DateTime.parse(lastReschedule);
-        final daysSinceReschedule = DateTime.now().difference(lastDate).inDays;
-
-        if (daysSinceReschedule >= 5) {
-          print('🔄 Auto-rescheduling notifications (15+ days since last reschedule)');
-          await scheduleDailyQuoteNotifications(locale);
-          await prefs.setString('last_reschedule_date', today);
-        }
-      }
-    } catch (e) {
-      print('✗ Error in auto-reschedule check: $e');
-    }
-  }
-
-  static String _getRandomQuoteText(Locale locale) {
-    final quote = _getRandomQuote(locale);
-    return '"${quote['quote']}"\n\n- ${quote['saint']}';
-  }
-
-  static Map<String, String> _getRandomQuote(Locale locale) {
-    final random = Random();
-
-    try {
-      if (locale.languageCode == 'hi') {
-        final allQuotes = <Map<String, String>>[];
-        for (final s in saintsHi) {
-          for (final q in s.quotes) {
-            allQuotes.add({'quote': q, 'saint': s.name});
-          }
-        }
-        if (allQuotes.isNotEmpty) {
-          return allQuotes[random.nextInt(allQuotes.length)];
-        }
-      } else {
-        final allQuotes = <Map<String, String>>[];
-        for (final s in saints) {
-          for (final q in s.quotes) {
-            allQuotes.add({'quote': q, 'saint': s.name});
-          }
-        }
-        if (allQuotes.isNotEmpty) {
-          return allQuotes[random.nextInt(allQuotes.length)];
-        }
-      }
-    } catch (e) {
-      print('Error getting random quote: $e');
-    }
-
-    return {'quote': 'Stay inspired!', 'saint': 'Talk with Saints'};
-  }
-
-  // Private method to map timezone offsets to IANA timezone names
-  static String? _getTimezoneFromOffset(int offsetHours) {
-    // Common timezone mapping based on UTC offset (using valid IANA names)
-    const Map<int, String> offsetMap = {
-      -12: 'Etc/GMT+12',
-      -11: 'Pacific/Midway',
-      -10: 'Pacific/Honolulu',
-      -9: 'America/Anchorage',
-      -8: 'America/Los_Angeles',
-      -7: 'America/Denver',
-      -6: 'America/Chicago',
-      -5: 'America/New_York',
-      -4: 'America/Halifax',
-      -3: 'America/Sao_Paulo',
-      -2: 'Atlantic/South_Georgia',
-      -1: 'Atlantic/Azores',
-      0: 'Europe/London',
-      1: 'Europe/Berlin',
-      2: 'Europe/Athens',
-      3: 'Europe/Moscow',
-      4: 'Asia/Dubai',
-      5: 'Asia/Karachi',
-      6: 'Asia/Dhaka',
-      7: 'Asia/Bangkok',
-      8: 'Asia/Shanghai',
-      9: 'Asia/Tokyo',
-      10: 'Australia/Sydney',
-      11: 'Pacific/Noumea',
-      12: 'Pacific/Auckland',
-    };
-
-    // For India Standard Time (UTC+5:30), check for half-hour offset
-    final DateTime now = DateTime.now();
-    final int offsetMinutes = now.timeZoneOffset.inMinutes;
-
-    // Handle special cases for half-hour and quarter-hour timezones
-    if (offsetMinutes == 330) { // +5:30 (India Standard Time)
-      return 'Asia/Kolkata';
-    } else if (offsetMinutes == -210) { // -3:30 (Newfoundland)
-      return 'America/St_Johns';
-    } else if (offsetMinutes == 270) { // +4:30 (Afghanistan)
-      return 'Asia/Kabul';
-    } else if (offsetMinutes == 345) { // +5:45 (Nepal)
-      return 'Asia/Kathmandu';
-    } else if (offsetMinutes == 390) { // +6:30 (Myanmar)
-      return 'Asia/Yangon';
-    } else if (offsetMinutes == 570) { // +9:30 (Central Australia)
-      return 'Australia/Adelaide';
-    } else if (offsetMinutes == 630) { // +10:30 (Lord Howe Island)
-      return 'Australia/Lord_Howe';
-    }
-
-    return offsetMap[offsetHours];
   }
 }
 
