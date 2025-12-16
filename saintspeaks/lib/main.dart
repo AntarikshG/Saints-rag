@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'articlesquotes.dart';
@@ -10,7 +9,6 @@ import 'articlesquotes_hi.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'config_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
@@ -22,13 +20,11 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 // Book reading imports
-import 'book_service.dart';
 import 'books_library.dart';
 import 'books_tab.dart';
-import 'pdf_reader.dart';
-import 'epub_reader.dart';
 import 'rating_share_service.dart';
 import 'ekadashi_service.dart';
+import 'ask_ai_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1187,38 +1183,157 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
     try {
       final image = await _screenshotController.captureFromWidget(
         Container(
-          width: 600,
+          width: 650,
           padding: EdgeInsets.all(40),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Colors.deepOrange.shade100, Colors.orange.shade50],
+              colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
             ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.orange.shade200, width: 2),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.format_quote, size: 40, color: Colors.deepOrange.shade700),
-              SizedBox(height: 20),
-              Text(
-                '"$quote"',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.deepOrange.shade900,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
+              // App branding header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.deepOrange.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/apppic.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Talk with Saints',
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepOrange.shade700,
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: 30),
+
+              // Saint image
+              if (widget.image.isNotEmpty)
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.deepOrange.withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    backgroundImage: AssetImage(widget.image),
+                    radius: 55,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              SizedBox(height: 28),
+
+              // Quote container
+              Container(
+                padding: EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.orange.shade100),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.format_quote,
+                      color: Colors.deepOrange.shade400,
+                      size: 30,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      '"$quote"',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        height: 1.5,
+                        color: Colors.grey.shade800,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 22),
+
+              // Saint attribution
               Text(
-                '- ${widget.saintName}',
+                '— ${widget.saintName}',
                 style: GoogleFonts.notoSans(
                   fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.deepOrange.shade800,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepOrange.shade700,
                   fontStyle: FontStyle.italic,
+                ),
+              ),
+              SizedBox(height: 25),
+
+              // Bottom app promotion
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
+                  ),
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(color: Colors.deepOrange.shade200),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.download,
+                      size: 16,
+                      color: Colors.deepOrange.shade700,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Talk with Saints App on Android',
+                      style: GoogleFonts.notoSans(
+                        fontSize: 13,
+                        color: Colors.deepOrange.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1231,7 +1346,7 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
       final imageFile = File(imagePath);
       await imageFile.writeAsBytes(image);
 
-      await Share.shareXFiles([XFile(imagePath)], text: '"$quote"\n\n- ${widget.saintName}');
+      await Share.shareXFiles([XFile(imagePath)], text: '"$quote"\n\n— ${widget.saintName}\n\n✨ Shared from Talk with Saints App\nDownload now for daily spiritual wisdom!');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to share quote')),
@@ -1905,583 +2020,6 @@ class _ArticlesTabState extends State<ArticlesTab> {
   }
 }
 
-class AskTab extends StatefulWidget {
-  final Function(String, String) onSubmit;
-  final String saintId;
-  final String userName;
-  AskTab({required this.onSubmit, required this.saintId, required this.userName});
-  @override
-  _AskTabState createState() => _AskTabState();
-}
-
-class _AskTabState extends State<AskTab> {
-  final _controller = TextEditingController();
-  final List<String> _lines = [];
-  String? _answer;
-  bool _loading = false;
-  StreamSubscription<String>? _subscription;
-  http.Client? _client;
-  AppConfig? _config;
-  bool _configLoading = true;
-  String? _configError;
-  bool _hasTriedAsk = false;
-
-  // Helper function to get English saint name based on saint ID
-  String getEnglishSaintName(String saintId) {
-    // Handle the special "ALL" case
-    if (saintId == "ALL") {
-      return "All";
-    }
-
-    final englishSaint = saints.firstWhere(
-      (saint) => saint.id == saintId,
-      orElse: () => saints[0], // fallback to first saint if not found
-    );
-    return englishSaint.name;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(() {
-      if (_hasTriedAsk) {
-        setState(() {
-          _hasTriedAsk = false;
-          _lines.clear();
-          _answer = null;
-        });
-      }
-    });
-    _fetchConfig();
-  }
-
-  Future<void> _fetchConfig() async {
-    setState(() {
-      _configLoading = true;
-      _configError = null;
-    });
-    try {
-      print('AskTab: Starting to fetch config...');
-      final config = await ConfigService.fetchConfig();
-      if (!mounted) return;
-      setState(() {
-        _config = config;
-        _configLoading = false;
-      });
-    } catch (e) {
-      print('AskTab: Error fetching config: ' + e.toString());
-      if (!mounted) return;
-      setState(() {
-        _configError = 'Failed to load configuration.';
-        _configLoading = false;
-      });
-    }
-  }
-
-  Future<void> _askQuestion() async {
-    setState(() {
-      _hasTriedAsk = true;
-    });
-    if (_configLoading) {
-      setState(() {
-        _lines.clear();
-        _lines.add('Configuration is still loading. Please wait and try again.');
-        _loading = false;
-        _answer = null;
-      });
-      return;
-    }
-    if (_configError != null) {
-      setState(() {
-        _lines.clear();
-        _lines.add(_configError!);
-        _loading = false;
-        _answer = null;
-      });
-      return;
-    }
-    if (_config == null || !_config!.gradioServerRunning) {
-      setState(() {
-        _lines.clear();
-        _lines.add('Gradio server is not running. Please try again later.');
-        _loading = false;
-        _answer = null;
-      });
-      return;
-    }
-    if (!mounted) return;
-    setState(() {
-      _lines.clear();
-      _loading = true;
-      _answer = null;
-    });
-    final question = _controller.text;
-    _client = http.Client();
-    final String gradioStreamUrl = _config!.gradioServerLink + '/gradio_api/call/query_rag_stream';
-    final String language = Localizations.localeOf(context).languageCode;
-    print('AskTab: Using Gradio link: ' + gradioStreamUrl);
-    print('AskTab: Sending language context: ' + language);
-    try {
-      final postResponse = await _client!.post(
-        Uri.parse(gradioStreamUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "data": [
-            "My name is " + widget.userName + ". " + question,
-            getEnglishSaintName(widget.saintId), // Use English saint name consistently
-            language // Pass language context to backend
-          ]
-        }),
-      ).timeout(const Duration(seconds: 15), onTimeout: () {
-        throw Exception('Server timeout. Please try again later.');
-      });
-
-      if (!mounted) return;
-      if (postResponse.statusCode != 200) {
-        setState(() {
-          _lines.add('Apologies, Server is down, Please try later : POST failed: ${postResponse.statusCode}');
-          _loading = false;
-          _answer = null;
-        });
-        return;
-      }
-
-      final eventId = jsonDecode(postResponse.body)['event_id'] ?? '';
-      if (eventId.isEmpty) {
-        if (!mounted) return;
-        setState(() {
-          _lines.add('No event_id in response');
-          _loading = false;
-          _answer = null;
-        });
-        return;
-      }
-
-      // Use config gradioServerLink for stream URL
-      final streamUrl = _config!.gradioServerLink + '/gradio_api/call/query_rag_stream/' + eventId;
-      final request = http.Request('GET', Uri.parse(streamUrl));
-      final responseFuture = _client!.send(request);
-      late http.StreamedResponse response;
-      try {
-        response = await responseFuture.timeout(const Duration(seconds: 15), onTimeout: () {
-          throw Exception('Server timeout. Please try again later.');
-        });
-      } catch (e) {
-        if (!mounted) return;
-        setState(() {
-          _lines.add('Error: Server did not respond in time. Please try later.');
-          _loading = false;
-          _answer = null;
-        });
-        return;
-      }
-
-      bool gotResponse = false;
-      response.stream
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen((line) {
-        final trimmed = line.trim();
-        if (trimmed.isNotEmpty && trimmed != 'data' && trimmed != 'null') {
-          gotResponse = true;
-          String displayLine = trimmed;
-          final match = RegExp(r'\[\s*\[(.*?)\]\s*\]').firstMatch(displayLine);
-          if (match != null) {
-            displayLine = match.group(1) ?? '';
-          }
-          if (displayLine.startsWith('"') && displayLine.endsWith('"')) {
-            try {
-              displayLine = jsonDecode(displayLine);
-            } catch (_) {}
-          } else {
-            displayLine = displayLine.replaceAll(r'\n', '\n');
-            displayLine = displayLine.replaceAllMapped(
-              RegExp(r'\\u([0-9a-fA-F]{4})'),
-                  (m) => String.fromCharCode(int.parse(m.group(1)!, radix: 16)),
-            );
-            displayLine = displayLine.replaceAll(r'\\', r'\');
-            displayLine = displayLine.replaceAll(r'\"', '"');
-            displayLine = displayLine.replaceAll('[', '');
-            displayLine = displayLine.replaceAll('",', '\n');
-          }
-          if (!mounted) return;
-          setState(() {
-            _lines.clear(); // Clear error lines on success
-            // Remove the question if it appears at the start of the answer
-            String answerText = displayLine;
-            final question = _controller.text.trim();
-            final idx = answerText.indexOf(question);
-            if (idx != -1) {
-              // Take everything after the question
-              answerText = answerText.substring(idx + question.length).trim();
-              // Optionally, remove leading punctuation or newlines
-              answerText = answerText.replaceFirst(RegExp(r'^[:\-\s]+'), '');
-            }
-            _answer = answerText;
-          });
-        }
-      }, onDone: () {
-        if (!mounted) return;
-        setState(() {
-          _loading = false;
-        });
-        if (!gotResponse) {
-          setState(() {
-            _lines.add('No response from server. Please try again later.');
-            _answer = null;
-          });
-        } else if (_answer != null) {
-          widget.onSubmit(question, _answer!);
-        }
-      }, onError: (e) {
-        if (!mounted) return;
-        setState(() {
-          _lines.add('Error: Server seems to be down. Please try later.');
-          _loading = false;
-          _answer = null;
-        });
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _lines.add('Error: Server seems to be down. Please try later');
-        _loading = false;
-        _answer = null;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-
-    // Check if this is AnandMoyiMa and disable Ask AI feature
-    if (widget.saintId == 'anandmoyima') {
-      return SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.block,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Ask AI Feature Disabled',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'The Ask AI feature is not available for Anandamayi Ma.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Please explore her quotes and teachings in the other tabs.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                    fontStyle: FontStyle.italic,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    bool showError = false;
-    if (_hasTriedAsk && _lines.isNotEmpty && _answer == null) {
-      final errorKeywords = ['error', 'failed', 'not running', 'no response', 'did not respond'];
-      final firstLine = _lines.first.toLowerCase();
-      showError = errorKeywords.any((kw) => firstLine.contains(kw));
-    }
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: Text(
-                  loc.askDisclaimer,
-                  style: TextStyle(
-                    fontSize: 13, // Revert disclaimer font size to original
-                    color: Colors.orange[800],
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-              if (showError)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Text(_lines.join('\n'), style: TextStyle(color: Colors.red, fontSize: 15)),
-                ),
-              TextField(
-                controller: _controller,
-                decoration: InputDecoration(labelText: loc.askAQuestion),
-              ),
-              SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: _loading ? null : _askQuestion,
-                child: Text(loc.ask),
-              ),
-              if (_loading) CircularProgressIndicator(),
-              if (_answer != null)
-                Padding(
-                  padding: EdgeInsets.only(top: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SelectableText('${loc.answer}: $_answer', style: TextStyle(fontSize: 20)),
-                      SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        icon: Icon(Icons.flag),
-                        label: Text('Flag as Incorrect'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () async {
-                          final url = (_config?.gradioServerLink ?? '') + '/gradio_api/call/flag_and_show';
-                          try {
-                            final response = await http.post(
-                              Uri.parse(url),
-                              headers: {'Content-Type': 'application/json'},
-                              body: jsonEncode({
-                                "data": []
-                              }),
-                            );
-                            if (response.statusCode == 200) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Flag submitted. Thank you!')),
-                                );
-                              }
-                            } else {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to flag. Please try again.')),
-                                );
-                              }
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error submitting flag.')),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              // Add bottom padding to ensure content is visible above system UI
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class HistoryTab extends StatelessWidget {
-  final List<Map<String, dynamic>> history;
-  HistoryTab({required this.history});
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    if (history.isEmpty) return Center(child: Text(loc.noPreviousQuestions));
-    return ListView.builder(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).padding.bottom + 20,
-      ),
-      itemCount: history.length,
-      itemBuilder: (context, i) => ListTile(
-        title: Text('Q: \'${history[i]['question']}\''),
-        subtitle: Text('${loc.answer}: ${history[i]['answer']}'),
-      ),
-    );
-  }
-}
-
-// Standalone Ask AI page for accessing all saints
-class AskAIPage extends StatefulWidget {
-  final String userName;
-
-  const AskAIPage({required this.userName, Key? key}) : super(key: key);
-
-  @override
-  _AskAIPageState createState() => _AskAIPageState();
-}
-
-class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  List<Map<String, String>> _history = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _loadHistory();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final historyJson = prefs.getStringList('ask_all_history') ?? [];
-    setState(() {
-      _history = historyJson.map((item) => Map<String, String>.from(jsonDecode(item))).toList();
-    });
-  }
-
-  Future<void> _saveToHistory(String question, String answer) async {
-    final prefs = await SharedPreferences.getInstance();
-    final newEntry = {'question': question, 'answer': answer, 'timestamp': DateTime.now().toIso8601String()};
-    _history.insert(0, newEntry);
-    if (_history.length > 50) _history = _history.take(50).toList();
-
-    final historyJson = _history.map((item) => jsonEncode(item)).toList();
-    await prefs.setStringList('ask_all_history', historyJson);
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    final brightness = Theme.of(context).brightness;
-
-    final gradient = brightness == Brightness.dark
-        ? LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.grey.shade900, Colors.grey.shade800, Colors.black],
-          )
-        : LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.deepOrange.shade50, Colors.orange.shade50, Colors.white],
-          );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Talk to spiritual AI friend',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: brightness == Brightness.dark
-                ? LinearGradient(colors: [Colors.grey.shade900, Colors.grey.shade800])
-                : LinearGradient(colors: [Colors.deepOrange.shade100.withOpacity(0.9), Colors.orange.shade50.withOpacity(0.9)]),
-          ),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: loc.ask),
-            Tab(text: loc.history),
-          ],
-        ),
-      ),
-      body: Container(
-        decoration: BoxDecoration(gradient: gradient),
-        child: TabBarView(
-          controller: _tabController,
-          children: [
-            AskTab(
-              saintId: "ALL",
-              userName: widget.userName,
-              onSubmit: _saveToHistory,
-            ),
-            _buildHistoryTab(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHistoryTab() {
-    final loc = AppLocalizations.of(context)!;
-    if (_history.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(loc.noPreviousQuestions, style: TextStyle(fontSize: 18, color: Colors.grey)),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).padding.bottom + 20,
-      ),
-      itemCount: _history.length,
-      itemBuilder: (context, index) {
-        final item = _history[index];
-        final date = DateTime.parse(item['timestamp']!);
-        return Card(
-          margin: EdgeInsets.only(bottom: 16),
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item['question']!,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  item['answer']!,
-                  style: TextStyle(fontSize: 14),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 class SpiritualDiaryPage extends StatefulWidget {
   @override
@@ -3082,8 +2620,7 @@ class _BookmarkedQuotesPageState extends State<BookmarkedQuotesPage> {
                                   ),
                                 ),
                               ),
-                            ),
-                          );
+                            ),);
                         },
                       ),
                     ),
@@ -3495,7 +3032,10 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
               SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
               ),
               SizedBox(width: 16),
               Text('Preparing quote image...'),
@@ -3594,10 +3134,15 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
               : Screenshot(
                   controller: screenshotController,
                   child: Container(
-                    padding: EdgeInsets.all(32),
+                    padding: EdgeInsets.all(35),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.white, Colors.orange.shade50],
+                      ),
                       borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: Colors.orange.shade200, width: 2),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.deepOrange.withOpacity(0.3),
@@ -3610,6 +3155,45 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // App branding header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.deepOrange.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.asset(
+                                  'assets/images/apppic.png',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Talk with Saints',
+                              style: GoogleFonts.playfairDisplay(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.deepOrange.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 30),
+
+                        // Saint image
                         if (saintImage.isNotEmpty)
                           Container(
                             decoration: BoxDecoration(
@@ -3624,45 +3208,90 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                             ),
                             child: CircleAvatar(
                               backgroundImage: AssetImage(saintImage),
-                              radius: 60,
+                              radius: 55,
+                              backgroundColor: Colors.white,
                             ),
                           ),
-                        SizedBox(height: 32),
+                        SizedBox(height: 28),
+
+                        // Quote container
                         Container(
-                          padding: EdgeInsets.all(20),
+                          padding: EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.orange.shade50,
-                            borderRadius: BorderRadius.circular(15),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
                             border: Border.all(color: Colors.orange.shade100),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: Text(
-                            '"$quote"',
-                            style: GoogleFonts.notoSans(
-                              fontSize: 20,
-                              fontStyle: FontStyle.italic,
-                              height: 1.6,
-                              color: Colors.grey.shade800,
-                            ),
-                            textAlign: TextAlign.center,
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.format_quote,
+                                color: Colors.deepOrange.shade400,
+                                size: 30,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                '"$quote"',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.5,
+                                  color: Colors.grey.shade800,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 24),
+                        SizedBox(height: 22),
+
+                        // Saint attribution
                         Text(
-                          '- $saintName',
-                          style: GoogleFonts.playfairDisplay(
+                          '— $saintName',
+                          style: GoogleFonts.notoSans(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.deepOrange.shade700,
+                            fontStyle: FontStyle.italic,
                           ),
                         ),
-                        SizedBox(height: 20),
-                        // App attribution for screenshot
-                        Text(
-                          '✨ Talk with Saints App',
-                          style: GoogleFonts.notoSans(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontStyle: FontStyle.italic,
+                        SizedBox(height: 25),
+
+                        // Bottom app promotion
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
+                            ),
+                            borderRadius: BorderRadius.circular(25),
+                            border: Border.all(color: Colors.deepOrange.shade200),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.download,
+                                size: 16,
+                                color: Colors.deepOrange.shade700,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Talk with Saints on Android',
+                                style: GoogleFonts.notoSans(
+                                  fontSize: 13,
+                                  color: Colors.deepOrange.shade700,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -3703,3 +3332,160 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
     );
   }
 }
+
+class AskAIPage extends StatefulWidget {
+  final String userName;
+
+  const AskAIPage({required this.userName, Key? key}) : super(key: key);
+
+  @override
+  _AskAIPageState createState() => _AskAIPageState();
+}
+
+class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<Map<String, String>> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadHistory();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final historyJson = prefs.getStringList('ask_all_history') ?? [];
+    setState(() {
+      _history = historyJson.map((item) => Map<String, String>.from(jsonDecode(item))).toList();
+    });
+  }
+
+  Future<void> _saveToHistory(String question, String answer) async {
+    final prefs = await SharedPreferences.getInstance();
+    final newEntry = {'question': question, 'answer': answer, 'timestamp': DateTime.now().toIso8601String()};
+    _history.insert(0, newEntry);
+    if (_history.length > 50) _history = _history.take(50).toList();
+
+    final historyJson = _history.map((item) => jsonEncode(item)).toList();
+    await prefs.setStringList('ask_all_history', historyJson);
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final brightness = Theme.of(context).brightness;
+
+    final gradient = brightness == Brightness.dark
+        ? LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.grey.shade900, Colors.grey.shade800, Colors.black],
+          )
+        : LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.deepOrange.shade50, Colors.orange.shade50, Colors.white],
+          );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Talk to spiritual AI friend',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: brightness == Brightness.dark
+                ? LinearGradient(colors: [Colors.grey.shade900, Colors.grey.shade800])
+                : LinearGradient(colors: [Colors.deepOrange.shade100.withOpacity(0.9), Colors.orange.shade50.withOpacity(0.9)]),
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: loc.ask),
+            Tab(text: loc.history),
+          ],
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(gradient: gradient),
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            AskTab(
+              saintId: "ALL",
+              userName: widget.userName,
+              onSubmit: _saveToHistory,
+            ),
+            _buildHistoryTab(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryTab() {
+    final loc = AppLocalizations.of(context)!;
+    if (_history.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(loc.noPreviousQuestions, style: TextStyle(fontSize: 18, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
+      itemCount: _history.length,
+      itemBuilder: (context, index) {
+        final item = _history[index];
+        final date = DateTime.parse(item['timestamp']!);
+        return Card(
+          margin: EdgeInsets.only(bottom: 16),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['question']!,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  item['answer']!,
+                  style: TextStyle(fontSize: 14),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+

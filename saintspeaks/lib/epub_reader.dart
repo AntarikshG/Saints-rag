@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:epubx/epubx.dart';
@@ -98,6 +99,17 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   String? _selectedVoice; // Add selected voice variable
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
+
+  // Filtered TTS languages - only English and Hindi variants from UK, India, and US
+  final Map<String, String> _supportedTtsLanguages = {
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    'en-IN': 'English (India)',
+    'hi-IN': 'Hindi (India)',
+  };
+
+  // Filtered voices based on supported languages
+  List<Map<String, dynamic>> _filteredVoices = [];
 
   // TTS reading state - Enhanced for chunk-based reading
   // Enhanced TTS variables for chunk-based reading
@@ -283,52 +295,133 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   String _cleanAndFormatHtmlContent(String html) {
     if (html.isEmpty) return '';
 
-    // Remove scripts, styles, and other non-content elements
-    String cleaned = html
-        .replaceAll(RegExp(r'<script[^>]*>.*?</script>', caseSensitive: false, multiLine: true, dotAll: true), '')
-        .replaceAll(RegExp(r'<style[^>]*>.*?</style>', caseSensitive: false, multiLine: true, dotAll: true), '')
-        .replaceAll(RegExp(r'<meta[^>]*>', caseSensitive: false), '')
-        .replaceAll(RegExp(r'<link[^>]*>', caseSensitive: false), '')
-        .replaceAll(RegExp(r'<!--.*?-->', multiLine: true, dotAll: true), '');
+    try {
+      // Remove scripts, styles, and other non-content elements
+      String cleaned = html
+          .replaceAll(RegExp(r'<script[^>]*>.*?</script>', caseSensitive: false, multiLine: true, dotAll: true), '')
+          .replaceAll(RegExp(r'<style[^>]*>.*?</style>', caseSensitive: false, multiLine: true, dotAll: true), '')
+          .replaceAll(RegExp(r'<meta[^>]*>', caseSensitive: false), '')
+          .replaceAll(RegExp(r'<link[^>]*>', caseSensitive: false), '')
+          .replaceAll(RegExp(r'<!--.*?-->', multiLine: true, dotAll: true), '');
 
-    // Clean up HTML entities
-    cleaned = cleaned
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&amp;', '&')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'")
-        .replaceAll('&apos;', "'");
+      // Clean up HTML entities first (more comprehensive)
+      cleaned = cleaned
+          .replaceAll('&nbsp;', ' ')
+          .replaceAll('&amp;', '&')
+          .replaceAll('&lt;', '<')
+          .replaceAll('&gt;', '>')
+          .replaceAll('&quot;', '"')
+          .replaceAll('&#39;', "'")
+          .replaceAll('&apos;', "'")
+          .replaceAll('&mdash;', '—')
+          .replaceAll('&ndash;', '–')
+          .replaceAll('&hellip;', '…')
+          .replaceAll('&lsquo;', ''')
+          .replaceAll('&rsquo;', ''')
+          .replaceAll('&ldquo;', '"')
+          .replaceAll('&rdquo;', '"');
 
-    // Normalize whitespace but preserve paragraph structure
-    cleaned = cleaned
-        .replaceAll(RegExp(r'\s*<br[^>]*>\s*', caseSensitive: false), '\n\n')
-        .replaceAll(RegExp(r'\s*</p>\s*<p[^>]*>\s*', caseSensitive: false), '\n\n')
-        .replaceAll(RegExp(r'<p[^>]*>', caseSensitive: false), '')
-        .replaceAll('</p>', '\n\n')
-        .replaceAll(RegExp(r'<div[^>]*>', caseSensitive: false), '')
-        .replaceAll('</div>', '\n')
-        .replaceAll(RegExp(r'<h[1-6][^>]*>', caseSensitive: false), '\n\n')
-        .replaceAll(RegExp(r'</h[1-6]>', caseSensitive: false), '\n\n');
+      // Handle numeric HTML entities safely
+      cleaned = cleaned.replaceAllMapped(RegExp(r'&#(\d+);'), (match) {
+        try {
+          final code = int.parse(match.group(1)!);
+          // Only convert valid Unicode code points
+          if (code > 0 && code <= 0x10FFFF) {
+            return String.fromCharCode(code);
+          }
+          return ' '; // Replace invalid codes with space
+        } catch (e) {
+          return ' '; // Replace problematic entities with space
+        }
+      });
 
-    // Remove remaining HTML tags
-    cleaned = cleaned.replaceAll(RegExp(r'<[^>]+>'), '');
+      cleaned = cleaned.replaceAllMapped(RegExp(r'&#x([0-9A-Fa-f]+);'), (match) {
+        try {
+          final code = int.parse(match.group(1)!, radix: 16);
+          // Only convert valid Unicode code points
+          if (code > 0 && code <= 0x10FFFF) {
+            return String.fromCharCode(code);
+          }
+          return ' '; // Replace invalid codes with space
+        } catch (e) {
+          return ' '; // Replace problematic entities with space
+        }
+      });
 
-    // Normalize whitespace
-    cleaned = cleaned
-        .replaceAll(RegExp(r'[ \t]+'), ' ')
-        .replaceAll(RegExp(r'\n[ \t]+'), '\n')
-        .replaceAll(RegExp(r'[ \t]+\n'), '\n')
-        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
-        .trim();
+      // Handle block elements properly to preserve paragraph structure
+      cleaned = cleaned
+          .replaceAll(RegExp(r'\s*<br[^>]*>\s*', caseSensitive: false), '\n')
+          .replaceAll(RegExp(r'\s*</p>\s*<p[^>]*>\s*', caseSensitive: false), '\n\n')
+          .replaceAll(RegExp(r'<p[^>]*>', caseSensitive: false), '\n')
+          .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n')
+          .replaceAll(RegExp(r'<div[^>]*>', caseSensitive: false), '\n')
+          .replaceAll(RegExp(r'</div>', caseSensitive: false), '\n')
+          .replaceAll(RegExp(r'<h[1-6][^>]*>', caseSensitive: false), '\n\n')
+          .replaceAll(RegExp(r'</h[1-6]>', caseSensitive: false), '\n\n')
+          .replaceAll(RegExp(r'<li[^>]*>', caseSensitive: false), '\n• ')
+          .replaceAll(RegExp(r'</li>', caseSensitive: false), '\n');
 
-    return cleaned;
+      // Remove remaining HTML tags
+      cleaned = cleaned.replaceAll(RegExp(r'<[^>]+>'), ' ');
+
+      // Normalize whitespace while preserving paragraph breaks
+      cleaned = cleaned
+          // Replace multiple spaces/tabs with single space
+          .replaceAll(RegExp(r'[ \t]+'), ' ')
+          // Clean up spaces around newlines
+          .replaceAll(RegExp(r' *\n *'), '\n')
+          // Replace multiple newlines with double newlines (paragraph breaks)
+          .replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+      // Split into lines for better processing
+      List<String> lines = cleaned.split('\n');
+
+      // Process each line to remove problematic characters
+      List<String> processedLines = [];
+      for (String line in lines) {
+        String processedLine = line
+            .trim()
+            // Remove zero-width characters that can cause display issues
+            .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
+            // Remove control characters except newlines and tabs
+            .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
+            // Remove any remaining invisible characters that might cause issues
+            .replaceAll(RegExp(r'[\u180E\u2000-\u200A\u2028\u2029\u205F\u3000]'), ' ');
+
+        // Only add non-empty lines
+        if (processedLine.isNotEmpty) {
+          processedLines.add(processedLine);
+        }
+      }
+
+      // Rejoin lines with proper spacing
+      cleaned = processedLines.join('\n')
+          .replaceAll(RegExp(r'\n\n+'), '\n\n') // Normalize paragraph spacing
+          .trim();
+
+      // Final validation - ensure we don't return corrupted content
+      if (cleaned.isEmpty || cleaned.length < 3) {
+        return 'Content could not be processed properly. Please try a different chapter.';
+      }
+
+      // Check for potential encoding issues that might cause single character display
+      if (cleaned.split(' ').length < 3 && cleaned.length < 50) {
+        return 'Content appears corrupted. Raw length: ${html.length} characters. Please try refreshing or check the EPUB file.';
+      }
+
+      print('Content processing: Original ${html.length} chars -> Cleaned ${cleaned.length} chars');
+      return cleaned;
+
+    } catch (e) {
+      print('Error cleaning HTML content: $e');
+      return 'Error processing content: ${e.toString()}. Original content length: ${html.length} characters.';
+    }
   }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
+      // Existing settings
       _fontSize = prefs.getDouble('epub_font_size') ?? 18.0;
       _fontFamily = prefs.getString('epub_font_family') ?? 'System Default';
       _lineHeight = prefs.getDouble('epub_line_height') ?? 1.6;
@@ -337,12 +430,27 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       _letterSpacing = prefs.getDouble('epub_letter_spacing') ?? 0.3;
       _currentTheme = prefs.getString('epub_theme') ?? 'sepia';
 
+      // TTS settings - use default values only, don't save/load
+      _ttsRate = 0.5;
+      _ttsPitch = 1.0;
+      _selectedLanguage = 'en-US';
+      _selectedVoice = null;
+
+      // IMPORTANT: Always reset text padding to default for each book
+      // This prevents width shrinkage issues when switching between books
+      _textPadding = const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0);
+
+      // Add UI preferences
+      _showTtsControls = prefs.getBool('epub_show_tts_controls') ?? false;
+
       _applyTheme(_currentTheme);
     });
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Existing settings
     await prefs.setDouble('epub_font_size', _fontSize);
     await prefs.setString('epub_font_family', _fontFamily);
     await prefs.setDouble('epub_line_height', _lineHeight);
@@ -350,6 +458,15 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     await prefs.setDouble('epub_word_spacing', _wordSpacing);
     await prefs.setDouble('epub_letter_spacing', _letterSpacing);
     await prefs.setString('epub_theme', _currentTheme);
+
+    // TTS settings - removed, use default values only
+
+    // Add text padding settings (corrected - don't divide by 2)
+    await prefs.setDouble('epub_padding_horizontal', _textPadding.horizontal);
+    await prefs.setDouble('epub_padding_vertical', _textPadding.vertical);
+
+    // Add UI preferences
+    await prefs.setBool('epub_show_tts_controls', _showTtsControls);
   }
 
   void _applyTheme(String themeName) {
@@ -958,7 +1075,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
             // Show completion message
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Finished reading chapter: ${_chapterTitles.isNotEmpty ? _chapterTitles[_currentChapterIndex] : 'Chapter ${_currentChapterIndex + 1}'}'),
+                content: Text('Finished reading chapter: ${_chapterTitles.isNotEmpty ? _chapterTitles[_currentChapterIndex] : 'Chapter ${_currentChunkIndex + 1}'}'),
                 backgroundColor: Colors.green,
                 duration: Duration(seconds: 3),
               ),
@@ -1033,13 +1150,32 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       print('TTS: Available languages: $_availableLanguages');
       print('TTS: Available voices: ${_availableVoices.length}');
 
+      // Filter voices for supported languages only
+      _filterVoicesForSupportedLanguages();
+
+      // Ensure selected language is supported
+      if (!_supportedTtsLanguages.containsKey(_selectedLanguage)) {
+        _selectedLanguage = 'en-US'; // Default to US English
+      }
+
       // Set default TTS settings
       await _flutterTts!.setLanguage(_selectedLanguage);
       await _flutterTts!.setSpeechRate(_ttsRate);
       await _flutterTts!.setPitch(_ttsPitch);
 
-      if (_selectedVoice != null) {
-        await _flutterTts!.setVoice({"name": _selectedVoice!, "locale": _selectedLanguage});
+      // Set voice if available and matches the selected language
+      if (_selectedVoice != null && _filteredVoices.isNotEmpty) {
+        final matchingVoice = _filteredVoices.firstWhere(
+          (voice) => voice['name'] == _selectedVoice && voice['locale'] == _selectedLanguage,
+          orElse: () => {},
+        );
+
+        if (matchingVoice.isNotEmpty) {
+          await _flutterTts!.setVoice({
+            "name": matchingVoice['name'],
+            "locale": matchingVoice['locale']
+          });
+        }
       }
 
       setState(() {
@@ -1055,226 +1191,369 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     }
   }
 
-  Future<void> _reinitializeTts() async {
-    print('TTS: Reinitializing...');
-    if (_flutterTts != null) {
-      await _flutterTts!.stop();
+  void _filterVoicesForSupportedLanguages() {
+    _filteredVoices.clear();
+
+    for (var voice in _availableVoices) {
+      try {
+        // Safely convert Map<Object?, Object?> to Map<String, dynamic>
+        final voiceData = Map<String, dynamic>.from(voice as Map);
+        final locale = voiceData['locale']?.toString() ?? '';
+
+        // Only include voices for our supported languages
+        if (_supportedTtsLanguages.containsKey(locale)) {
+          _filteredVoices.add({
+            'name': voiceData['name']?.toString() ?? 'Default',
+            'locale': locale,
+          });
+        }
+      } catch (e) {
+        print('TTS: Error processing voice data: $e');
+        // Skip this voice if there's an error
+        continue;
+      }
     }
+
+    print('TTS: Filtered ${_filteredVoices.length} voices for supported languages');
+  }
+
+  List<Map<String, dynamic>> _getVoicesForLanguage(String language) {
+    return _filteredVoices
+        .where((voice) => voice['locale'] == language)
+        .toList();
+  }
+
+  Future<void> _changeTtsLanguage(String language) async {
+    if (_flutterTts != null && _supportedTtsLanguages.containsKey(language)) {
+      try {
+        await _flutterTts!.setLanguage(language);
+        setState(() {
+          _selectedLanguage = language;
+          _selectedVoice = null; // Reset voice when language changes
+        });
+        // Removed _saveSettings() call - TTS settings use defaults only
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('TTS language changed to ${_supportedTtsLanguages[language]}'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } catch (e) {
+        print('Error changing TTS language: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to change TTS language'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeTtsVoice(String voiceName) async {
+    if (_flutterTts != null) {
+      try {
+        final matchingVoice = _filteredVoices.firstWhere(
+          (voice) => voice['name'] == voiceName && voice['locale'] == _selectedLanguage,
+          orElse: () => {},
+        );
+
+        if (matchingVoice.isNotEmpty) {
+          await _flutterTts!.setVoice({
+            "name": matchingVoice['name'],
+            "locale": matchingVoice['locale']
+          });
+
+          setState(() {
+            _selectedVoice = voiceName;
+          });
+          // Removed _saveSettings() call - TTS settings use defaults only
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('TTS voice changed to $voiceName'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        print('Error changing TTS voice: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to change TTS voice'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeTtsRate(double rate) async {
+    if (_flutterTts != null) {
+      try {
+        await _flutterTts!.setSpeechRate(rate);
+        setState(() {
+          _ttsRate = rate;
+        });
+        // Removed _saveSettings() call - TTS settings use defaults only
+      } catch (e) {
+        print('Error changing TTS rate: $e');
+      }
+    }
+  }
+
+  Future<void> _changeTtsPitch(double pitch) async {
+    if (_flutterTts != null) {
+      try {
+        await _flutterTts!.setPitch(pitch);
+        setState(() {
+          _ttsPitch = pitch;
+        });
+        // Removed _saveSettings() call - TTS settings use defaults only
+      } catch (e) {
+        print('Error changing TTS pitch: $e');
+      }
+    }
+  }
+
+  // Missing TTS methods implementation
+  Future<void> _speakCurrentChunk() async {
+    if (_flutterTts == null || !_isTtsInitialized || _textChunks.isEmpty) {
+      print('TTS: Cannot speak - not initialized or no chunks available');
+      return;
+    }
+
+    if (_currentChunkIndex >= _textChunks.length) {
+      print('TTS: No more chunks to speak');
+      return;
+    }
+
+    try {
+      final chunk = _textChunks[_currentChunkIndex];
+      print('TTS: Speaking chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+      await _flutterTts!.speak(chunk);
+    } catch (e) {
+      print('TTS: Error speaking chunk: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('TTS Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _reinitializeTts() async {
+    print('TTS: Reinitializing Text-to-Speech...');
+
     setState(() {
       _isTtsInitialized = false;
       _isTtsPlaying = false;
       _isTtsPaused = false;
     });
-    await _initializeTts();
-  }
 
-  // Enhanced TTS methods for chunk-based reading with highlighting
-  void _startTtsReading() {
-    if (!_isTtsInitialized || _chapterContent.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Text-to-Speech not available'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _showTtsControls = true;
-    });
-
-    final currentChapterText = _chapterContent[_currentChapterIndex] ?? '';
-    if (currentChapterText.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No text to read in current chapter'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    // Prepare text chunks for reading
-    _prepareTextChunks(currentChapterText);
-
-    setState(() {
-      _isReadingChunks = true;
-      _currentChunkIndex = 0;
-    });
-
-    _speakCurrentChunk();
-  }
-
-  void _startReadingFromText(String searchText) {
-    if (!_isTtsInitialized || _chapterContent.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Text-to-Speech not available'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final currentChapterText = _chapterContent[_currentChapterIndex] ?? '';
-    if (currentChapterText.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No text to read in current chapter'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    // Find the position of search text in the chapter
-    final searchIndex = currentChapterText.toLowerCase().indexOf(searchText.toLowerCase());
-    if (searchIndex == -1) {
-      // If search text not found, start from beginning
-      _startTtsReading();
-      return;
-    }
-
-    // Extract text from search position onwards
-    final textFromSearch = currentChapterText.substring(searchIndex);
-
-    // Prepare text chunks starting from search position
-    _prepareTextChunks(textFromSearch);
-
-    setState(() {
-      _isReadingChunks = true;
-      _currentChunkIndex = 0;
-    });
-
-    _speakCurrentChunk();
-
-    // Show feedback to user
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Starting reading from search result'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _prepareTextChunks(String text) {
-    _textChunks.clear();
-
-    // Split text into sentences for better highlighting and pausing
-    final sentences = text.split(RegExp(r'[.!?]+\s+'));
-
-    // Group sentences into chunks of reasonable size (2-3 sentences per chunk)
-    List<String> currentChunk = [];
-
-    for (String sentence in sentences) {
-      sentence = sentence.trim();
-      if (sentence.isEmpty) continue;
-
-      currentChunk.add(sentence);
-
-      // If chunk has 2-3 sentences or is getting long, create a chunk
-      if (currentChunk.length >= 2 || currentChunk.join(' ').length > 200) {
-        _textChunks.add(currentChunk.join('. ') + '.');
-        currentChunk.clear();
+    // Stop any ongoing TTS
+    if (_flutterTts != null) {
+      try {
+        await _flutterTts!.stop();
+      } catch (e) {
+        print('TTS: Error stopping during reinitialization: $e');
       }
     }
 
-    // Add remaining sentences as final chunk
-    if (currentChunk.isNotEmpty) {
-      _textChunks.add(currentChunk.join('. ') + '.');
-    }
+    // Recreate TTS instance
+    _flutterTts = FlutterTts();
 
-    print('TTS: Prepared ${_textChunks.length} text chunks for reading');
-  }
-
-  void _speakCurrentChunk() async {
-    if (_currentChunkIndex >= _textChunks.length || !_isReadingChunks) {
-      return;
-    }
-
-    final chunkText = _textChunks[_currentChunkIndex];
-    print('TTS: Speaking chunk ${_currentChunkIndex + 1}/${_textChunks.length}: ${chunkText.substring(0, 50)}...');
-
-    // Update highlighting to show current chunk
-    _updateTextHighlighting();
-
-    try {
-      await _flutterTts!.speak(chunkText);
-    } catch (e) {
-      print('TTS: Error speaking chunk: $e');
-      _stopTtsReading();
-    }
-  }
-
-  void _updateTextHighlighting() {
-    // Simplified highlighting - only update if TTS is actively playing
-    if (!_isTtsPlaying || _chapterContent.isEmpty || _currentChunkIndex >= _textChunks.length) {
-      return;
-    }
-
-    // Use a simpler approach without heavy calculations
-    setState(() {
-      // Clear highlighting to prevent UI freezing - we'll use a simpler indicator
-      _highlightedTextSpans.clear();
-    });
-  }
-
-  void _pauseTtsReading() {
-    if (_isTtsPlaying && _flutterTts != null) {
-      _flutterTts!.pause();
-      _chunkTimer?.cancel();
-      setState(() {
-        _savedChunkIndex = _currentChunkIndex;
-      });
-    }
-  }
-
-  void _resumeTtsReading() {
-    if (_isTtsPaused && _flutterTts != null) {
-      setState(() {
-        _currentChunkIndex = _savedChunkIndex;
-        _isReadingChunks = true;
-      });
-      _speakCurrentChunk();
-    }
-  }
-
-  void _stopTtsReading() {
-    _chunkTimer?.cancel();
-    _scrollSyncTimer?.cancel(); // Cancel any pending scroll operations
-    if (_flutterTts != null) {
-      _flutterTts!.stop();
-    }
-    setState(() {
-      _isTtsPlaying = false;
-      _isTtsPaused = false;
-      _isReadingChunks = false;
-      _currentChunkIndex = 0;
-      _highlightedTextSpans.clear();
-      _showTtsControls = false; // Hide TTS controls when stopped
-    });
-  }
-
-  void _nextTtsChunk() {
-    if (_isReadingChunks && _currentChunkIndex < _textChunks.length - 1) {
-      _flutterTts?.stop(); // This will trigger completion handler to move to next chunk
-    }
+    // Reinitialize
+    await _initializeTts();
   }
 
   void _previousTtsChunk() {
     if (_isReadingChunks && _currentChunkIndex > 0) {
-      _currentChunkIndex = (_currentChunkIndex - 1).clamp(0, _textChunks.length - 1);
-      _flutterTts?.stop();
-
-      // Start reading from previous chunk after a short delay
-      Timer(Duration(milliseconds: 300), () {
-        if (_isReadingChunks) {
-          _speakCurrentChunk();
-        }
+      setState(() {
+        _currentChunkIndex--;
       });
+
+      // Stop current speech and speak previous chunk
+      _flutterTts?.stop().then((_) {
+        _speakCurrentChunk();
+      });
+
+      print('TTS: Moving to previous chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
     }
+  }
+
+  Future<void> _pauseTtsReading() async {
+    if (_flutterTts != null && _isTtsPlaying) {
+      try {
+        await _flutterTts!.pause();
+        print('TTS: Paused reading');
+      } catch (e) {
+        print('TTS: Error pausing: $e');
+      }
+    }
+  }
+
+  Future<void> _resumeTtsReading() async {
+    if (_flutterTts != null && _isTtsPaused) {
+      try {
+        // For some TTS engines, we need to speak again instead of resume
+        if (_isReadingChunks && _currentChunkIndex < _textChunks.length) {
+          await _speakCurrentChunk();
+        }
+        print('TTS: Resumed reading');
+      } catch (e) {
+        print('TTS: Error resuming: $e');
+        // Fallback: restart current chunk
+        if (_isReadingChunks) {
+          await _speakCurrentChunk();
+        }
+      }
+    }
+  }
+
+  Future<void> _startTtsReading() async {
+    if (_flutterTts == null || !_isTtsInitialized) {
+      await _reinitializeTts();
+      if (!_isTtsInitialized) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('TTS not available. Please check your device settings.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
+    // Prepare text chunks from current chapter
+    final currentContent = _chapterContent[_currentChapterIndex] ?? '';
+    if (currentContent.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No text available to read'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Split content into chunks (by sentences or paragraphs)
+    _textChunks = _splitTextIntoChunks(currentContent);
+    _currentChunkIndex = 0;
+
+    setState(() {
+      _isReadingChunks = true;
+    });
+
+    await _speakCurrentChunk();
+    print('TTS: Started reading chapter with ${_textChunks.length} chunks');
+  }
+
+  Future<void> _stopTtsReading() async {
+    if (_flutterTts != null) {
+      try {
+        await _flutterTts!.stop();
+
+        // Cancel any pending chunk timers
+        _chunkTimer?.cancel();
+
+        setState(() {
+          _isTtsPlaying = false;
+          _isTtsPaused = false;
+          _isReadingChunks = false;
+          _currentChunkIndex = 0;
+        });
+
+        print('TTS: Stopped reading');
+      } catch (e) {
+        print('TTS: Error stopping: $e');
+      }
+    }
+  }
+
+  void _nextTtsChunk() {
+    if (_isReadingChunks && _currentChunkIndex < _textChunks.length - 1) {
+      setState(() {
+        _currentChunkIndex++;
+      });
+
+      // Stop current speech and speak next chunk
+      _flutterTts?.stop().then((_) {
+        _speakCurrentChunk();
+      });
+
+      print('TTS: Moving to next chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+    }
+  }
+
+  Future<void> _startReadingFromText(String searchText) async {
+    if (searchText.isEmpty) return;
+
+    // Find the chapter containing the search text
+    int foundChapterIndex = -1;
+    for (int i = 0; i < _chapterContent.length; i++) {
+      if (_chapterContent[i]!.toLowerCase().contains(searchText.toLowerCase())) {
+        foundChapterIndex = i;
+        break;
+      }
+    }
+
+    if (foundChapterIndex == -1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Text not found in current book'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Navigate to the found chapter
+    setState(() {
+      _currentChapterIndex = foundChapterIndex;
+    });
+
+    // Start TTS from that chapter
+    await _startTtsReading();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Started reading from: "${searchText.substring(0, math.min(30, searchText.length))}..."'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  List<String> _splitTextIntoChunks(String text) {
+    List<String> chunks = [];
+
+    // First try to split by paragraphs
+    List<String> paragraphs = text.split('\n\n').where((p) => p.trim().isNotEmpty).toList();
+
+    for (String paragraph in paragraphs) {
+      // If paragraph is too long, split by sentences
+      if (paragraph.length > 500) {
+        List<String> sentences = paragraph.split(RegExp(r'[.!?]+\s*')).where((s) => s.trim().isNotEmpty).toList();
+        for (String sentence in sentences) {
+          if (sentence.trim().isNotEmpty) {
+            chunks.add(sentence.trim() + '.');
+          }
+        }
+      } else {
+        chunks.add(paragraph.trim());
+      }
+    }
+
+    // If no chunks found, split by sentences as fallback
+    if (chunks.isEmpty) {
+      chunks = text.split(RegExp(r'[.!?]+\s*')).where((s) => s.trim().isNotEmpty).toList();
+    }
+
+    return chunks;
   }
 
   @override
@@ -1358,61 +1637,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           Opacity(
             opacity: _brightness,
             child: SafeArea(
-              child: _chapterContent.isNotEmpty
-                  ? Stack(
-                      children: [
-                        // Main scrollable content
-                        GestureDetector(
-                          onTap: _toggleControls,
-                          behavior: HitTestBehavior.deferToChild, // Allow scroll gestures to pass through
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            padding: _textPadding,
-                            physics: AlwaysScrollableScrollPhysics(), // Ensure scrolling is always enabled
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Chapter title
-                                if (_chapterTitles.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 24.0),
-                                    child: Text(
-                                      _chapterTitles[_currentChapterIndex],
-                                      style: _getTextStyle(
-                                        fontSize: _fontSize + 4,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-
-                                // Main text content with highlighting
-                                _highlightedTextSpans.isNotEmpty
-                                    ? RichText(
-                                        text: TextSpan(children: _highlightedTextSpans),
-                                        textAlign: TextAlign.justify,
-                                      )
-                                    : Text(
-                                        _chapterContent[_currentChapterIndex] ?? '',
-                                        style: _getTextStyle(fontSize: _fontSize),
-                                        textAlign: TextAlign.justify,
-                                      ),
-
-                                const SizedBox(height: 100), // Bottom padding for controls
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Center(
-                      child: GestureDetector(
-                        onTap: _toggleControls,
-                        child: Text(
-                          'No content available',
-                          style: _getTextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
+              child: _buildMainContent(),
             ),
           ),
 
@@ -1436,6 +1661,310 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           // Search results
           if (_showSearchResults)
             _buildSearchResults(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainContent() {
+    // Ensure we have valid content and chapter index
+    if (_chapterContent.isEmpty || _currentChapterIndex < 0 || _currentChapterIndex >= _chapterContent.length) {
+      return Center(
+        child: GestureDetector(
+          onTap: _toggleControls,
+          child: Text(
+            'No content available',
+            style: _getTextStyle(fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    // Get current chapter content with validation
+    String currentContent = _chapterContent[_currentChapterIndex] ?? '';
+    String currentTitle = _chapterTitles.isNotEmpty && _currentChapterIndex < _chapterTitles.length
+        ? _chapterTitles[_currentChapterIndex]
+        : 'Chapter ${_currentChapterIndex + 1}';
+
+    // If content is empty or too short, show error
+    if (currentContent.trim().isEmpty) {
+      return Center(
+        child: GestureDetector(
+          onTap: _toggleControls,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.warning_amber,
+                size: 48,
+                color: _textColor.withOpacity(0.6),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Chapter content is empty',
+                style: _getTextStyle(fontSize: 16, color: _textColor.withOpacity(0.8)),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Try navigating to another chapter',
+                style: _getTextStyle(fontSize: 14, color: _textColor.withOpacity(0.6)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: _toggleControls,
+      behavior: HitTestBehavior.opaque,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            // Use stable key that doesn't change frequently
+            key: Key('chapter_content_${widget.book.id ?? 'unknown'}'),
+            controller: _scrollController,
+            padding: _textPadding,
+            physics: AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+                maxWidth: constraints.maxWidth,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Chapter title
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.only(bottom: 24.0),
+                    child: Text(
+                      currentTitle,
+                      style: _getTextStyle(
+                        fontSize: _fontSize + 4,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  // Main text content with proper width constraints
+                  Container(
+                    width: double.infinity,
+                    child: _buildTextContent(currentContent, constraints.maxWidth),
+                  ),
+
+                  const SizedBox(height: 100), // Bottom padding for controls
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTextContent(String content, double maxWidth) {
+    try {
+      // Validate content before rendering
+      if (content.trim().isEmpty) {
+        return Container(
+          width: maxWidth,
+          child: Text(
+            'No readable content in this chapter.',
+            style: _getTextStyle(fontSize: _fontSize, color: _textColor.withOpacity(0.7)),
+          ),
+        );
+      }
+
+      // Create a stable container with fixed width constraints
+      return Container(
+        width: maxWidth,
+        constraints: BoxConstraints(
+          minWidth: maxWidth,
+          maxWidth: maxWidth,
+        ),
+        child: _buildTextWidget(content),
+      );
+    } catch (e) {
+      print('Error rendering text content: $e');
+      // Fallback rendering with proper width constraints
+      return Container(
+        width: maxWidth,
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Text Rendering Error',
+              style: _getTextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'There was an issue displaying this chapter. Content length: ${content.length} characters.',
+              style: _getTextStyle(fontSize: 14, color: _textColor.withOpacity(0.7)),
+            ),
+            SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  // Force refresh of the content
+                  _highlightedTextSpans.clear();
+                });
+              },
+              child: Text('Retry Display'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  // Separate method for building the actual text widget
+  Widget _buildTextWidget(String content) {
+    // Use a stable key that doesn't change during TTS playback
+    const stableKey = ValueKey('stable_text_content');
+
+    // Check if we have TTS highlighting active
+    if (_highlightedTextSpans.isNotEmpty && _isTtsPlaying) {
+      return RichText(
+        key: stableKey,
+        text: TextSpan(children: _highlightedTextSpans),
+        textAlign: TextAlign.justify,
+        softWrap: true,
+        overflow: TextOverflow.visible,
+      );
+    }
+
+    // Regular text rendering with stable key
+    return Text(
+      content,
+      key: stableKey,
+      style: _getTextStyle(fontSize: _fontSize),
+      textAlign: TextAlign.justify,
+      softWrap: true,
+      overflow: TextOverflow.visible,
+    );
+  }
+
+  Widget _buildTtsControlsPanel() {
+    if (!_isTtsInitialized) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
+          border: Border(top: BorderSide(color: _textColor.withAlpha((0.1 * 255).round()))),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.info_outline, color: _textColor.withAlpha((0.7 * 255).round()), size: 20),
+            SizedBox(width: 8),
+            Text('TTS is initializing...', style: _getTextStyle(fontSize: 14)),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
+        border: Border(top: BorderSide(color: _textColor.withAlpha((0.1 * 255).round()))),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((0.1 * 255).round()),
+            blurRadius: 4,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // TTS Status and Progress
+          if (_isReadingChunks && _textChunks.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.volume_up, color: _textColor, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Reading ${_currentChunkIndex + 1} of ${_textChunks.length} segments',
+                      style: _getTextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // TTS Controls
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Previous chunk
+              IconButton(
+                icon: Icon(Icons.skip_previous, color: _textColor),
+                onPressed: _isReadingChunks ? _previousTtsChunk : null,
+                tooltip: 'Previous segment',
+              ),
+
+              // Play/Pause button
+              IconButton(
+                icon: Icon(
+                  _isTtsPlaying ? Icons.pause_circle_filled :
+                  _isTtsPaused ? Icons.play_circle_filled : Icons.play_circle_outline,
+                  color: _isTtsPlaying ? Colors.orange : _textColor,
+                  size: 32,
+                ),
+                onPressed: () {
+                  if (_isTtsPlaying) {
+                    _pauseTtsReading();
+                  } else if (_isTtsPaused) {
+                    _resumeTtsReading();
+                  } else {
+                    _startTtsReading();
+                  }
+                },
+                tooltip: _isTtsPlaying ? 'Pause' : 'Play',
+              ),
+
+              // Stop button
+              IconButton(
+                icon: Icon(Icons.stop_circle, color: Colors.red),
+                onPressed: _isTtsPlaying || _isTtsPaused ? _stopTtsReading : null,
+                tooltip: 'Stop',
+              ),
+
+              // Next chunk
+              IconButton(
+                icon: Icon(Icons.skip_next, color: _textColor),
+                onPressed: _isReadingChunks ? _nextTtsChunk : null,
+                tooltip: 'Next segment',
+              ),
+
+              // Hide TTS controls
+              IconButton(
+                icon: Icon(Icons.keyboard_arrow_down, color: _textColor),
+                onPressed: () {
+                  setState(() {
+                    _showTtsControls = false;
+                  });
+                },
+                tooltip: 'Hide controls',
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1521,84 +2050,90 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // TTS Controls
-              if (_isTtsInitialized)
-                Container(
-                  padding: EdgeInsets.all(12),
-                  margin: EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: _isDarkTheme ? Colors.grey[800] : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          _isTtsPlaying || _isTtsPaused ? Icons.stop : Icons.play_arrow,
-                          color: _isTtsPlaying || _isTtsPaused ? Colors.red : Colors.green,
-                          size: 32,
-                        ),
-                        onPressed: _isTtsPlaying || _isTtsPaused ? _stopTtsReading : _startTtsReading,
-                      ),
-                      if (_isTtsPlaying || _isTtsPaused) ...[
-                        IconButton(
-                          icon: Icon(
-                            _isTtsPlaying ? Icons.pause : Icons.play_arrow,
-                            color: Colors.orange,
-                            size: 28,
-                          ),
-                          onPressed: _isTtsPlaying ? _pauseTtsReading : _resumeTtsReading,
-                        ),
-                      ],
-                      Expanded(
-                        child: Text(
-                          _isTtsPlaying || _isTtsPaused
-                              ? 'Reading: ${_currentChunkIndex + 1}/${_textChunks.length}'
-                              : 'Text-to-Speech',
-                          style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // Navigation controls
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.list, color: _textColor),
-                        onPressed: _showTableOfContents,
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.bookmarks, color: _textColor),
-                        onPressed: _showBookmarks,
-                      ),
-                    ],
+                  IconButton(
+                    icon: Icon(Icons.record_voice_over, color: _textColor),
+                    onPressed: () {
+                      setState(() {
+                        _showTtsControls = !_showTtsControls;
+                      });
+                    },
+                    tooltip: 'Text-to-Speech',
                   ),
-
-                  // Chapter navigation
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.chevron_left, color: _textColor),
-                        onPressed: _currentChapterIndex > 0 ? _previousChapter : null,
-                      ),
-                      Text(
-                        '${_currentChapterIndex + 1} / ${_chapterContent.length}',
-                        style: _getTextStyle(fontSize: 14),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.chevron_right, color: _textColor),
-                        onPressed: _currentChapterIndex < _chapterContent.length - 1 ? _nextChapter : null,
-                      ),
-                    ],
+                  IconButton(
+                    icon: Icon(Icons.list, color: _textColor),
+                    onPressed: _showTableOfContents,
+                    tooltip: 'Table of Contents',
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.bookmarks, color: _textColor),
+                    onPressed: _showBookmarks,
+                    tooltip: 'Bookmarks',
                   ),
                 ],
               ),
+
+              const SizedBox(height: 16),
+
+              // Chapter navigation
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _currentChapterIndex > 0 ? _previousChapter : null,
+                      icon: const Icon(Icons.chevron_left),
+                      label: const Text('Previous'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.grey[300],
+                        foregroundColor: _textColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Chapter ${_currentChapterIndex + 1} of ${_chapterContent.length}',
+                      textAlign: TextAlign.center,
+                      style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _currentChapterIndex < _chapterContent.length - 1 ? _nextChapter : null,
+                      icon: const Icon(Icons.chevron_right),
+                      label: const Text('Next'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.grey[300],
+                        foregroundColor: _textColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Reading progress
+              const SizedBox(height: 12),
+              if (_chapterContent.isNotEmpty)
+                Column(
+                  children: [
+                    LinearProgressIndicator(
+                      value: (_currentChapterIndex + 1) / _chapterContent.length,
+                      backgroundColor: _textColor.withAlpha((0.2 * 255).round()),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _isDarkTheme ? Colors.orange : Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${((_currentChapterIndex + 1) / _chapterContent.length * 100).round()}% complete',
+                      style: _getTextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -1606,649 +2141,505 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     );
   }
 
-  Widget _buildTtsControlsPanel() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha((0.1 * 255).round()),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Text-to-Speech',
-                style: _getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: Icon(Icons.close, color: _textColor),
-                onPressed: () => setState(() => _showTtsControls = false),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (_isTtsInitialized)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.skip_previous, color: _textColor),
-                  onPressed: _currentChunkIndex > 0 ? _previousTtsChunk : null,
-                ),
-                IconButton(
-                  icon: Icon(
-                    _isTtsPlaying ? Icons.pause : Icons.play_arrow,
-                    color: Colors.orange,
-                    size: 32,
-                  ),
-                  onPressed: _isTtsPlaying ? _pauseTtsReading : (_isTtsPaused ? _resumeTtsReading : _startTtsReading),
-                ),
-                IconButton(
-                  icon: Icon(Icons.stop, color: Colors.red),
-                  onPressed: _stopTtsReading,
-                ),
-                IconButton(
-                  icon: Icon(Icons.skip_next, color: _textColor),
-                  onPressed: _currentChunkIndex < _textChunks.length - 1 ? _nextTtsChunk : null,
-                ),
-              ],
-            )
-          else
-            Text('TTS is initializing...', style: _getTextStyle(fontSize: 14)),
-          if (_isTtsPlaying || _isTtsPaused)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                'Reading chunk: ${_currentChunkIndex + 1}/${_textChunks.length}',
-                style: _getTextStyle(fontSize: 12),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSettingsPanel() {
-    return Container(
-      color: Colors.black.withAlpha((0.3 * 255).round()),
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        builder: (context, scrollController) {
-          return Container(
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withAlpha((0.5 * 255).round()),
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: _backgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              children: [
-                // Handle
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: _textColor.withAlpha((0.3 * 255).round()),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha((0.3 * 255).round()),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
                 ),
-
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: _isDarkTheme ? Colors.grey[800] : Colors.grey[100],
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  child: Row(
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
                     children: [
                       Icon(Icons.settings, color: _textColor),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Reading Settings',
-                          style: _getTextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          style: _getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
                       IconButton(
                         icon: Icon(Icons.close, color: _textColor),
-                        onPressed: () => setState(() => _showSettings = false),
+                        onPressed: () {
+                          setState(() {
+                            _showSettings = false;
+                          });
+                        },
                       ),
                     ],
                   ),
-                ),
 
-                // Settings content
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      _buildThemeSelector(),
-                      const SizedBox(height: 24),
-                      _buildFontSettings(),
-                      const SizedBox(height: 24),
-                      _buildTtsSettings(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+                  const SizedBox(height: 20),
 
-  Widget _buildThemeSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Theme',
-          style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: _themePresets.entries.map((entry) {
-            final isSelected = _currentTheme == entry.key;
-            return GestureDetector(
-              onTap: () => _applyTheme(entry.key),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: entry.value['backgroundColor'] as Color,
-                  border: Border.all(
-                    color: isSelected
-                        ? (_isDarkTheme ? Colors.orange : Colors.blue)
-                        : Colors.grey.withAlpha((0.3 * 255).round()),
-                    width: isSelected ? 2 : 1,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  entry.value['name'] as String,
-                  style: TextStyle(
-                    color: entry.value['textColor'] as Color,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),);
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFontSettings() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Font Settings',
-          style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 16),
-
-        // Font size slider
-        Text('Font Size: ${_fontSize.round()}pt'),
-        Slider(
-          value: _fontSize,
-          min: 12.0,
-          max: 32.0,
-          divisions: 20,
-          onChanged: (value) {
-            setState(() => _fontSize = value);
-            _saveSettings();
-          },
-        ),
-
-        const SizedBox(height: 16),
-
-        // Line height slider
-        Text('Line Height: ${_lineHeight.toStringAsFixed(1)}x'),
-        Slider(
-          value: _lineHeight,
-          min: 1.0,
-          max: 2.5,
-          divisions: 15,
-          onChanged: (value) {
-            setState(() => _lineHeight = value);
-            _saveSettings();
-          },
-        ),
-
-        const SizedBox(height: 16),
-
-        // Brightness slider
-        Text('Brightness: ${(_brightness * 100).round()}%'),
-        Slider(
-          value: _brightness,
-          min: 0.3,
-          max: 1.0,
-          divisions: 7,
-          onChanged: (value) {
-            setState(() => _brightness = value);
-            _saveSettings();
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTtsSettings() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Text-to-Speech',
-          style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 16),
-
-        if (_isTtsInitialized) ...[
-          // Voice Selection
-          Text('Voice Selection'),
-          const SizedBox(height: 8),
-          _buildVoiceSelector(),
-          const SizedBox(height: 16),
-
-          // TTS Rate
-          Text('Speech Rate: ${(_ttsRate * 100).round()}%'),
-          Slider(
-            value: _ttsRate,
-            min: 0.1,
-            max: 1.0,
-            divisions: 9,
-            onChanged: (value) async {
-              setState(() => _ttsRate = value);
-              await _flutterTts?.setSpeechRate(value);
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // TTS Pitch
-          Text('Pitch: ${_ttsPitch.toStringAsFixed(1)}x'),
-          Slider(
-            value: _ttsPitch,
-            min: 0.5,
-            max: 2.0,
-            divisions: 15,
-            onChanged: (value) async {
-              setState(() => _ttsPitch = value);
-              await _flutterTts?.setPitch(value);
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // Language Selection
-          Text('Language'),
-          const SizedBox(height: 8),
-          DropdownButton<String>(
-            value: _selectedLanguage,
-            isExpanded: true,
-            items: _getFilteredLanguages().map<DropdownMenuItem<String>>((language) {
-              String displayName = language;
-              // Make display names more user-friendly
-              switch (language) {
-                case 'en-US':
-                  displayName = 'English (US)';
-                  break;
-                case 'en-IN':
-                  displayName = 'English (India)';
-                  break;
-                case 'en-GB':
-                  displayName = 'English (UK)';
-                  break;
-              }
-              return DropdownMenuItem<String>(
-                value: language,
-                child: Text(displayName, style: _getTextStyle(fontSize: 14)),
-              );
-            }).toList(),
-            onChanged: (String? newLanguage) async {
-              if (newLanguage != null) {
-                setState(() => _selectedLanguage = newLanguage);
-                await _flutterTts?.setLanguage(newLanguage);
-                // Reset voice when language changes
-                _selectedVoice = null;
-                await _updateAvailableVoices();
-              }
-            },
-          ),
-        ] else
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.orange.withAlpha((0.1 * 255).round()),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              'Text-to-Speech is initializing...',
-              style: _getTextStyle(fontSize: 14, color: Colors.orange),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildVoiceSelector() {
-    if (_availableVoices.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.grey.withAlpha((0.1 * 255).round()),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          'Loading voices...',
-          style: _getTextStyle(fontSize: 14, color: _textColor.withAlpha((0.7 * 255).round())),
-        ),
-      );
-    }
-
-    // Categorize voices by gender
-    List<Map<String, dynamic>> maleVoices = [];
-    List<Map<String, dynamic>> femaleVoices = [];
-    List<Map<String, dynamic>> otherVoices = [];
-
-    for (var voice in _availableVoices) {
-      if (voice is Map<String, dynamic>) {
-        String voiceName = voice['name']?.toString() ?? '';
-        String voiceNameLower = voiceName.toLowerCase();
-
-        if (voiceNameLower.contains('male') && !voiceNameLower.contains('female')) {
-          maleVoices.add(voice);
-        } else if (voiceNameLower.contains('female') || voiceNameLower.contains('woman')) {
-          femaleVoices.add(voice);
-        } else {
-          // Try to categorize by common naming patterns
-          if (voiceNameLower.contains('man') || voiceNameLower.contains('boy') ||
-              voiceNameLower.contains('alex') || voiceNameLower.contains('tom') ||
-              voiceNameLower.contains('john') || voiceNameLower.contains('david')) {
-            maleVoices.add(voice);
-          } else if (voiceNameLower.contains('woman') || voiceNameLower.contains('girl') ||
-                     voiceNameLower.contains('mary') || voiceNameLower.contains('susan') ||
-                     voiceNameLower.contains('anna') || voiceNameLower.contains('sarah')) {
-            femaleVoices.add(voice);
-          } else {
-            otherVoices.add(voice);
-          }
-        }
-      }
-    }
-
-    return Column(
-      children: [
-        // Male voices section
-        if (maleVoices.isNotEmpty) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.blue.withAlpha((0.1 * 255).round()),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.man, color: Colors.blue, size: 20),
-                const SizedBox(width: 8),
-                Text('Male Voices', style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...maleVoices.map((voice) => _buildVoiceOption(voice)).toList(),
-          const SizedBox(height: 12),
-        ],
-
-        // Female voices section
-        if (femaleVoices.isNotEmpty) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.pink.withAlpha((0.1 * 255).round()),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.woman, color: Colors.pink, size: 20),
-                const SizedBox(width: 8),
-                Text('Female Voices', style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...femaleVoices.map((voice) => _buildVoiceOption(voice)).toList(),
-          const SizedBox(height: 12),
-        ],
-
-        // Other voices section
-        if (otherVoices.isNotEmpty) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey.withAlpha((0.1 * 255).round()),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.record_voice_over, color: Colors.grey, size: 20),
-                const SizedBox(width: 8),
-                Text('Other Voices', style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...otherVoices.map((voice) => _buildVoiceOption(voice)).toList(),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildVoiceOption(Map<String, dynamic> voice) {
-    String voiceName = voice['name']?.toString() ?? 'Unknown Voice';
-    String voiceLocale = voice['locale']?.toString() ?? '';
-    bool isSelected = _selectedVoice == voiceName;
-
-    return GestureDetector(
-      onTap: () async {
-        setState(() => _selectedVoice = voiceName);
-        await _flutterTts?.setVoice({"name": voiceName, "locale": voiceLocale});
-
-        // Test the voice with a short sample
-        await _flutterTts?.speak("Hello, this is how I sound.");
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.orange.withAlpha((0.2 * 255).round()) : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? Colors.orange : Colors.grey.withAlpha((0.3 * 255).round()),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              color: isSelected ? Colors.orange : Colors.grey,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  // Theme selection
                   Text(
-                    voiceName,
-                    style: _getTextStyle(
-                      fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    ),
+                    'Theme',
+                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
-                  if (voiceLocale.isNotEmpty)
-                    Text(
-                      voiceLocale,
-                      style: _getTextStyle(
-                        fontSize: 12,
-                        color: _textColor.withAlpha((0.6 * 255).round()),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: _themePresets.entries.map((entry) {
+                      final themeName = entry.key;
+                      final themeData = entry.value;
+                      final isSelected = _currentTheme == themeName;
+
+                      return GestureDetector(
+                        onTap: () => _applyTheme(themeName),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: themeData['backgroundColor'] as Color,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected ? Colors.blue : Colors.grey,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            themeData['name'] as String,
+                            style: TextStyle(
+                              color: themeData['textColor'] as Color,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Font size
+                  Text(
+                    'Font Size: ${_fontSize.round()}px',
+                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  Slider(
+                    value: _fontSize,
+                    min: 12,
+                    max: 32,
+                    divisions: 20,
+                    onChanged: (value) {
+                      setState(() {
+                        _fontSize = value;
+                      });
+                    },
+                    onChangeEnd: (value) => _saveSettings(),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Font family
+                  Text(
+                    'Font Family',
+                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _fontFamily,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: _fontOptions.keys.map((fontName) {
+                      return DropdownMenuItem(
+                        value: fontName,
+                        child: Text(fontName, style: _getTextStyle(fontSize: 14)),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _fontFamily = value;
+                        });
+                        _saveSettings();
+                      }
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Line height
+                  Text(
+                    'Line Height: ${_lineHeight.toStringAsFixed(1)}',
+                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  Slider(
+                    value: _lineHeight,
+                    min: 1.0,
+                    max: 2.5,
+                    divisions: 15,
+                    onChanged: (value) {
+                      setState(() {
+                        _lineHeight = value;
+                      });
+                    },
+                    onChangeEnd: (value) => _saveSettings(),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Brightness
+                  Text(
+                    'Brightness: ${(_brightness * 100).round()}%',
+                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  Slider(
+                    value: _brightness,
+                    min: 0.3,
+                    max: 1.0,
+                    onChanged: (value) {
+                      setState(() {
+                        _brightness = value;
+                      });
+                    },
+                    onChangeEnd: (value) => _saveSettings(),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // TTS Settings Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: (_isDarkTheme ? Colors.grey[800] : Colors.grey[100])?.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _textColor.withOpacity(0.1),
+                        width: 1,
                       ),
                     ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // TTS Header
+                        Row(
+                          children: [
+                            Icon(Icons.record_voice_over, color: _textColor, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Text-to-Speech Settings',
+                              style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // TTS Language Selection
+                        Text(
+                          'Language',
+                          style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _supportedTtsLanguages.containsKey(_selectedLanguage) ? _selectedLanguage : 'en-US',
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: _supportedTtsLanguages.entries.map((entry) {
+                            return DropdownMenuItem(
+                              value: entry.key,
+                              child: Text(entry.value, style: _getTextStyle(fontSize: 14)),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              _changeTtsLanguage(value);
+                            }
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // TTS Voice Selection (only show if voices available for selected language)
+                        if (_getVoicesForLanguage(_selectedLanguage).isNotEmpty) ...[
+                          Text(
+                            'Voice',
+                            style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: _selectedVoice,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            hint: Text('Select Voice', style: _getTextStyle(fontSize: 14)),
+                            items: _getVoicesForLanguage(_selectedLanguage).map((voice) {
+                              final voiceName = voice['name'] as String;
+                              return DropdownMenuItem(
+                                value: voiceName,
+                                child: Text(voiceName, style: _getTextStyle(fontSize: 14)),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                _changeTtsVoice(value);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // TTS Speed/Rate
+                        Text(
+                          'Speech Speed: ${(_ttsRate * 100).round()}%',
+                          style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 4),
+                        Slider(
+                          value: _ttsRate,
+                          min: 0.1,
+                          max: 1.0,
+                          divisions: 18,
+                          onChanged: (value) {
+                            setState(() {
+                              _ttsRate = value;
+                            });
+                          },
+                          onChangeEnd: (value) => _changeTtsRate(value),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // TTS Pitch
+                        Text(
+                          'Voice Pitch: ${(_ttsPitch * 100).round()}%',
+                          style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 4),
+                        Slider(
+                          value: _ttsPitch,
+                          min: 0.5,
+                          max: 2.0,
+                          divisions: 30,
+                          onChanged: (value) {
+                            setState(() {
+                              _ttsPitch = value;
+                            });
+                          },
+                          onChangeEnd: (value) => _changeTtsPitch(value),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // TTS Test Button
+                        if (_isTtsInitialized)
+                          Center(
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                try {
+                                  final testText = _selectedLanguage.startsWith('hi')
+                                      ? 'यह एक परीक्षण है।'
+                                      : 'This is a test of text-to-speech.';
+                                  await _flutterTts!.speak(testText);
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('TTS test failed: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: Icon(Icons.play_arrow),
+                              label: Text('Test Voice'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                                textStyle: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Center(
+                            child: Text(
+                              'TTS not initialized',
+                              style: _getTextStyle(fontSize: 12, color: Colors.orange),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Close Settings Button
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _showSettings = false;
+                        });
+                      },
+                      child: Text('Close Settings'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        textStyle: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-            IconButton(
-              icon: Icon(Icons.play_arrow, color: Colors.orange, size: 20),
-              onPressed: () async {
-                // Test voice without changing selection
-                await _flutterTts?.setVoice({"name": voiceName, "locale": voiceLocale});
-                await _flutterTts?.speak("This is a voice preview.");
-              },
-            ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Future<void> _updateAvailableVoices() async {
-    try {
-      _availableVoices = await _flutterTts!.getVoices;
-      setState(() {});
-    } catch (e) {
-      print('Error updating available voices: $e');
-    }
+      ),);
   }
 
   Widget _buildSearchResults() {
-    return Container(
-      color: Colors.black.withAlpha((0.3 * 255).round()),
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.8,
-        builder: (context, scrollController) {
-          return Container(
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withAlpha((0.5 * 255).round()),
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: _backgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              children: [
-                // Header with search
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: _isDarkTheme ? Colors.grey[800] : Colors.grey[100],
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: _textColor),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Search in book...',
-                            border: InputBorder.none,
-                            hintStyle: _getTextStyle(fontSize: 16, color: _textColor.withAlpha((0.6 * 255).round())),
-                          ),
-                          style: _getTextStyle(fontSize: 16),
-                          onChanged: _performSearch,
-                          onSubmitted: _performSearch,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: _textColor),
-                        onPressed: () => setState(() => _showSearchResults = false),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Results
-                Expanded(
-                  child: _searchResults.isEmpty
-                      ? Center(
-                          child: Text(
-                            _searchController.text.trim().isEmpty
-                                ? 'Enter text to search'
-                                : 'No results found',
-                            style: _getTextStyle(fontSize: 16, color: _textColor.withAlpha((0.6 * 255).round())),
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: scrollController,
-                          itemCount: _searchResults.length,
-                          itemBuilder: (context, index) {
-                            final result = _searchResults[index];
-                            return ListTile(
-                              title: Text(
-                                result.chapterTitle,
-                                style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text(
-                                result.excerpt,
-                                style: _getTextStyle(fontSize: 12, color: _textColor.withAlpha((0.7 * 255).round())),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              trailing: IconButton(
-                                icon: Icon(Icons.play_circle_outline, color: Colors.orange),
-                                onPressed: () {
-                                  setState(() {
-                                    _showSearchResults = false;
-                                    _showControls = false;
-                                  });
-                                  _jumpToChapter(result.chapterIndex);
-                                  _startReadingFromText(_searchController.text);
-                                },
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  _currentChapterIndex = result.chapterIndex;
-                                  _showSearchResults = false;
-                                  _showControls = false;
-                                });
-
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  _scrollController.jumpTo(0);
-                                });
-                              },
-                            );
-                          },
-                        ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha((0.3 * 255).round()),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
-          );
-        },
-      ),
-    );
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Icon(Icons.search, color: _textColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Search in Book',
+                        style: _getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: _textColor),
+                      onPressed: () {
+                        setState(() {
+                          _showSearchResults = false;
+                          _searchResults.clear();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Search input
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter search term...',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    prefixIcon: Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchResults.clear();
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: _performSearch,
+                  style: _getTextStyle(fontSize: 14),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Search results
+                if (_searchResults.isEmpty && _searchController.text.isNotEmpty)
+                  Text(
+                    'No results found',
+                    style: _getTextStyle(fontSize: 14, color: Colors.orange),
+                  )
+                else if (_searchResults.isNotEmpty)
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _searchResults.length,
+                      itemBuilder: (context, index) {
+                        final result = _searchResults[index];
+                        return ListTile(
+                          title: Text(
+                            result.chapterTitle,
+                            style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          subtitle: Text(
+                            result.excerpt,
+                            style: _getTextStyle(fontSize: 12, color: _textColor.withAlpha((0.7 * 255).round())),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _currentChapterIndex = result.chapterIndex;
+                              _showSearchResults = false;
+                            });
+                            _scrollController.jumpTo(0);
+                            _saveReadingProgressDebounced();
+
+                            // Start TTS from search result if available
+                            if (_isTtsInitialized) {
+                              final searchText = _searchController.text;
+                              if (searchText.isNotEmpty) {
+                                _startReadingFromText(searchText);
+                              }
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ));
   }
 }
 
-// Helper classes
 class SearchResult {
   final int chapterIndex;
   final String chapterTitle;

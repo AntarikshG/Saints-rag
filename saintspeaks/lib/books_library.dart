@@ -23,8 +23,10 @@ class _BooksLibraryPageState extends State<BooksLibraryPage> {
   // Add sample books download tracking
   StreamSubscription<bool>? _sampleDownloadInProgressSub;
   StreamSubscription<double>? _sampleDownloadProgressSub;
+  StreamSubscription<String>? _currentDownloadingBookSub;
   bool _isSampleBooksDownloading = false;
   double _sampleDownloadProgress = 0.0;
+  String _currentDownloadingBook = '';
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _BooksLibraryPageState extends State<BooksLibraryPage> {
     _urlController.dispose();
     _sampleDownloadInProgressSub?.cancel();
     _sampleDownloadProgressSub?.cancel();
+    _currentDownloadingBookSub?.cancel();
     super.dispose();
   }
 
@@ -86,6 +89,15 @@ class _BooksLibraryPageState extends State<BooksLibraryPage> {
       if (mounted) {
         setState(() {
           _sampleDownloadProgress = progress;
+        });
+      }
+    });
+
+    // Listen for current downloading book name
+    _currentDownloadingBookSub = BookService.currentDownloadingBookStream.listen((bookName) {
+      if (mounted) {
+        setState(() {
+          _currentDownloadingBook = bookName;
         });
       }
     });
@@ -456,6 +468,17 @@ class _BooksLibraryPageState extends State<BooksLibraryPage> {
                       ),
                     ],
                   ),
+                  if (_currentDownloadingBook.isNotEmpty) ...[
+                    SizedBox(height: 8),
+                    Text(
+                      'Currently downloading: $_currentDownloadingBook',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
                   if (_sampleDownloadProgress > 0) ...[
                     SizedBox(height: 12),
                     LinearProgressIndicator(
