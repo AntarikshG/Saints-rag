@@ -533,8 +533,8 @@ class _AskTabState extends State<AskTab> {
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
 
-    // Check if this is AnandMoyiMa and disable Ask AI feature
-    if (widget.saintId == 'anandmoyima') {
+    // Check if this is AnandMoyiMa or Baba Neeb Karori and disable Ask AI feature
+    if (widget.saintId == 'anandmoyima' || widget.saintId == 'baba_neeb_karori') {
       return SafeArea(
         child: Padding(
           padding: EdgeInsets.all(16),
@@ -558,7 +558,9 @@ class _AskTabState extends State<AskTab> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'The Ask AI feature is not available for Anandamayi Ma.',
+                  widget.saintId == 'anandmoyima'
+                    ? 'The Ask AI feature is not available for Anandamayi Ma.'
+                    : 'The Ask AI feature is not available for Baba Neeb Karori.',
                   style: TextStyle(
                     fontSize: 16,
                     color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -567,7 +569,17 @@ class _AskTabState extends State<AskTab> {
                 ),
                 SizedBox(height: 16),
                 Text(
-                  'Please explore her quotes and teachings in the other tabs.',
+                  'Coming soon',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.orange[300] : Colors.deepOrange,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Please explore their quotes and teachings in the other tabs.',
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark ? Colors.grey[500] : Colors.grey[500],

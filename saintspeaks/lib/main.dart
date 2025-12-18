@@ -627,6 +627,8 @@ class _HomePageState extends State<HomePage> {
                       'assets/images/banner7.jpeg',
                       'assets/images/banner8.jpeg',
                       'assets/images/banner9.jpeg',
+                      'assets/images/banner10.jpg',
+                      'assets/images/banner11.jpg',
                       'assets/images/Antariksh.jpg',
                     ],
                   ),

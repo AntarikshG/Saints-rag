@@ -39,11 +39,15 @@ flutter:
     - assets/images/banner7.jpeg
     - assets/images/banner8.jpeg
     - assets/images/banner9.jpeg
+    - assets/images/banner10.jpg
+    - assets/images/banner11.jpg
     - assets/images/apppic.png
     - assets/images/antarikshverse.png
     - assets/images/paramhansa.jpg
     - assets/images/raman.jpg
     - assets/images/Antariksh.jpg
+    - assets/images/nisargadatta.jpg
+    - assets/images/baba_neeb_karori.jpg
   uses-material-design: true
 
 # Dependencies specify other packages that your package needs in order to work.
