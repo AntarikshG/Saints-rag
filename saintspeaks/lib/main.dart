@@ -25,6 +25,7 @@ import 'books_tab.dart';
 import 'rating_share_service.dart';
 import 'ekadashi_service.dart';
 import 'ask_ai_page.dart';
+import 'user_profile_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -355,13 +356,14 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final void Function(ThemeMode) onThemeChange;
   final ThemeMode themeMode;
   final String userName;
   final void Function(String) onSetUserName;
   final void Function(Locale) onLocaleChange;
   final Locale locale;
+
   HomePage({
     required this.onThemeChange,
     required this.themeMode,
@@ -370,6 +372,20 @@ class HomePage extends StatelessWidget {
     required this.onLocaleChange,
     required this.locale,
   });
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Show first-time name dialog after the UI is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UserProfileService.showFirstTimeNameDialog(context, widget.onSetUserName);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -735,7 +751,7 @@ class HomePage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => AskAIPage(userName: userName)),
+                      MaterialPageRoute(builder: (_) => AskAIPage(userName: widget.userName)),
                     ),
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -854,7 +870,7 @@ class HomePage extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (_) => SaintPage(
                               saint: saintList[i],
-                              userName: userName,
+                              userName: widget.userName,
                             ),
                           ),
                         ),
@@ -972,15 +988,15 @@ class HomePage extends StatelessWidget {
       margin: EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: themeMode == mode ? Colors.deepOrange.shade50 : null,
+        color: widget.themeMode == mode ? Colors.deepOrange.shade50 : null,
       ),
       child: RadioListTile(
         title: Text(title),
         value: mode,
-        groupValue: themeMode,
+        groupValue: widget.themeMode,
         activeColor: Colors.deepOrange,
         onChanged: (val) {
-          onThemeChange(mode);
+          widget.onThemeChange(mode);
           Navigator.pop(context);
         },
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1014,15 +1030,15 @@ class HomePage extends StatelessWidget {
       margin: EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: locale == localeOption ? Colors.deepOrange.shade50 : null,
+        color: widget.locale == localeOption ? Colors.deepOrange.shade50 : null,
       ),
       child: RadioListTile<Locale>(
         title: Text(title),
         value: localeOption,
-        groupValue: locale,
+        groupValue: widget.locale,
         activeColor: Colors.deepOrange,
         onChanged: (val) {
-          onLocaleChange(localeOption);
+          widget.onLocaleChange(localeOption);
           Navigator.pop(context);
         },
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1032,7 +1048,7 @@ class HomePage extends StatelessWidget {
 
   void _showNameDialog(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final controller = TextEditingController(text: userName);
+    final controller = TextEditingController(text: widget.userName);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -1062,7 +1078,7 @@ class HomePage extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              onSetUserName(controller.text.trim());
+              widget.onSetUserName(controller.text.trim());
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
