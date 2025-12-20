@@ -215,6 +215,11 @@ class BookService {
       'author': 'Traditional',
       'url': 'https://www.gutenberg.org/ebooks/11310.epub3.images',
     },
+    {
+      'title': 'Lectures on Jnana Yoga',
+      'author': 'Swami Vivekananda',
+      'url': 'https://www.gutenberg.org/ebooks/72368.epub3.images',
+    },
   ];
 
   static Future<Database> get database async {
@@ -945,22 +950,7 @@ class BookService {
 
         } catch (e) {
           print('Failed to add "${bookData['title']}" by ${bookData['author']}: $e');
-
-          // If download fails, create a placeholder entry only if not already downloaded
-          if (!alreadyDownloaded) {
-            try {
-              final placeholderBook = Book(
-                title: bookData['title']!,
-                author: bookData['author']!,
-                filePath: 'placeholder_${bookData['title']!.toLowerCase().replaceAll(' ', '_')}.epub',
-                dateAdded: DateTime.now(),
-              );
-              await addBook(placeholderBook);
-              print('Added placeholder for "${bookData['title']}"');
-            } catch (placeholderError) {
-              print('Failed to add placeholder for "${bookData['title']}": $placeholderError');
-            }
-          }
+          // Just log the error and continue - don't create placeholder books
         }
       }
     } finally {

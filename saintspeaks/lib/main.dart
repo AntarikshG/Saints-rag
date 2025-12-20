@@ -19,6 +19,7 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 // Book reading imports
 import 'books_library.dart';
 import 'books_tab.dart';
@@ -29,6 +30,9 @@ import 'user_profile_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Track app usage for rating/share service
+  await RatingShareService.trackAppUsage();
 
   // Configure system UI overlay style for edge-to-edge display
   SystemChrome.setSystemUIOverlayStyle(
@@ -384,6 +388,8 @@ class _HomePageState extends State<HomePage> {
     // Show first-time name dialog after the UI is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UserProfileService.showFirstTimeNameDialog(context, widget.onSetUserName);
+      // Check and show rating prompt if conditions are met
+      RatingShareService.checkAndShowRatingPrompt(context);
     });
   }
 
@@ -543,11 +549,11 @@ class _HomePageState extends State<HomePage> {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
                   }),
-                  _buildDrawerItem(context, Icons.brightness_2, 'Next Ekadashi', () {
+                  _buildDrawerItem(context, Icons.brightness_2, loc.nextEkadashi, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => EkadashiPage()));
                   }),
-                  _buildDrawerItem(context, Icons.library_books, 'My Books Library', () {
+                  _buildDrawerItem(context, Icons.library_books, loc.myBooksLibrary, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => BooksLibraryPage()));
                   }),
@@ -555,11 +561,11 @@ class _HomePageState extends State<HomePage> {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => AboutAppPage()));
                   }),
-                  _buildDrawerItem(context, Icons.star, 'Rate & Share App', () {
+                  _buildDrawerItem(context, Icons.star, loc.rateAndShareApp, () {
                     Navigator.pop(context);
                     RatingShareService.showRatingShareDialog(context);
                   }),
-                  _buildDrawerItem(context, Icons.notifications_active, 'Set Daily Notifications', () async {
+                  _buildDrawerItem(context, Icons.notifications_active, loc.setDailyNotifications, () async {
                     Navigator.pop(context);
 
                     // Show current notification configuration
@@ -785,7 +791,7 @@ class _HomePageState extends State<HomePage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Talk to spiritual AI friend',
+                                  loc.talkToSpiritualAIFriend,
                                   style: GoogleFonts.playfairDisplay(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -1200,161 +1206,167 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
   Future<void> _shareQuote(String quote) async {
     try {
       final image = await _screenshotController.captureFromWidget(
-        Container(
-          width: 650,
-          padding: EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.orange.shade200, width: 2),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // App branding header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        MediaQuery(
+          data: MediaQueryData(),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 650,
+              padding: EdgeInsets.all(40),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.orange.shade200, width: 2),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // App branding header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.deepOrange.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.asset(
+                            'assets/images/apppic.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Talk with Saints',
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepOrange.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 30),
+
+                  // Saint image
+                  if (widget.image.isNotEmpty)
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepOrange.withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        backgroundImage: AssetImage(widget.image),
+                        radius: 55,
+                        backgroundColor: Colors.white,
+                      ),
+                    ),
+                  SizedBox(height: 28),
+
+                  // Quote container
                   Container(
-                    width: 40,
-                    height: 40,
+                    padding: EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.orange.shade100),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.deepOrange.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: Offset(0, 3),
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(
-                        'assets/images/apppic.png',
-                        fit: BoxFit.cover,
-                      ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.format_quote,
+                          color: Colors.deepOrange.shade400,
+                          size: 30,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          '"$quote"',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            height: 1.5,
+                            color: Colors.grey.shade800,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(width: 12),
+                  SizedBox(height: 22),
+
+                  // Saint attribution
                   Text(
-                    'Talk with Saints',
-                    style: GoogleFonts.playfairDisplay(
+                    '— ${widget.saintName}',
+                    style: GoogleFonts.notoSans(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.deepOrange.shade700,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  SizedBox(height: 25),
+
+                  // Bottom app promotion
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
+                      ),
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: Colors.deepOrange.shade200),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.download,
+                          size: 16,
+                          color: Colors.deepOrange.shade700,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Talk with Saints App on Android',
+                          style: GoogleFonts.notoSans(
+                            fontSize: 13,
+                            color: Colors.deepOrange.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 30),
-
-              // Saint image
-              if (widget.image.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.deepOrange.withOpacity(0.3),
-                        blurRadius: 15,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: CircleAvatar(
-                    backgroundImage: AssetImage(widget.image),
-                    radius: 55,
-                    backgroundColor: Colors.white,
-                  ),
-                ),
-              SizedBox(height: 28),
-
-              // Quote container
-              Container(
-                padding: EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.orange.shade100),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.format_quote,
-                      color: Colors.deepOrange.shade400,
-                      size: 30,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      '"$quote"',
-                      style: GoogleFonts.playfairDisplay(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        height: 1.5,
-                        color: Colors.grey.shade800,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 22),
-
-              // Saint attribution
-              Text(
-                '— ${widget.saintName}',
-                style: GoogleFonts.notoSans(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepOrange.shade700,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              SizedBox(height: 25),
-
-              // Bottom app promotion
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
-                  ),
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: Colors.deepOrange.shade200),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.download,
-                      size: 16,
-                      color: Colors.deepOrange.shade700,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Talk with Saints App on Android',
-                      style: GoogleFonts.notoSans(
-                        fontSize: 13,
-                        color: Colors.deepOrange.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -1364,7 +1376,17 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
       final imageFile = File(imagePath);
       await imageFile.writeAsBytes(image);
 
-      await Share.shareXFiles([XFile(imagePath)], text: '"$quote"\n\n— ${widget.saintName}\n\n✨ Shared from Talk with Saints App\nDownload now for daily spiritual wisdom!');
+      // Get share position origin for iOS
+      final box = context.findRenderObject() as RenderBox?;
+      final sharePositionOrigin = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        text: '"$quote"\n\n— ${widget.saintName}\n\n✨ Shared from Talk with Saints App\nDownload now for daily spiritual wisdom!',
+        sharePositionOrigin: sharePositionOrigin,
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to share quote')),
@@ -1827,7 +1849,12 @@ class _QuotesTabState extends State<QuotesTab> {
         ),
       ),
       child: ListView.separated(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).padding.bottom + 100, // Use MediaQuery for system padding + extra space
+        ),
         itemCount: widget.quotes.length + 1,
         separatorBuilder: (context, index) => SizedBox(height: 16),
         itemBuilder: (context, i) {
@@ -1989,7 +2016,12 @@ class _ArticlesTabState extends State<ArticlesTab> {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: EdgeInsets.only(top: 16, bottom: 80), // Add bottom padding to prevent cut-off
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 100, // Use MediaQuery for system padding + extra space
+      ),
       itemCount: widget.articles.length,
       separatorBuilder: (context, index) => SizedBox(height: 12),
       itemBuilder: (context, i) {
@@ -2131,10 +2163,17 @@ class _SpiritualDiaryPageState extends State<SpiritualDiaryPage> {
 
       await file.writeAsString(exportContent);
 
+      // Get share position origin for iOS
+      final box = context.findRenderObject() as RenderBox?;
+      final sharePositionOrigin = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
       await Share.shareXFiles(
         [XFile(file.path)],
         text: 'My Spiritual Diary Export',
         subject: 'Spiritual Diary',
+        sharePositionOrigin: sharePositionOrigin,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2328,44 +2367,142 @@ class _SpiritualDiaryPageState extends State<SpiritualDiaryPage> {
   }
 }
 
-class AboutAppPage extends StatelessWidget {
+class AboutAppPage extends StatefulWidget {
+  @override
+  _AboutAppPageState createState() => _AboutAppPageState();
+}
+
+class _AboutAppPageState extends State<AboutAppPage> {
+  late YoutubePlayerController _controller;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Don't initialize controller here - wait for didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Get the current locale to determine which video to show
+    final locale = Localizations.localeOf(context);
+    final isHindi = locale.languageCode == 'hi';
+    final expectedVideoId = isHindi ? '-xgEbJzLs5k' : '7OXjZOvLW0Y';
+
+    // Initialize controller only once
+    if (!_isInitialized) {
+      _controller = YoutubePlayerController(
+        initialVideoId: expectedVideoId,
+        flags: YoutubePlayerFlags(
+          autoPlay: false,
+          mute: false,
+          enableCaption: true,
+        ),
+      );
+      _isInitialized = true;
+    } else {
+      // If language changes after initialization, load the new video
+      if (_controller.metadata.videoId != expectedVideoId) {
+        _controller.load(expectedVideoId);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(title: Text(loc.aboutApp)),
-      body: SafeArea(
-        // Ensures content isn't hidden behind system UI (bottom nav / home indicator)
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Image.asset(
-                    'assets/images/apppic.png', // Use your available image as aboutapp.jpg is not present
-                    width: 180,
-                    height: 180,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  loc.aboutApp,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  loc.aboutAppInstructions,
-                  style: TextStyle(fontSize: 16),
-                ),
-                SizedBox(height: 20), // small bottom spacing to ensure visibility
-              ],
-            ),
+
+    // Show loading indicator until controller is initialized
+    if (!_isInitialized) {
+      return Scaffold(
+        appBar: AppBar(title: Text(loc.aboutApp)),
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
           ),
         ),
+      );
+    }
+
+    return YoutubePlayerBuilder(
+      player: YoutubePlayer(
+        controller: _controller,
+        showVideoProgressIndicator: true,
+        progressIndicatorColor: Colors.deepOrange,
+        progressColors: ProgressBarColors(
+          playedColor: Colors.deepOrange,
+          handleColor: Colors.deepOrangeAccent,
+        ),
       ),
+      builder: (context, player) {
+        return Scaffold(
+          appBar: AppBar(title: Text(loc.aboutApp)),
+          body: SafeArea(
+            // Ensures content isn't hidden behind system UI (bottom nav / home indicator)
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Image.asset(
+                        'assets/images/apppic.png',
+                        width: 180,
+                        height: 180,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      loc.aboutApp,
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      loc.aboutAppInstructions,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    SizedBox(height: 30),
+                    // YouTube Video Player
+                    Text(
+                      loc.watchOurVideo,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.5),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: player,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -2654,7 +2791,6 @@ class ContactPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           loc.contact,
@@ -2717,14 +2853,11 @@ class ContactPage extends StatelessWidget {
                           fit: BoxFit.contain,
                         ),
                         SizedBox(height: 24),
-                        Text(
-                          loc.contactUs,
+                        RichText(
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.notoSans(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                            height: 1.5,
-                            color: Colors.grey.shade800,
+                          text: _buildContactTextWithClickableEmail(
+                            loc.contactUs,
+                            context,
                           ),
                         ),
                         SizedBox(height: 32),
@@ -2747,6 +2880,99 @@ class ContactPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  TextSpan _buildContactTextWithClickableEmail(String text, BuildContext context) {
+    // Extract the email from the text
+    final emailRegex = RegExp(r'[\w\.-]+@[\w\.-]+\.\w+');
+    final emailMatch = emailRegex.firstMatch(text);
+
+    if (emailMatch == null) {
+      // No email found, return plain text
+      return TextSpan(
+        text: text,
+        style: GoogleFonts.notoSans(
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+          height: 1.5,
+          color: Colors.grey.shade800,
+        ),
+      );
+    }
+
+    final email = emailMatch.group(0)!;
+    final emailStart = emailMatch.start;
+    final emailEnd = emailMatch.end;
+
+    // Split text into parts: before email, email, after email
+    final beforeEmail = text.substring(0, emailStart);
+    final afterEmail = text.substring(emailEnd);
+
+    return TextSpan(
+      style: GoogleFonts.notoSans(
+        fontSize: 18,
+        fontWeight: FontWeight.w500,
+        height: 1.5,
+        color: Colors.grey.shade800,
+      ),
+      children: [
+        TextSpan(text: beforeEmail),
+        TextSpan(
+          text: email,
+          style: TextStyle(
+            color: Colors.deepOrange.shade700,
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.underline,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () async {
+              final emailUri = Uri.parse('mailto:$email');
+              try {
+                if (await canLaunchUrl(emailUri)) {
+                  await launchUrl(emailUri);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.email, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Opening email app...'),
+                        ],
+                      ),
+                      backgroundColor: Colors.deepOrange,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                } else {
+                  throw Exception('Could not launch email');
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Could not open email app. Email: $email'),
+                    backgroundColor: Colors.red.shade400,
+                    action: SnackBarAction(
+                      label: 'Copy',
+                      textColor: Colors.white,
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: email));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Email copied to clipboard!'),
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
+        ),
+        TextSpan(text: afterEmail),
+      ],
     );
   }
 }
@@ -3078,10 +3304,17 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
         final File imageFile = File(imagePath);
         await imageFile.writeAsBytes(imageBytes);
 
+        // Get share position origin for iOS
+        final box = context.findRenderObject() as RenderBox?;
+        final sharePositionOrigin = box != null
+            ? box.localToGlobal(Offset.zero) & box.size
+            : null;
+
         // Share the image with text
         await Share.shareXFiles(
           [XFile(imagePath)],
           text: '"$quote"\n\n- $saintName\n\n✨ Shared from Talk with Saints App',
+          sharePositionOrigin: sharePositionOrigin,
         );
       } else {
         throw Exception('Failed to capture screenshot');
@@ -3301,12 +3534,14 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                                 color: Colors.deepOrange.shade700,
                               ),
                               SizedBox(width: 8),
-                              Text(
-                                'Talk with Saints on Android',
-                                style: GoogleFonts.notoSans(
-                                  fontSize: 13,
-                                  color: Colors.deepOrange.shade700,
-                                  fontWeight: FontWeight.w600,
+                              Flexible(
+                                child: Text(
+                                  'Talk with Saints App on Android',
+                                  style: GoogleFonts.notoSans(
+                                    fontSize: 13,
+                                    color: Colors.deepOrange.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
@@ -3416,7 +3651,7 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Talk to spiritual AI friend',
+          loc.talkToSpiritualAIFriend,
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         flexibleSpace: Container(

@@ -160,9 +160,12 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       _saveReadingProgressDebounced();
     });
 
-    // Initialize Text-to-Speech
-    _flutterTts = FlutterTts();
-    _initializeTts();
+    // Initialize Text-to-Speech after the first frame is rendered
+    // This ensures Flutter engine is fully initialized, especially important for iOS
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _flutterTts = FlutterTts();
+      _initializeTts();
+    });
   }
 
   @override

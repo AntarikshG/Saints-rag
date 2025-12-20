@@ -71,7 +71,7 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Talk to spiritual AI friend',
+          loc.talkToSpiritualAIFriend,
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         flexibleSpace: Container(
@@ -226,6 +226,7 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
   }
 
   void _showDeleteConfirmation(BuildContext context, int index) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -234,16 +235,16 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
             children: [
               Icon(Icons.warning_amber_outlined, color: Colors.orange),
               SizedBox(width: 8),
-              Text('Delete Question?'),
+              Text(loc.deleteQuestion),
             ],
           ),
           content: Text(
-            'Are you sure you want to delete this question and answer? This action cannot be undone.',
+            loc.deleteQuestionConfirm,
             style: TextStyle(fontSize: 16),
           ),
           actions: [
             TextButton(
-              child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
+              child: Text(loc.cancel, style: TextStyle(color: Colors.grey.shade600)),
               onPressed: () => Navigator.of(context).pop(),
             ),
             ElevatedButton(
@@ -251,7 +252,7 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
                 backgroundColor: Colors.red.shade600,
                 foregroundColor: Colors.white,
               ),
-              child: Text('Delete'),
+              child: Text(loc.delete),
               onPressed: () {
                 Navigator.of(context).pop();
                 _deleteFromHistory(index);
@@ -261,7 +262,7 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
                       children: [
                         Icon(Icons.check_circle, color: Colors.white),
                         SizedBox(width: 8),
-                        Text('Question deleted successfully'),
+                        Text(loc.questionDeletedSuccessfully),
                       ],
                     ),
                     backgroundColor: Colors.green,
@@ -535,6 +536,10 @@ class _AskTabState extends State<AskTab> {
 
     // Check if this is AnandMoyiMa or Baba Neeb Karori and disable Ask AI feature
     if (widget.saintId == 'anandmoyima' || widget.saintId == 'baba_neeb_karori') {
+      final String unavailableMessage = widget.saintId == 'anandmoyima'
+          ? loc.askAINotAvailableForAnandmoyima
+          : loc.askAINotAvailableForBabaNeebKarori;
+
       return SafeArea(
         child: Padding(
           padding: EdgeInsets.all(16),
@@ -549,7 +554,7 @@ class _AskTabState extends State<AskTab> {
                 ),
                 SizedBox(height: 16),
                 Text(
-                  'Ask AI Feature Disabled',
+                  loc.askAIFeatureDisabled,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -558,9 +563,7 @@ class _AskTabState extends State<AskTab> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  widget.saintId == 'anandmoyima'
-                    ? 'The Ask AI feature is not available for Anandamayi Ma.'
-                    : 'The Ask AI feature is not available for Baba Neeb Karori.',
+                  unavailableMessage,
                   style: TextStyle(
                     fontSize: 16,
                     color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -569,7 +572,7 @@ class _AskTabState extends State<AskTab> {
                 ),
                 SizedBox(height: 16),
                 Text(
-                  'Coming soon',
+                  loc.comingSoon,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -579,7 +582,7 @@ class _AskTabState extends State<AskTab> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Please explore their quotes and teachings in the other tabs.',
+                  loc.exploreOtherTabs,
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark ? Colors.grey[500] : Colors.grey[500],
@@ -647,7 +650,7 @@ class _AskTabState extends State<AskTab> {
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Ask Your Spiritual Question',
+                            loc.askYourSpiritualQuestion,
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -721,7 +724,7 @@ class _AskTabState extends State<AskTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Type your question below:',
+                        loc.typeYourQuestionBelow,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -733,7 +736,7 @@ class _AskTabState extends State<AskTab> {
                         controller: _controller,
                         maxLines: 4,
                         decoration: InputDecoration(
-                          hintText: 'e.g., How can I find inner peace? What is the meaning of life?',
+                          hintText: loc.questionPlaceholder,
                           hintStyle: TextStyle(
                             color: isDark ? Colors.grey.shade400 : Colors.grey.shade500
                           ),
@@ -800,7 +803,7 @@ class _AskTabState extends State<AskTab> {
                                   ),
                                   SizedBox(width: 12),
                                   Text(
-                                    'Getting wisdom from saints...',
+                                    loc.gettingWisdomFromSaints,
                                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                   ),
                                 ],
@@ -814,7 +817,7 @@ class _AskTabState extends State<AskTab> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    hasText ? 'Ask AI Spiritual Friend' : 'Enter question to ask',
+                                    hasText ? loc.askAISpiritualFriend : loc.enterQuestionToAsk,
                                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                   ),
                                 ],
@@ -838,8 +841,8 @@ class _AskTabState extends State<AskTab> {
                           SizedBox(width: 8),
                           Text(
                             canAsk
-                              ? 'Ready to ask'
-                              : (hasText ? (_loading ? 'Processing...' : 'Loading...') : 'Type your question first'),
+                              ? loc.readyToAsk
+                              : (hasText ? (_loading ? loc.processing : loc.loading) : loc.typeYourQuestionFirst),
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
@@ -916,7 +919,7 @@ class _AskTabState extends State<AskTab> {
                       SizedBox(height: 16),
                       ElevatedButton.icon(
                         icon: Icon(Icons.flag_outlined),
-                        label: Text('Flag as Incorrect'),
+                        label: Text(loc.flagAsIncorrect),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange.shade600,
                           foregroundColor: Colors.white,
@@ -942,7 +945,7 @@ class _AskTabState extends State<AskTab> {
                                       children: [
                                         Icon(Icons.check_circle, color: Colors.white),
                                         SizedBox(width: 8),
-                                        Text('Flag submitted. Thank you!'),
+                                        Text(loc.flagSubmittedThankYou),
                                       ],
                                     ),
                                     backgroundColor: Colors.green,
