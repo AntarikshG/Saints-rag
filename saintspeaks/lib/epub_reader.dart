@@ -1037,8 +1037,15 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       }
 
       // For Android, check if TTS is available
-      dynamic engines = await _flutterTts!.getEngines;
-      print('TTS: Available engines: $engines');
+      // Note: getEngines is Android-only, skip on iOS
+      if (Platform.isAndroid) {
+        try {
+          dynamic engines = await _flutterTts!.getEngines;
+          print('TTS: Available engines: $engines');
+        } catch (e) {
+          print('TTS: Could not get engines (expected on iOS): $e');
+        }
+      }
 
       // Set up TTS handlers
       _flutterTts!.setStartHandler(() {
