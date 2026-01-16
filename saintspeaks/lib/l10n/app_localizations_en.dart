@@ -274,7 +274,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareMessageAndroid =>
-      '🙏Talk with Saints on Android:\n\n I liked the app and recommend this for staying positive with wisdom of saints, hence sharing this divine experience! 🕉️\n\nDiscover wisdom from great saints and transform your spiritual journey with Talk with Saints.\n\nDownload now: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints';
+      '🙏Talk with Saints on Android & Ios:\n\n I liked the app and recommend this for staying positive with wisdom of saints, hence sharing this divine experience! 🕉️\n\nDiscover wisdom from great saints and transform your spiritual journey with Talk with Saints.\n\nDownload now\n Android: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints \n iOS : https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070';
 
   @override
   String get shareSubject => 'Discover Saints Speak - Spiritual Wisdom App 🙏';

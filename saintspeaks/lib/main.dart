@@ -588,10 +588,12 @@ class _HomePageState extends State<HomePage> {
                       ),
                     );
                   }),
-                  _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
-                    Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
-                  }),
+                  // Only show "Buy me a coffee" option on Android
+                  if (Platform.isAndroid)
+                    _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
+                    }),
                 ],
               ),
             ),
@@ -1225,44 +1227,6 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // App branding header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.deepOrange.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.asset(
-                            'assets/images/apppic.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Talk with Saints',
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepOrange.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 30),
-
                   // Saint image
                   if (widget.image.isNotEmpty)
                     Container(
@@ -1334,34 +1298,13 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
                   ),
                   SizedBox(height: 25),
 
-                  // Bottom app promotion
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
-                      ),
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Colors.deepOrange.shade200),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.download,
-                          size: 16,
-                          color: Colors.deepOrange.shade700,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Talk with Saints App on Android',
-                          style: GoogleFonts.notoSans(
-                            fontSize: 13,
-                            color: Colors.deepOrange.shade700,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                  // Bottom banner image
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/images/quotesbanner.jpg',
+                      fit: BoxFit.contain,
+                      width: 550,
                     ),
                   ),
                 ],
@@ -3406,43 +3349,6 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // App branding header
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.deepOrange.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.asset(
-                                  'assets/images/apppic.png',
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Text(
-                              'Talk with Saints',
-                              style: GoogleFonts.playfairDisplay(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepOrange.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 30),
 
                         // Saint image
                         if (saintImage.isNotEmpty)
@@ -3515,36 +3421,13 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                         ),
                         SizedBox(height: 25),
 
-                        // Bottom app promotion
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
-                            ),
-                            borderRadius: BorderRadius.circular(25),
-                            border: Border.all(color: Colors.deepOrange.shade200),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.download,
-                                size: 16,
-                                color: Colors.deepOrange.shade700,
-                              ),
-                              SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  'Talk with Saints App on Android',
-                                  style: GoogleFonts.notoSans(
-                                    fontSize: 13,
-                                    color: Colors.deepOrange.shade700,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
+                        // Bottom banner image
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            'assets/images/quotesbanner.jpg',
+                            fit: BoxFit.contain,
+                            width: 550,
                           ),
                         ),
                       ],

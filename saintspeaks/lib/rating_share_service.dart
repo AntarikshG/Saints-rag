@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import 'l10n/app_localizations.dart';
 
 class RatingShareService {
@@ -268,12 +271,18 @@ class RatingShareService {
   static Future<void> _openAppStore() async {
     // Replace these with your actual app store URLs
     const String androidUrl = 'https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints';
-    const String iosUrl = 'https://apps.apple.com/app/saints-speak/idYOUR_APP_ID';
+    const String iosUrl = 'https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070';
 
     try {
-      // Try to determine platform and open appropriate store
-      // For now, we'll use a generic approach
-      final Uri url = Uri.parse(androidUrl); // Change based on platform detection
+      // Determine platform and use appropriate store URL
+      final String storeUrl;
+      if (Theme.of(WidgetsBinding.instance.rootElement!).platform == TargetPlatform.iOS) {
+        storeUrl = iosUrl;
+      } else {
+        storeUrl = androidUrl;
+      }
+
+      final Uri url = Uri.parse(storeUrl);
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       }
@@ -293,8 +302,20 @@ class RatingShareService {
           ? box.localToGlobal(Offset.zero) & box.size
           : null;
 
-      await Share.share(
-        loc.shareMessageAndroid,
+      // Load the promote image from assets
+      final ByteData imageData = await rootBundle.load('assets/images/Promote_1.jpeg');
+      final List<int> bytes = imageData.buffer.asUint8List();
+
+      // Get temporary directory to save the image
+      final tempDir = await getTemporaryDirectory();
+      final imagePath = '${tempDir.path}/promote_1.jpeg';
+      final File imageFile = File(imagePath);
+      await imageFile.writeAsBytes(bytes);
+
+      // Share both text and image
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        text: loc.shareMessageAndroid,
         subject: loc.shareSubject,
         sharePositionOrigin: sharePositionOrigin,
       );
@@ -334,7 +355,28 @@ class RatingShareService {
   /// Quick share function for use in other parts of the app
   static Future<void> quickShare({Rect? sharePositionOrigin}) async {
     const shareMessage = "🙏Talk with Saints on Android:\n\n I liked the app and recommend this for staying positive with wisdom of saints, hence sharing this divine experience! 🕉️\n\nDiscover wisdom from great saints and transform your spiritual journey with Talk with Saints.\n\nDownload now: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints";
-    await Share.share(shareMessage, sharePositionOrigin: sharePositionOrigin);
+
+    try {
+      // Load the promote image from assets
+      final ByteData imageData = await rootBundle.load('assets/images/Promote_1.jpeg');
+      final List<int> bytes = imageData.buffer.asUint8List();
+
+      // Get temporary directory to save the image
+      final tempDir = await getTemporaryDirectory();
+      final imagePath = '${tempDir.path}/promote_1.jpeg';
+      final File imageFile = File(imagePath);
+      await imageFile.writeAsBytes(bytes);
+
+      // Share both text and image
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        text: shareMessage,
+        sharePositionOrigin: sharePositionOrigin,
+      );
+    } catch (e) {
+      // Fallback to text-only sharing if image sharing fails
+      await Share.share(shareMessage, sharePositionOrigin: sharePositionOrigin);
+    }
   }
 
   /// Quick rate function for use in other parts of the app

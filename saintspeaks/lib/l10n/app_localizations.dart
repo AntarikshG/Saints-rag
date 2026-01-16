@@ -587,7 +587,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareMessageAndroid.
   ///
   /// In en, this message translates to:
-  /// **'🙏Talk with Saints on Android:\n\n I liked the app and recommend this for staying positive with wisdom of saints, hence sharing this divine experience! 🕉️\n\nDiscover wisdom from great saints and transform your spiritual journey with Talk with Saints.\n\nDownload now: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints'**
+  /// **'🙏Talk with Saints on Android & Ios:\n\n I liked the app and recommend this for staying positive with wisdom of saints, hence sharing this divine experience! 🕉️\n\nDiscover wisdom from great saints and transform your spiritual journey with Talk with Saints.\n\nDownload now\n Android: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints \n iOS : https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070'**
   String get shareMessageAndroid;
 
   /// No description provided for @shareSubject.
