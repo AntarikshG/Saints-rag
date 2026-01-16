@@ -49,6 +49,7 @@ flutter:
     - assets/images/nisargadatta.jpg
     - assets/images/baba_neeb_karori.jpg
     - assets/images/quotesbanner.jpg
+    - assets/images/quotesbanner_dark.jpg
     - assets/images/Promote_1.jpeg
   uses-material-design: true
 

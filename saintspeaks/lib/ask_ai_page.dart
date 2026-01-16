@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config_service.dart';
 import 'l10n/app_localizations.dart';
 import 'articlesquotes.dart'; // For saints data
 import 'rich_text_parser.dart'; // For FormattedSelectableText
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
 
 class AskAIPage extends StatefulWidget {
   final String userName;
@@ -20,6 +25,7 @@ class AskAIPage extends StatefulWidget {
 class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, String>> _history = [];
+  final Map<int, ScreenshotController> _historyScreenshotControllers = {};
 
   @override
   void initState() {
@@ -60,6 +66,52 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
     final historyJson = _history.map((item) => jsonEncode(item)).toList();
     await prefs.setStringList('ask_all_history', historyJson);
     setState(() {});
+  }
+
+  Future<void> _shareHistoryItem(int index) async {
+    try {
+      // Get or create screenshot controller for this index
+      if (!_historyScreenshotControllers.containsKey(index)) {
+        _historyScreenshotControllers[index] = ScreenshotController();
+      }
+
+      final controller = _historyScreenshotControllers[index]!;
+
+      // Capture the screenshot
+      final imageBytes = await controller.capture();
+      if (imageBytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to capture image. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Get the temporary directory
+      final directory = await getTemporaryDirectory();
+      final imagePath = '${directory.path}/qa_history_${DateTime.now().millisecondsSinceEpoch}.png';
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(imageBytes);
+
+      // Share the image
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        text: 'Wisdom from Saints',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -155,27 +207,166 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
       itemBuilder: (context, index) {
         final item = _history[index];
         final date = DateTime.parse(item['timestamp']!);
+
+        // Create screenshot controller if not exists
+        if (!_historyScreenshotControllers.containsKey(index)) {
+          _historyScreenshotControllers[index] = ScreenshotController();
+        }
+
         return Card(
           margin: EdgeInsets.only(bottom: 16),
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item['question']!,
+          child: Column(
+            children: [
+              Screenshot(
+                controller: _historyScreenshotControllers[index]!,
+                child: Container(
+                  color: Theme.of(context).cardColor,
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Question section
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.blue.shade900.withOpacity(0.3) : Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isDark ? Colors.blue.shade700 : Colors.blue.shade200
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.question_answer,
+                                  color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                                  size: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Question:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              item['question']!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      // Answer section
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.lightbulb_outline,
+                            color: isDark ? Colors.amber.shade400 : Colors.green.shade700,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Answer:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: isDark ? Colors.amber.shade400 : Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        item['answer']!,
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      // Banner image
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          isDark
+                              ? 'assets/images/quotesbanner_dark.jpg'
+                              : 'assets/images/quotesbanner.jpg',
+                          width: double.infinity,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 60,
+                              color: isDark ? Colors.grey.shade700 : Colors.grey.shade200,
+                              child: Center(
+                                child: Text(
+                                  'Saints Speak',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.grey.shade700,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Action buttons outside screenshot
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Row(
+                  children: [
+                    Text(
+                      '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey[400] : Colors.grey
+                      ),
+                    ),
+                    Spacer(),
+                    // Share button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.blue.shade900.withOpacity(0.3)
+                            : Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? Colors.blue.shade700 : Colors.blue.shade200
+                        ),
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _shareHistoryItem(index),
+                        child: Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.share,
+                            color: isDark ? Colors.blue.shade400 : Colors.blue.shade700,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ),
                     SizedBox(width: 8),
+                    // Delete button
                     Container(
                       decoration: BoxDecoration(
                         color: isDark
@@ -201,24 +392,8 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
                     ),
                   ],
                 ),
-                SizedBox(height: 8),
-                Text(
-                  item['answer']!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.grey[400] : Colors.grey
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
@@ -298,6 +473,7 @@ class _AskTabState extends State<AskTab> {
   bool _configLoading = true;
   String? _configError;
   bool _hasTriedAsk = false;
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   // Helper function to get English saint name based on saint ID
   String getEnglishSaintName(String saintId) {
@@ -356,6 +532,9 @@ class _AskTabState extends State<AskTab> {
   }
 
   Future<void> _askQuestion() async {
+    // Dismiss keyboard first (especially important for iOS)
+    FocusScope.of(context).unfocus();
+
     setState(() {
       _hasTriedAsk = true;
     });
@@ -525,6 +704,45 @@ class _AskTabState extends State<AskTab> {
         _loading = false;
         _answer = null;
       });
+    }
+  }
+
+  Future<void> _shareQuestionAnswer() async {
+    try {
+      // Capture the screenshot
+      final imageBytes = await _screenshotController.capture();
+      if (imageBytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to capture image. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Get the temporary directory
+      final directory = await getTemporaryDirectory();
+      final imagePath = '${directory.path}/qa_share_${DateTime.now().millisecondsSinceEpoch}.png';
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(imageBytes);
+
+      // Share the image
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        text: 'Wisdom from Saints',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -858,121 +1076,221 @@ class _AskTabState extends State<AskTab> {
 
               // Answer section with improved styling
               if (_answer != null)
-                Container(
-                  margin: EdgeInsets.only(top: 24),
-                  padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [Colors.grey.shade800, Colors.grey.shade700]
-                          : [Colors.green.shade50, Colors.green.shade100],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isDark ? Colors.grey.shade600 : Colors.green.shade200
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (isDark ? Colors.black : Colors.green).withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
+                Screenshot(
+                  controller: _screenshotController,
+                  child: Container(
+                    margin: EdgeInsets.only(top: 24),
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey.shade800 : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark ? Colors.grey.shade600 : Colors.green.shade200
                       ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isDark ? Colors.black : Colors.green).withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Question section
+                        Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.blue.shade900.withOpacity(0.3) : Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? Colors.blue.shade700 : Colors.blue.shade200
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.question_answer,
+                                    color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Question:',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                _controller.text,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: isDark ? Colors.grey[200] : Colors.grey.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        // Answer section
+                        Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.amber.shade600 : Colors.green.shade600,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.lightbulb_outline,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Answer:',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.green.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          _answer!,
+                          style: TextStyle(
+                            fontSize: 16,
+                            height: 1.5,
+                            color: isDark ? Colors.grey[200] : Colors.green.shade800,
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        // Banner image at bottom
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            isDark
+                                ? 'assets/images/quotesbanner_dark.jpg'
+                                : 'assets/images/quotesbanner.jpg',
+                            width: double.infinity,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 80,
+                                color: isDark ? Colors.grey.shade700 : Colors.grey.shade200,
+                                child: Center(
+                                  child: Text(
+                                    'Saints Speak',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+
+              // Action buttons below the screenshot area
+              if (_answer != null)
+                Container(
+                  margin: EdgeInsets.only(top: 16),
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.amber.shade600 : Colors.green.shade600,
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: Icon(Icons.share),
+                          label: Text('Share as Image'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDark ? Colors.blue.shade600 : Colors.blue.shade600,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(
-                              Icons.lightbulb_outline,
-                              color: Colors.white,
-                              size: 20,
-                            ),
                           ),
-                          SizedBox(width: 12),
-                          Text(
-                            '${loc.answer}:',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : Colors.green.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      FormattedSelectableText(
-                        _answer!,
-                        style: TextStyle(
-                          fontSize: 16,
-                          height: 1.5,
-                          color: isDark ? Colors.grey[200] : Colors.green.shade800,
+                          onPressed: _shareQuestionAnswer,
                         ),
                       ),
-                      SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: Icon(Icons.flag_outlined),
-                        label: Text(loc.flagAsIncorrect),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange.shade600,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: Icon(Icons.flag_outlined),
+                          label: Text('Flag'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.shade600,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
-                        onPressed: () async {
-                          final url = (_config?.gradioServerLink ?? '') + '/gradio_api/call/flag_and_show';
-                          try {
-                            final response = await http.post(
-                              Uri.parse(url),
-                              headers: {'Content-Type': 'application/json'},
-                              body: jsonEncode({
-                                "data": []
-                              }),
-                            );
-                            if (response.statusCode == 200) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        Icon(Icons.check_circle, color: Colors.white),
-                                        SizedBox(width: 8),
-                                        Text(loc.flagSubmittedThankYou),
-                                      ],
+                          onPressed: () async {
+                            final url = (_config?.gradioServerLink ?? '') + '/gradio_api/call/flag_and_show';
+                            try {
+                              final response = await http.post(
+                                Uri.parse(url),
+                                headers: {'Content-Type': 'application/json'},
+                                body: jsonEncode({
+                                  "data": []
+                                }),
+                              );
+                              if (response.statusCode == 200) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          Icon(Icons.check_circle, color: Colors.white),
+                                          SizedBox(width: 8),
+                                          Text(loc.flagSubmittedThankYou),
+                                        ],
+                                      ),
+                                      backgroundColor: Colors.green,
                                     ),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
+                                  );
+                                }
+                              } else {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to flag. Please try again.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
                               }
-                            } else {
+                            } catch (e) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Failed to flag. Please try again.'),
+                                    content: Text('Error submitting flag.'),
                                     backgroundColor: Colors.red,
                                   ),
                                 );
                               }
                             }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error submitting flag.'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        },
+                          },
+                        ),
                       ),
                     ],
                   ),

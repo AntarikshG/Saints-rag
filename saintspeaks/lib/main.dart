@@ -20,6 +20,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 // Book reading imports
 import 'books_library.dart';
 import 'books_tab.dart';
@@ -52,23 +53,597 @@ void main() async {
   runApp(MyApp());
 }
 
-class ArticlePage extends StatelessWidget {
+class ArticlePage extends StatefulWidget {
   final String heading;
   final String body;
   ArticlePage({required this.heading, required this.body});
 
   @override
+  _ArticlePageState createState() => _ArticlePageState();
+}
+
+class _ArticlePageState extends State<ArticlePage> {
+  // TTS functionality
+  FlutterTts? _flutterTts;
+  bool _isTtsPlaying = false;
+  bool _isTtsPaused = false;
+  bool _isTtsInitialized = false;
+  bool _showTtsControls = false;
+  double _ttsRate = 0.5;
+  double _ttsPitch = 1.0;
+  String _selectedLanguage = 'en-US';
+  String? _selectedVoice;
+  List<dynamic> _availableLanguages = [];
+  List<dynamic> _availableVoices = [];
+
+  // TTS reading state - chunk-based reading
+  List<String> _textChunks = [];
+  int _currentChunkIndex = 0;
+  bool _isReadingChunks = false;
+  Timer? _chunkTimer;
+  int _savedChunkIndex = 0;
+
+  // Text display settings
+  double _fontSize = 18.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _flutterTts = FlutterTts();
+    _initializeTts();
+  }
+
+  @override
+  void dispose() {
+    _stopTtsReading();
+    _flutterTts?.stop();
+    _chunkTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initializeTts() async {
+    try {
+      print('TTS: Initializing Text-to-Speech for Article...');
+
+      if (_flutterTts == null) {
+        print('TTS: FlutterTts instance is null, cannot initialize');
+        return;
+      }
+
+      // Get available engines
+      dynamic engines = await _flutterTts!.getEngines;
+      print('TTS: Available engines: $engines');
+
+      // Set up TTS handlers
+      _flutterTts!.setStartHandler(() {
+        print('TTS: Started speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = true;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setCompletionHandler(() {
+        print('TTS: Completed speaking chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+        if (mounted) {
+          if (_isReadingChunks && _currentChunkIndex < _textChunks.length - 1) {
+            // Move to next chunk
+            _currentChunkIndex++;
+            print('TTS: Moving to next chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+
+            _chunkTimer = Timer(Duration(milliseconds: 500), () {
+              if (_isReadingChunks && _isTtsPlaying) {
+                _speakCurrentChunk();
+              }
+            });
+          } else {
+            // Finished reading entire article
+            print('TTS: Finished reading entire article');
+            setState(() {
+              _isTtsPlaying = false;
+              _isTtsPaused = false;
+              _isReadingChunks = false;
+              _currentChunkIndex = 0;
+            });
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Finished reading article'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        }
+      });
+
+      _flutterTts!.setCancelHandler(() {
+        print('TTS: Cancelled speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setPauseHandler(() {
+        print('TTS: Paused speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = true;
+          });
+        }
+      });
+
+      _flutterTts!.setContinueHandler(() {
+        print('TTS: Continued speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = true;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setErrorHandler((msg) {
+        print('TTS: Error - $msg');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('TTS Error: Please check your device TTS settings'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      });
+
+      // Set initial TTS properties
+      await _flutterTts!.setLanguage(_selectedLanguage);
+      await _flutterTts!.setSpeechRate(_ttsRate);
+      await _flutterTts!.setPitch(_ttsPitch);
+
+      // Get available languages
+      _availableLanguages = await _flutterTts!.getLanguages;
+      print('TTS: Available languages: $_availableLanguages');
+
+      // Get available voices
+      _availableVoices = await _flutterTts!.getVoices;
+      print('TTS: Available voices count: ${_availableVoices.length}');
+
+      // Set a default voice if available
+      if (_availableVoices.isNotEmpty) {
+        final defaultVoice = _availableVoices.firstWhere(
+          (voice) => voice['locale']?.toString().startsWith('en') ?? false,
+          orElse: () => _availableVoices[0],
+        );
+        _selectedVoice = defaultVoice['name'];
+        if (_selectedVoice != null) {
+          await _flutterTts!.setVoice({"name": _selectedVoice!, "locale": _selectedLanguage});
+        }
+      }
+
+      setState(() {
+        _isTtsInitialized = true;
+      });
+
+      print('TTS: Initialization completed successfully');
+    } catch (e) {
+      print('TTS: Initialization failed: $e');
+      setState(() {
+        _isTtsInitialized = false;
+      });
+    }
+  }
+
+  void _startTtsReading() {
+    if (!_isTtsInitialized || widget.body.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Text-to-Speech is not ready. Please wait or check device settings.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Split article body into chunks (sentences or paragraphs)
+    _textChunks = _splitTextIntoChunks(widget.body);
+    _currentChunkIndex = 0;
+    _isReadingChunks = true;
+
+    print('TTS: Starting to read article. Total chunks: ${_textChunks.length}');
+
+    setState(() {
+      _isTtsPlaying = true;
+      _isTtsPaused = false;
+    });
+
+    _speakCurrentChunk();
+  }
+
+  List<String> _splitTextIntoChunks(String text) {
+    // Split by sentences and paragraphs, keeping chunks reasonably sized
+    List<String> chunks = [];
+
+    // First split by paragraphs
+    List<String> paragraphs = text.split('\n\n');
+
+    for (String paragraph in paragraphs) {
+      if (paragraph.trim().isEmpty) continue;
+
+      // If paragraph is short enough, add as is
+      if (paragraph.length <= 500) {
+        chunks.add(paragraph.trim());
+      } else {
+        // Split long paragraphs by sentences
+        List<String> sentences = paragraph.split(RegExp(r'[.!?]+\s+'));
+        String currentChunk = '';
+
+        for (String sentence in sentences) {
+          if (sentence.trim().isEmpty) continue;
+
+          if ((currentChunk + sentence).length <= 500) {
+            currentChunk += (currentChunk.isEmpty ? '' : '. ') + sentence.trim();
+          } else {
+            if (currentChunk.isNotEmpty) {
+              chunks.add(currentChunk);
+            }
+            currentChunk = sentence.trim();
+          }
+        }
+
+        if (currentChunk.isNotEmpty) {
+          chunks.add(currentChunk);
+        }
+      }
+    }
+
+    return chunks;
+  }
+
+  void _speakCurrentChunk() async {
+    if (_currentChunkIndex >= _textChunks.length || !_isReadingChunks) {
+      return;
+    }
+
+    final chunkText = _textChunks[_currentChunkIndex];
+    print('TTS: Speaking chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+
+    try {
+      await _flutterTts!.speak(chunkText);
+    } catch (e) {
+      print('TTS: Error speaking chunk: $e');
+      _stopTtsReading();
+    }
+  }
+
+  void _pauseTtsReading() {
+    if (_isTtsPlaying && _flutterTts != null) {
+      _flutterTts!.pause();
+      _chunkTimer?.cancel();
+      setState(() {
+        _savedChunkIndex = _currentChunkIndex;
+      });
+    }
+  }
+
+  void _resumeTtsReading() {
+    if (_isTtsPaused && _flutterTts != null) {
+      setState(() {
+        _currentChunkIndex = _savedChunkIndex;
+        _isReadingChunks = true;
+      });
+      _speakCurrentChunk();
+    }
+  }
+
+  void _stopTtsReading() {
+    _chunkTimer?.cancel();
+    if (_flutterTts != null) {
+      _flutterTts!.stop();
+    }
+    setState(() {
+      _isTtsPlaying = false;
+      _isTtsPaused = false;
+      _isReadingChunks = false;
+      _currentChunkIndex = 0;
+      _showTtsControls = false;
+    });
+  }
+
+  void _nextTtsChunk() {
+    if (_isReadingChunks && _currentChunkIndex < _textChunks.length - 1) {
+      _flutterTts?.stop(); // This will trigger completion handler to move to next chunk
+    }
+  }
+
+  void _previousTtsChunk() {
+    if (_isReadingChunks && _currentChunkIndex > 0) {
+      _currentChunkIndex = (_currentChunkIndex - 1).clamp(0, _textChunks.length - 1);
+      _flutterTts?.stop();
+
+      Timer(Duration(milliseconds: 300), () {
+        if (_isReadingChunks) {
+          _speakCurrentChunk();
+        }
+      });
+    }
+  }
+
+  List<String> _getFilteredLanguages() {
+    // Return a curated list of common languages
+    final commonLanguages = ['en-US', 'hi-IN', 'en-IN', 'en-GB'];
+    return _availableLanguages
+        .where((lang) => commonLanguages.contains(lang))
+        .cast<String>()
+        .toList();
+  }
+
+  Future<void> _updateAvailableVoices() async {
+    try {
+      _availableVoices = await _flutterTts!.getVoices;
+      setState(() {});
+    } catch (e) {
+      print('Error updating available voices: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(heading)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: SelectableText(
-            body,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
+      appBar: AppBar(
+        title: Text(widget.heading),
+        actions: [
+          // TTS control button
+          IconButton(
+            icon: Icon(
+              _isTtsPlaying ? Icons.volume_up : Icons.volume_off,
+              color: _isTtsPlaying ? Colors.orange : null,
+            ),
+            onPressed: () {
+              setState(() {
+                _showTtsControls = !_showTtsControls;
+              });
+            },
+            tooltip: 'Text-to-Speech',
           ),
-        ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          // Main content
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SelectableText(
+                    widget.body,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: _fontSize,
+                      height: 1.6,
+                    ),
+                  ),
+                  SizedBox(height: 80), // Space for TTS controls
+                ],
+              ),
+            ),
+          ),
+
+          // TTS Controls Overlay
+          if (_showTtsControls)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: Offset(0, -2),
+                    ),
+                  ],
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: SafeArea(
+                  child: _buildTtsControlPanel(),
+                ),
+              ),
+            ),
+        ],
+      ),
+      floatingActionButton: _showTtsControls && _isTtsInitialized
+          ? FloatingActionButton(
+              onPressed: _isTtsPlaying
+                  ? _pauseTtsReading
+                  : (_isTtsPaused ? _resumeTtsReading : _startTtsReading),
+              backgroundColor: Colors.orange,
+              child: Icon(
+                _isTtsPlaying ? Icons.pause : Icons.play_arrow,
+                color: Colors.white,
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildTtsControlPanel() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Text-to-Speech',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: Icon(Icons.close),
+                onPressed: () => setState(() => _showTtsControls = false),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+
+          // Playback controls
+          if (_isTtsInitialized) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.skip_previous),
+                  onPressed: _currentChunkIndex > 0 ? _previousTtsChunk : null,
+                  iconSize: 32,
+                ),
+                IconButton(
+                  icon: Icon(
+                    _isTtsPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    color: Colors.orange,
+                  ),
+                  onPressed: _isTtsPlaying
+                      ? _pauseTtsReading
+                      : (_isTtsPaused ? _resumeTtsReading : _startTtsReading),
+                  iconSize: 48,
+                ),
+                IconButton(
+                  icon: Icon(Icons.stop_circle),
+                  onPressed: (_isTtsPlaying || _isTtsPaused) ? _stopTtsReading : null,
+                  color: Colors.red,
+                  iconSize: 32,
+                ),
+                IconButton(
+                  icon: Icon(Icons.skip_next),
+                  onPressed: _currentChunkIndex < _textChunks.length - 1
+                      ? _nextTtsChunk
+                      : null,
+                  iconSize: 32,
+                ),
+              ],
+            ),
+
+            if (_isTtsPlaying || _isTtsPaused)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Center(
+                  child: Text(
+                    'Progress: ${_currentChunkIndex + 1}/${_textChunks.length}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              ),
+
+            Divider(),
+
+            // Speed control
+            Text('Speech Rate: ${(_ttsRate * 100).round()}%'),
+            Slider(
+              value: _ttsRate,
+              min: 0.1,
+              max: 1.0,
+              divisions: 9,
+              onChanged: (value) async {
+                setState(() => _ttsRate = value);
+                await _flutterTts?.setSpeechRate(value);
+              },
+            ),
+
+            SizedBox(height: 8),
+
+            // Pitch control
+            Text('Pitch: ${_ttsPitch.toStringAsFixed(1)}x'),
+            Slider(
+              value: _ttsPitch,
+              min: 0.5,
+              max: 2.0,
+              divisions: 15,
+              onChanged: (value) async {
+                setState(() => _ttsPitch = value);
+                await _flutterTts?.setPitch(value);
+              },
+            ),
+
+            SizedBox(height: 8),
+
+            // Language selection
+            if (_getFilteredLanguages().isNotEmpty) ...[
+              Text('Language'),
+              SizedBox(height: 4),
+              DropdownButton<String>(
+                value: _selectedLanguage,
+                isExpanded: true,
+                items: _getFilteredLanguages().map<DropdownMenuItem<String>>((language) {
+                  String displayName = language;
+                  switch (language) {
+                    case 'en-US':
+                      displayName = 'English (US)';
+                      break;
+                    case 'hi-IN':
+                      displayName = 'हिन्दी (Hindi)';
+                      break;
+                    case 'en-IN':
+                      displayName = 'English (India)';
+                      break;
+                    case 'en-GB':
+                      displayName = 'English (UK)';
+                      break;
+                  }
+                  return DropdownMenuItem<String>(
+                    value: language,
+                    child: Text(displayName),
+                  );
+                }).toList(),
+                onChanged: (String? newLanguage) async {
+                  if (newLanguage != null) {
+                    setState(() => _selectedLanguage = newLanguage);
+                    await _flutterTts?.setLanguage(newLanguage);
+                    _selectedVoice = null;
+                    await _updateAvailableVoices();
+                  }
+                },
+              ),
+            ],
+
+            SizedBox(height: 8),
+
+            // Font size control
+            Text('Font Size: ${_fontSize.round()}'),
+            Slider(
+              value: _fontSize,
+              min: 14.0,
+              max: 28.0,
+              divisions: 7,
+              onChanged: (value) {
+                setState(() => _fontSize = value);
+              },
+            ),
+          ] else
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text('Text-to-Speech is initializing...'),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1304,7 +1879,7 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
                     child: Image.asset(
                       'assets/images/quotesbanner.jpg',
                       fit: BoxFit.contain,
-                      width: 550,
+                      width: 400,
                     ),
                   ),
                 ],
@@ -3427,7 +4002,7 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                           child: Image.asset(
                             'assets/images/quotesbanner.jpg',
                             fit: BoxFit.contain,
-                            width: 550,
+                            width: 400,
                           ),
                         ),
                       ],
