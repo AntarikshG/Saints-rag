@@ -249,19 +249,25 @@ class RatingShareService {
     try {
       final InAppReview inAppReview = InAppReview.instance;
 
-      // Check if in-app review is available
-      if (await inAppReview.isAvailable()) {
-        // Show in-app review dialog
-        await inAppReview.requestReview();
-      } else {
-        // Fallback to opening store
+      // On iOS, give user option to choose between quick rating or full review
+      if (Platform.isIOS) {
+        // Always open App Store on iOS to allow full reviews
+        // The in-app review dialog only allows star ratings, not written reviews
         await _openAppStore();
+        _showThankYouMessage(context, loc.thankYouForRating);
+      } else {
+        // On Android, use in-app review first
+        if (await inAppReview.isAvailable()) {
+          await inAppReview.requestReview();
+          _showThankYouMessage(context, loc.thankYouForRating);
+        } else {
+          // Fallback to opening store
+          await _openAppStore();
+          _showThankYouMessage(context, loc.thankYouForRating);
+        }
       }
-
-      // Show thank you message
-      _showThankYouMessage(context, loc.thankYouForRating);
     } catch (e) {
-      // If in-app review fails, try to open store directly
+      // If anything fails, try to open store directly
       await _openAppStore();
       _showThankYouMessage(context, loc.thankYouForSupport);
     }
@@ -269,22 +275,29 @@ class RatingShareService {
 
   /// Opens the app store for rating
   static Future<void> _openAppStore() async {
-    // Replace these with your actual app store URLs
+    // App store URLs
     const String androidUrl = 'https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints';
-    const String iosUrl = 'https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070';
+    // iOS URL with action=write-review opens the review writing interface directly
+    const String iosUrl = 'https://apps.apple.com/app/id6757002070?action=write-review';
 
     try {
       // Determine platform and use appropriate store URL
       final String storeUrl;
-      if (Theme.of(WidgetsBinding.instance.rootElement!).platform == TargetPlatform.iOS) {
+      if (Platform.isIOS) {
         storeUrl = iosUrl;
-      } else {
+      } else if (Platform.isAndroid) {
         storeUrl = androidUrl;
+      } else {
+        // Fallback for other platforms
+        debugPrint('Unsupported platform for app store');
+        return;
       }
 
       final Uri url = Uri.parse(storeUrl);
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        debugPrint('Cannot launch URL: $url');
       }
     } catch (e) {
       debugPrint('Could not launch app store: $e');
@@ -312,13 +325,24 @@ class RatingShareService {
       final File imageFile = File(imagePath);
       await imageFile.writeAsBytes(bytes);
 
-      // Share both text and image
-      await Share.shareXFiles(
-        [XFile(imagePath)],
-        text: loc.shareMessageAndroid,
-        subject: loc.shareSubject,
-        sharePositionOrigin: sharePositionOrigin,
-      );
+      // iOS requires explicit MIME type and different handling for text+image
+      if (Platform.isIOS) {
+        // On iOS, share both text and image with explicit MIME type
+        await Share.shareXFiles(
+          [XFile(imagePath, mimeType: 'image/jpeg')],
+          text: loc.shareMessageAndroid,
+          subject: loc.shareSubject,
+          sharePositionOrigin: sharePositionOrigin,
+        );
+      } else {
+        // Android handles text and image together well
+        await Share.shareXFiles(
+          [XFile(imagePath)],
+          text: loc.shareMessageAndroid,
+          subject: loc.shareSubject,
+          sharePositionOrigin: sharePositionOrigin,
+        );
+      }
 
       _showThankYouMessage(context, loc.thankYouForSharing);
     } catch (e) {
@@ -367,12 +391,21 @@ class RatingShareService {
       final File imageFile = File(imagePath);
       await imageFile.writeAsBytes(bytes);
 
-      // Share both text and image
-      await Share.shareXFiles(
-        [XFile(imagePath)],
-        text: shareMessage,
-        sharePositionOrigin: sharePositionOrigin,
-      );
+      // iOS requires explicit MIME type for proper text+image sharing
+      if (Platform.isIOS) {
+        await Share.shareXFiles(
+          [XFile(imagePath, mimeType: 'image/jpeg')],
+          text: shareMessage,
+          sharePositionOrigin: sharePositionOrigin,
+        );
+      } else {
+        // Android handles text and image together well
+        await Share.shareXFiles(
+          [XFile(imagePath)],
+          text: shareMessage,
+          sharePositionOrigin: sharePositionOrigin,
+        );
+      }
     } catch (e) {
       // Fallback to text-only sharing if image sharing fails
       await Share.share(shareMessage, sharePositionOrigin: sharePositionOrigin);
@@ -382,11 +415,17 @@ class RatingShareService {
   /// Quick rate function for use in other parts of the app
   static Future<void> quickRate() async {
     try {
-      final InAppReview inAppReview = InAppReview.instance;
-      if (await inAppReview.isAvailable()) {
-        await inAppReview.requestReview();
-      } else {
+      // On iOS, always open App Store for full reviews
+      if (Platform.isIOS) {
         await _openAppStore();
+      } else {
+        // On Android, use in-app review
+        final InAppReview inAppReview = InAppReview.instance;
+        if (await inAppReview.isAvailable()) {
+          await inAppReview.requestReview();
+        } else {
+          await _openAppStore();
+        }
       }
     } catch (e) {
       await _openAppStore();

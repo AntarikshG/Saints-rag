@@ -433,11 +433,11 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       _letterSpacing = prefs.getDouble('epub_letter_spacing') ?? 0.3;
       _currentTheme = prefs.getString('epub_theme') ?? 'sepia';
 
-      // TTS settings - use default values only, don't save/load
-      _ttsRate = 0.5;
-      _ttsPitch = 1.0;
-      _selectedLanguage = 'en-US';
-      _selectedVoice = null;
+      // TTS settings - load from saved preferences
+      _ttsRate = prefs.getDouble('epub_tts_rate') ?? 0.5;
+      _ttsPitch = prefs.getDouble('epub_tts_pitch') ?? 1.0;
+      _selectedLanguage = prefs.getString('epub_tts_language') ?? 'en-US';
+      _selectedVoice = prefs.getString('epub_tts_voice');
 
       // IMPORTANT: Always reset text padding to default for each book
       // This prevents width shrinkage issues when switching between books
@@ -462,7 +462,13 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     await prefs.setDouble('epub_letter_spacing', _letterSpacing);
     await prefs.setString('epub_theme', _currentTheme);
 
-    // TTS settings - removed, use default values only
+    // TTS settings - save to preferences
+    await prefs.setDouble('epub_tts_rate', _ttsRate);
+    await prefs.setDouble('epub_tts_pitch', _ttsPitch);
+    await prefs.setString('epub_tts_language', _selectedLanguage);
+    if (_selectedVoice != null) {
+      await prefs.setString('epub_tts_voice', _selectedVoice!);
+    }
 
     // Add text padding settings (corrected - don't divide by 2)
     await prefs.setDouble('epub_padding_horizontal', _textPadding.horizontal);
@@ -1241,7 +1247,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           _selectedLanguage = language;
           _selectedVoice = null; // Reset voice when language changes
         });
-        // Removed _saveSettings() call - TTS settings use defaults only
+        await _saveSettings(); // Save TTS settings
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1279,7 +1285,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           setState(() {
             _selectedVoice = voiceName;
           });
-          // Removed _saveSettings() call - TTS settings use defaults only
+          await _saveSettings(); // Save TTS settings
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1308,7 +1314,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
         setState(() {
           _ttsRate = rate;
         });
-        // Removed _saveSettings() call - TTS settings use defaults only
+        await _saveSettings(); // Save TTS settings
       } catch (e) {
         print('Error changing TTS rate: $e');
       }
@@ -1322,7 +1328,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
         setState(() {
           _ttsPitch = pitch;
         });
-        // Removed _saveSettings() call - TTS settings use defaults only
+        await _saveSettings(); // Save TTS settings
       } catch (e) {
         print('Error changing TTS pitch: $e');
       }

@@ -76,6 +76,17 @@ class _ArticlePageState extends State<ArticlePage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
+  // Supported TTS languages map for Article
+  final Map<String, String> _supportedTtsLanguages = {
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    'en-IN': 'English (India)',
+    'hi-IN': 'Hindi (India)',
+  };
+
+  // Filtered voices based on supported languages
+  List<Map<String, dynamic>> _filteredVoices = [];
+
   // TTS reading state - chunk-based reading
   List<String> _textChunks = [];
   int _currentChunkIndex = 0;
@@ -90,7 +101,7 @@ class _ArticlePageState extends State<ArticlePage> {
   void initState() {
     super.initState();
     _flutterTts = FlutterTts();
-    _initializeTts();
+    _loadTtsSettings();
   }
 
   @override
@@ -99,6 +110,29 @@ class _ArticlePageState extends State<ArticlePage> {
     _flutterTts?.stop();
     _chunkTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadTtsSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _ttsRate = prefs.getDouble('article_tts_rate') ?? 0.5;
+      _ttsPitch = prefs.getDouble('article_tts_pitch') ?? 1.0;
+      _selectedLanguage = prefs.getString('article_tts_language') ?? 'en-US';
+      _selectedVoice = prefs.getString('article_tts_voice');
+      _fontSize = prefs.getDouble('article_font_size') ?? 18.0;
+    });
+    await _initializeTts();
+  }
+
+  Future<void> _saveTtsSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('article_tts_rate', _ttsRate);
+    await prefs.setDouble('article_tts_pitch', _ttsPitch);
+    await prefs.setString('article_tts_language', _selectedLanguage);
+    if (_selectedVoice != null) {
+      await prefs.setString('article_tts_voice', _selectedVoice!);
+    }
+    await prefs.setDouble('article_font_size', _fontSize);
   }
 
   Future<void> _initializeTts() async {
@@ -110,9 +144,16 @@ class _ArticlePageState extends State<ArticlePage> {
         return;
       }
 
-      // Get available engines
-      dynamic engines = await _flutterTts!.getEngines;
-      print('TTS: Available engines: $engines');
+      // For Android, check if TTS is available
+      // Note: getEngines is Android-only, skip on iOS
+      if (Platform.isAndroid) {
+        try {
+          dynamic engines = await _flutterTts!.getEngines;
+          print('TTS: Available engines: $engines');
+        } catch (e) {
+          print('TTS: Could not get engines (expected on iOS): $e');
+        }
+      }
 
       // Set up TTS handlers
       _flutterTts!.setStartHandler(() {
@@ -222,15 +263,26 @@ class _ArticlePageState extends State<ArticlePage> {
       _availableVoices = await _flutterTts!.getVoices;
       print('TTS: Available voices count: ${_availableVoices.length}');
 
-      // Set a default voice if available
-      if (_availableVoices.isNotEmpty) {
-        final defaultVoice = _availableVoices.firstWhere(
-          (voice) => voice['locale']?.toString().startsWith('en') ?? false,
-          orElse: () => _availableVoices[0],
+      // Filter voices for supported languages only
+      _filterVoicesForSupportedLanguages();
+
+      // Ensure selected language is supported
+      if (!_supportedTtsLanguages.containsKey(_selectedLanguage)) {
+        _selectedLanguage = 'en-US'; // Default to US English
+      }
+
+      // Set voice if available and matches the selected language
+      if (_selectedVoice != null && _filteredVoices.isNotEmpty) {
+        final matchingVoice = _filteredVoices.firstWhere(
+          (voice) => voice['name'] == _selectedVoice && voice['locale'] == _selectedLanguage,
+          orElse: () => {},
         );
-        _selectedVoice = defaultVoice['name'];
-        if (_selectedVoice != null) {
-          await _flutterTts!.setVoice({"name": _selectedVoice!, "locale": _selectedLanguage});
+
+        if (matchingVoice.isNotEmpty) {
+          await _flutterTts!.setVoice({
+            "name": matchingVoice['name'],
+            "locale": matchingVoice['locale']
+          });
         }
       }
 
@@ -394,9 +446,149 @@ class _ArticlePageState extends State<ArticlePage> {
   Future<void> _updateAvailableVoices() async {
     try {
       _availableVoices = await _flutterTts!.getVoices;
+      _filterVoicesForSupportedLanguages();
       setState(() {});
     } catch (e) {
       print('Error updating available voices: $e');
+    }
+  }
+
+  void _filterVoicesForSupportedLanguages() {
+    _filteredVoices.clear();
+
+    // Track seen voice names per locale to prevent duplicates
+    final seenVoices = <String, Set<String>>{};
+
+    for (var voice in _availableVoices) {
+      try {
+        // Safely convert Map<Object?, Object?> to Map<String, dynamic>
+        final voiceData = Map<String, dynamic>.from(voice as Map);
+        final locale = voiceData['locale']?.toString() ?? '';
+        final voiceName = voiceData['name']?.toString() ?? 'Default';
+
+        // Only include voices for our supported languages
+        if (_supportedTtsLanguages.containsKey(locale)) {
+          // Initialize the set for this locale if not exists
+          seenVoices.putIfAbsent(locale, () => <String>{});
+
+          // Only add if we haven't seen this voice name for this locale
+          if (!seenVoices[locale]!.contains(voiceName)) {
+            seenVoices[locale]!.add(voiceName);
+            _filteredVoices.add({
+              'name': voiceName,
+              'locale': locale,
+            });
+          }
+        }
+      } catch (e) {
+        print('TTS: Error processing voice data: $e');
+        // Skip this voice if there's an error
+        continue;
+      }
+    }
+
+    print('TTS: Filtered ${_filteredVoices.length} voices for supported languages');
+  }
+
+  List<Map<String, dynamic>> _getVoicesForLanguage(String language) {
+    return _filteredVoices
+        .where((voice) => voice['locale'] == language)
+        .toList();
+  }
+
+  Future<void> _changeTtsLanguage(String language) async {
+    if (_flutterTts != null && _supportedTtsLanguages.containsKey(language)) {
+      try {
+        await _flutterTts!.setLanguage(language);
+        setState(() {
+          _selectedLanguage = language;
+          _selectedVoice = null; // Reset voice when language changes
+        });
+        await _saveTtsSettings(); // Save TTS settings
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('TTS language changed to ${_supportedTtsLanguages[language]}'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } catch (e) {
+        print('Error changing TTS language: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to change TTS language'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeTtsVoice(String voiceName) async {
+    if (_flutterTts != null) {
+      try {
+        final matchingVoice = _filteredVoices.firstWhere(
+          (voice) => voice['name'] == voiceName && voice['locale'] == _selectedLanguage,
+          orElse: () => {},
+        );
+
+        if (matchingVoice.isNotEmpty) {
+          await _flutterTts!.setVoice({
+            "name": matchingVoice['name'],
+            "locale": matchingVoice['locale']
+          });
+
+          setState(() {
+            _selectedVoice = voiceName;
+          });
+          await _saveTtsSettings();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Voice changed to $voiceName'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        print('Error changing TTS voice: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to change voice'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeTtsRate(double rate) async {
+    if (_flutterTts != null) {
+      try {
+        await _flutterTts!.setSpeechRate(rate);
+        setState(() {
+          _ttsRate = rate;
+        });
+        await _saveTtsSettings();
+      } catch (e) {
+        print('Error changing TTS rate: $e');
+      }
+    }
+  }
+
+  Future<void> _changeTtsPitch(double pitch) async {
+    if (_flutterTts != null) {
+      try {
+        await _flutterTts!.setPitch(pitch);
+        setState(() {
+          _ttsPitch = pitch;
+        });
+        await _saveTtsSettings();
+      } catch (e) {
+        print('Error changing TTS pitch: $e');
+      }
     }
   }
 
@@ -554,75 +746,135 @@ class _ArticlePageState extends State<ArticlePage> {
 
             Divider(),
 
+            // Language selection
+            Text('Language', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: _supportedTtsLanguages.containsKey(_selectedLanguage) ? _selectedLanguage : 'en-US',
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: _supportedTtsLanguages.entries.map((entry) {
+                return DropdownMenuItem(
+                  value: entry.key,
+                  child: Text(entry.value, style: TextStyle(fontSize: 14)),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  _changeTtsLanguage(value);
+                }
+              },
+            ),
+
+            SizedBox(height: 16),
+
+            // Voice Selection (only show if voices available for selected language)
+            if (_getVoicesForLanguage(_selectedLanguage).isNotEmpty) ...[
+              Text('Voice', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              SizedBox(height: 8),
+              Builder(
+                builder: (context) {
+                  final availableVoices = _getVoicesForLanguage(_selectedLanguage);
+                  final availableVoiceNames = availableVoices.map((v) => v['name'] as String).toList();
+
+                  // Validate that _selectedVoice exists in available voices, otherwise set to null
+                  final validatedVoice = (_selectedVoice != null && availableVoiceNames.contains(_selectedVoice))
+                      ? _selectedVoice
+                      : null;
+
+                  return DropdownButtonFormField<String>(
+                    initialValue: validatedVoice,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    hint: Text('Select Voice', style: TextStyle(fontSize: 14)),
+                    items: availableVoices.map((voice) {
+                      final voiceName = voice['name'] as String;
+                      return DropdownMenuItem(
+                        value: voiceName,
+                        child: Text(voiceName, style: TextStyle(fontSize: 14)),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        _changeTtsVoice(value);
+                      }
+                    },
+                  );
+                },
+              ),
+              SizedBox(height: 16),
+            ],
+
             // Speed control
-            Text('Speech Rate: ${(_ttsRate * 100).round()}%'),
+            Text('Speech Speed: ${(_ttsRate * 100).round()}%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            SizedBox(height: 4),
             Slider(
               value: _ttsRate,
               min: 0.1,
               max: 1.0,
-              divisions: 9,
-              onChanged: (value) async {
+              divisions: 18,
+              onChanged: (value) {
                 setState(() => _ttsRate = value);
-                await _flutterTts?.setSpeechRate(value);
               },
+              onChangeEnd: (value) => _changeTtsRate(value),
             ),
 
-            SizedBox(height: 8),
+            SizedBox(height: 12),
 
             // Pitch control
-            Text('Pitch: ${_ttsPitch.toStringAsFixed(1)}x'),
+            Text('Voice Pitch: ${(_ttsPitch * 100).round()}%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            SizedBox(height: 4),
             Slider(
               value: _ttsPitch,
               min: 0.5,
               max: 2.0,
-              divisions: 15,
-              onChanged: (value) async {
+              divisions: 30,
+              onChanged: (value) {
                 setState(() => _ttsPitch = value);
-                await _flutterTts?.setPitch(value);
               },
+              onChangeEnd: (value) => _changeTtsPitch(value),
             ),
 
-            SizedBox(height: 8),
+            SizedBox(height: 16),
 
-            // Language selection
-            if (_getFilteredLanguages().isNotEmpty) ...[
-              Text('Language'),
-              SizedBox(height: 4),
-              DropdownButton<String>(
-                value: _selectedLanguage,
-                isExpanded: true,
-                items: _getFilteredLanguages().map<DropdownMenuItem<String>>((language) {
-                  String displayName = language;
-                  switch (language) {
-                    case 'en-US':
-                      displayName = 'English (US)';
-                      break;
-                    case 'hi-IN':
-                      displayName = 'हिन्दी (Hindi)';
-                      break;
-                    case 'en-IN':
-                      displayName = 'English (India)';
-                      break;
-                    case 'en-GB':
-                      displayName = 'English (UK)';
-                      break;
-                  }
-                  return DropdownMenuItem<String>(
-                    value: language,
-                    child: Text(displayName),
-                  );
-                }).toList(),
-                onChanged: (String? newLanguage) async {
-                  if (newLanguage != null) {
-                    setState(() => _selectedLanguage = newLanguage);
-                    await _flutterTts?.setLanguage(newLanguage);
-                    _selectedVoice = null;
-                    await _updateAvailableVoices();
+            // TTS Test Button
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    final testText = _selectedLanguage.startsWith('hi')
+                        ? 'यह एक परीक्षण है।'
+                        : 'This is a test of text-to-speech.';
+                    await _flutterTts!.speak(testText);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('TTS test failed: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
                   }
                 },
+                icon: Icon(Icons.play_arrow),
+                label: Text('Test Voice'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  textStyle: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ],
+            ),
 
+            SizedBox(height: 16),
+            Divider(),
             SizedBox(height: 8),
 
             // Font size control
@@ -635,6 +887,7 @@ class _ArticlePageState extends State<ArticlePage> {
               onChanged: (value) {
                 setState(() => _fontSize = value);
               },
+              onChangeEnd: (value) => _saveTtsSettings(),
             ),
           ] else
             Center(
@@ -1415,7 +1668,9 @@ class _HomePageState extends State<HomePage> {
                 child: Text(
                   AppLocalizations.of(context)!.chooseSpiritualGuide,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.deepOrange.shade800,
+                    color: brightness == Brightness.dark
+                        ? Colors.orange.shade300
+                        : Colors.deepOrange.shade800,
                     fontSize: 20,
                   ),
                   textAlign: TextAlign.center,
@@ -1442,10 +1697,15 @@ class _HomePageState extends State<HomePage> {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white,
-                            Colors.deepOrange.shade50,
-                          ],
+                          colors: brightness == Brightness.dark
+                              ? [
+                                  Colors.grey.shade800,
+                                  Colors.grey.shade900,
+                                ]
+                              : [
+                                  Colors.white,
+                                  Colors.deepOrange.shade50,
+                                ],
                         ),
                       ),
                       child: InkWell(
@@ -1495,7 +1755,9 @@ class _HomePageState extends State<HomePage> {
                                 style: GoogleFonts.playfairDisplay(
                                   fontSize: 14, // Reduced from 16 to 14
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.deepOrange.shade800,
+                                  color: brightness == Brightness.dark
+                                      ? Colors.orange.shade300
+                                      : Colors.deepOrange.shade800,
                                 ),
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
@@ -2349,6 +2611,7 @@ class _QuotesTabState extends State<QuotesTab> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     final quoteTextStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
       fontStyle: FontStyle.italic,
       fontSize: 18,
@@ -2360,10 +2623,9 @@ class _QuotesTabState extends State<QuotesTab> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Colors.deepOrange.shade50,
-            Colors.white,
-          ],
+          colors: brightness == Brightness.dark
+              ? [Colors.grey.shade900, Colors.black]
+              : [Colors.deepOrange.shade50, Colors.white],
         ),
       ),
       child: ListView.separated(
@@ -2414,13 +2676,22 @@ class _QuotesTabState extends State<QuotesTab> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: isRead
-                        ? [Colors.white, Colors.grey.shade50]
-                        : [Colors.white, Colors.orange.shade50],
+                    colors: brightness == Brightness.dark
+                        ? (isRead
+                            ? [Colors.grey.shade800, Colors.grey.shade900]
+                            : [Colors.grey.shade800, Colors.grey.shade800])
+                        : (isRead
+                            ? [Colors.white, Colors.grey.shade50]
+                            : [Colors.white, Colors.orange.shade50]),
                   ),
                   border: isRead
                       ? null
-                      : Border.all(color: Colors.deepOrange.shade100, width: 1),
+                      : Border.all(
+                          color: brightness == Brightness.dark
+                              ? Colors.orange.shade700
+                              : Colors.deepOrange.shade100,
+                          width: 1,
+                        ),
                 ),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
@@ -2465,23 +2736,33 @@ class _QuotesTabState extends State<QuotesTab> {
                                 '"$quote"',
                                 style: quoteTextStyle?.copyWith(
                                   fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
-                                  color: isRead
-                                      ? Colors.grey.shade700
-                                      : Colors.deepOrange.shade800,
+                                  color: brightness == Brightness.dark
+                                      ? (isRead
+                                          ? Colors.grey.shade400
+                                          : Colors.orange.shade300)
+                                      : (isRead
+                                          ? Colors.grey.shade700
+                                          : Colors.deepOrange.shade800),
                                 ),
                               ),
                             ),
                             Container(
                               decoration: BoxDecoration(
-                                color: isBookmarked
-                                    ? Colors.orange.shade100
-                                    : Colors.grey.shade100,
+                                color: brightness == Brightness.dark
+                                    ? (isBookmarked
+                                        ? Colors.orange.shade900
+                                        : Colors.grey.shade800)
+                                    : (isBookmarked
+                                        ? Colors.orange.shade100
+                                        : Colors.grey.shade100),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: IconButton(
                                 icon: Icon(
                                   isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                                  color: isBookmarked ? Colors.orange.shade700 : Colors.grey.shade600,
+                                  color: brightness == Brightness.dark
+                                      ? (isBookmarked ? Colors.orange.shade300 : Colors.grey.shade400)
+                                      : (isBookmarked ? Colors.orange.shade700 : Colors.grey.shade600),
                                   size: 22,
                                 ),
                                 onPressed: () => _toggleBookmark(quote),
