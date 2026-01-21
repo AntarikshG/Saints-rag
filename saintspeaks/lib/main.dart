@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'articlesquotes.dart';
@@ -10,7 +9,6 @@ import 'articlesquotes_hi.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'config_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
@@ -21,17 +19,21 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 // Book reading imports
-import 'book_service.dart';
 import 'books_library.dart';
 import 'books_tab.dart';
-import 'pdf_reader.dart';
-import 'epub_reader.dart';
 import 'rating_share_service.dart';
 import 'ekadashi_service.dart';
+import 'ask_ai_page.dart';
+import 'user_profile_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Track app usage for rating/share service
+  await RatingShareService.trackAppUsage();
 
   // Configure system UI overlay style for edge-to-edge display
   SystemChrome.setSystemUIOverlayStyle(
@@ -51,23 +53,850 @@ void main() async {
   runApp(MyApp());
 }
 
-class ArticlePage extends StatelessWidget {
+class ArticlePage extends StatefulWidget {
   final String heading;
   final String body;
   ArticlePage({required this.heading, required this.body});
 
   @override
+  _ArticlePageState createState() => _ArticlePageState();
+}
+
+class _ArticlePageState extends State<ArticlePage> {
+  // TTS functionality
+  FlutterTts? _flutterTts;
+  bool _isTtsPlaying = false;
+  bool _isTtsPaused = false;
+  bool _isTtsInitialized = false;
+  bool _showTtsControls = false;
+  double _ttsRate = 0.5;
+  double _ttsPitch = 1.0;
+  String _selectedLanguage = 'en-US';
+  String? _selectedVoice;
+  List<dynamic> _availableLanguages = [];
+  List<dynamic> _availableVoices = [];
+
+  // Supported TTS languages map for Article
+  final Map<String, String> _supportedTtsLanguages = {
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    'en-IN': 'English (India)',
+    'hi-IN': 'Hindi (India)',
+  };
+
+  // Filtered voices based on supported languages
+  List<Map<String, dynamic>> _filteredVoices = [];
+
+  // TTS reading state - chunk-based reading
+  List<String> _textChunks = [];
+  int _currentChunkIndex = 0;
+  bool _isReadingChunks = false;
+  Timer? _chunkTimer;
+  int _savedChunkIndex = 0;
+
+  // Text display settings
+  double _fontSize = 18.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _flutterTts = FlutterTts();
+    _loadTtsSettings();
+  }
+
+  @override
+  void dispose() {
+    _stopTtsReading();
+    _flutterTts?.stop();
+    _chunkTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadTtsSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _ttsRate = prefs.getDouble('article_tts_rate') ?? 0.5;
+      _ttsPitch = prefs.getDouble('article_tts_pitch') ?? 1.0;
+      _selectedLanguage = prefs.getString('article_tts_language') ?? 'en-US';
+      _selectedVoice = prefs.getString('article_tts_voice');
+      _fontSize = prefs.getDouble('article_font_size') ?? 18.0;
+    });
+    await _initializeTts();
+  }
+
+  Future<void> _saveTtsSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('article_tts_rate', _ttsRate);
+    await prefs.setDouble('article_tts_pitch', _ttsPitch);
+    await prefs.setString('article_tts_language', _selectedLanguage);
+    if (_selectedVoice != null) {
+      await prefs.setString('article_tts_voice', _selectedVoice!);
+    }
+    await prefs.setDouble('article_font_size', _fontSize);
+  }
+
+  Future<void> _initializeTts() async {
+    try {
+      print('TTS: Initializing Text-to-Speech for Article...');
+
+      if (_flutterTts == null) {
+        print('TTS: FlutterTts instance is null, cannot initialize');
+        return;
+      }
+
+      // For Android, check if TTS is available
+      // Note: getEngines is Android-only, skip on iOS
+      if (Platform.isAndroid) {
+        try {
+          dynamic engines = await _flutterTts!.getEngines;
+          print('TTS: Available engines: $engines');
+        } catch (e) {
+          print('TTS: Could not get engines (expected on iOS): $e');
+        }
+      }
+
+      // Set up TTS handlers
+      _flutterTts!.setStartHandler(() {
+        print('TTS: Started speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = true;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setCompletionHandler(() {
+        print('TTS: Completed speaking chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+        if (mounted) {
+          if (_isReadingChunks && _currentChunkIndex < _textChunks.length - 1) {
+            // Move to next chunk
+            _currentChunkIndex++;
+            print('TTS: Moving to next chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+
+            _chunkTimer = Timer(Duration(milliseconds: 500), () {
+              if (_isReadingChunks && _isTtsPlaying) {
+                _speakCurrentChunk();
+              }
+            });
+          } else {
+            // Finished reading entire article
+            print('TTS: Finished reading entire article');
+            setState(() {
+              _isTtsPlaying = false;
+              _isTtsPaused = false;
+              _isReadingChunks = false;
+              _currentChunkIndex = 0;
+            });
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Finished reading article'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        }
+      });
+
+      _flutterTts!.setCancelHandler(() {
+        print('TTS: Cancelled speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setPauseHandler(() {
+        print('TTS: Paused speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = true;
+          });
+        }
+      });
+
+      _flutterTts!.setContinueHandler(() {
+        print('TTS: Continued speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = true;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setErrorHandler((msg) {
+        print('TTS: Error - $msg');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('TTS Error: Please check your device TTS settings'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      });
+
+      // Set initial TTS properties
+      await _flutterTts!.setLanguage(_selectedLanguage);
+      await _flutterTts!.setSpeechRate(_ttsRate);
+      await _flutterTts!.setPitch(_ttsPitch);
+
+      // Get available languages
+      _availableLanguages = await _flutterTts!.getLanguages;
+      print('TTS: Available languages: $_availableLanguages');
+
+      // Get available voices
+      _availableVoices = await _flutterTts!.getVoices;
+      print('TTS: Available voices count: ${_availableVoices.length}');
+
+      // Filter voices for supported languages only
+      _filterVoicesForSupportedLanguages();
+
+      // Ensure selected language is supported
+      if (!_supportedTtsLanguages.containsKey(_selectedLanguage)) {
+        _selectedLanguage = 'en-US'; // Default to US English
+      }
+
+      // Set voice if available and matches the selected language
+      if (_selectedVoice != null && _filteredVoices.isNotEmpty) {
+        final matchingVoice = _filteredVoices.firstWhere(
+          (voice) => voice['name'] == _selectedVoice && voice['locale'] == _selectedLanguage,
+          orElse: () => {},
+        );
+
+        if (matchingVoice.isNotEmpty) {
+          await _flutterTts!.setVoice({
+            "name": matchingVoice['name'],
+            "locale": matchingVoice['locale']
+          });
+        }
+      }
+
+      setState(() {
+        _isTtsInitialized = true;
+      });
+
+      print('TTS: Initialization completed successfully');
+    } catch (e) {
+      print('TTS: Initialization failed: $e');
+      setState(() {
+        _isTtsInitialized = false;
+      });
+    }
+  }
+
+  void _startTtsReading() {
+    if (!_isTtsInitialized || widget.body.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Text-to-Speech is not ready. Please wait or check device settings.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Split article body into chunks (sentences or paragraphs)
+    _textChunks = _splitTextIntoChunks(widget.body);
+    _currentChunkIndex = 0;
+    _isReadingChunks = true;
+
+    print('TTS: Starting to read article. Total chunks: ${_textChunks.length}');
+
+    setState(() {
+      _isTtsPlaying = true;
+      _isTtsPaused = false;
+    });
+
+    _speakCurrentChunk();
+  }
+
+  List<String> _splitTextIntoChunks(String text) {
+    // Split by sentences and paragraphs, keeping chunks reasonably sized
+    List<String> chunks = [];
+
+    // First split by paragraphs
+    List<String> paragraphs = text.split('\n\n');
+
+    for (String paragraph in paragraphs) {
+      if (paragraph.trim().isEmpty) continue;
+
+      // If paragraph is short enough, add as is
+      if (paragraph.length <= 500) {
+        chunks.add(paragraph.trim());
+      } else {
+        // Split long paragraphs by sentences
+        List<String> sentences = paragraph.split(RegExp(r'[.!?]+\s+'));
+        String currentChunk = '';
+
+        for (String sentence in sentences) {
+          if (sentence.trim().isEmpty) continue;
+
+          if ((currentChunk + sentence).length <= 500) {
+            currentChunk += (currentChunk.isEmpty ? '' : '. ') + sentence.trim();
+          } else {
+            if (currentChunk.isNotEmpty) {
+              chunks.add(currentChunk);
+            }
+            currentChunk = sentence.trim();
+          }
+        }
+
+        if (currentChunk.isNotEmpty) {
+          chunks.add(currentChunk);
+        }
+      }
+    }
+
+    return chunks;
+  }
+
+  void _speakCurrentChunk() async {
+    if (_currentChunkIndex >= _textChunks.length || !_isReadingChunks) {
+      return;
+    }
+
+    final chunkText = _textChunks[_currentChunkIndex];
+    print('TTS: Speaking chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+
+    try {
+      await _flutterTts!.speak(chunkText);
+    } catch (e) {
+      print('TTS: Error speaking chunk: $e');
+      _stopTtsReading();
+    }
+  }
+
+  void _pauseTtsReading() {
+    if (_isTtsPlaying && _flutterTts != null) {
+      _flutterTts!.pause();
+      _chunkTimer?.cancel();
+      setState(() {
+        _savedChunkIndex = _currentChunkIndex;
+      });
+    }
+  }
+
+  void _resumeTtsReading() {
+    if (_isTtsPaused && _flutterTts != null) {
+      setState(() {
+        _currentChunkIndex = _savedChunkIndex;
+        _isReadingChunks = true;
+      });
+      _speakCurrentChunk();
+    }
+  }
+
+  void _stopTtsReading() {
+    _chunkTimer?.cancel();
+    if (_flutterTts != null) {
+      _flutterTts!.stop();
+    }
+    setState(() {
+      _isTtsPlaying = false;
+      _isTtsPaused = false;
+      _isReadingChunks = false;
+      _currentChunkIndex = 0;
+      _showTtsControls = false;
+    });
+  }
+
+  void _nextTtsChunk() {
+    if (_isReadingChunks && _currentChunkIndex < _textChunks.length - 1) {
+      _flutterTts?.stop(); // This will trigger completion handler to move to next chunk
+    }
+  }
+
+  void _previousTtsChunk() {
+    if (_isReadingChunks && _currentChunkIndex > 0) {
+      _currentChunkIndex = (_currentChunkIndex - 1).clamp(0, _textChunks.length - 1);
+      _flutterTts?.stop();
+
+      Timer(Duration(milliseconds: 300), () {
+        if (_isReadingChunks) {
+          _speakCurrentChunk();
+        }
+      });
+    }
+  }
+
+  List<String> _getFilteredLanguages() {
+    // Return a curated list of common languages
+    final commonLanguages = ['en-US', 'hi-IN', 'en-IN', 'en-GB'];
+    return _availableLanguages
+        .where((lang) => commonLanguages.contains(lang))
+        .cast<String>()
+        .toList();
+  }
+
+  Future<void> _updateAvailableVoices() async {
+    try {
+      _availableVoices = await _flutterTts!.getVoices;
+      _filterVoicesForSupportedLanguages();
+      setState(() {});
+    } catch (e) {
+      print('Error updating available voices: $e');
+    }
+  }
+
+  void _filterVoicesForSupportedLanguages() {
+    _filteredVoices.clear();
+
+    // Track seen voice names per locale to prevent duplicates
+    final seenVoices = <String, Set<String>>{};
+
+    for (var voice in _availableVoices) {
+      try {
+        // Safely convert Map<Object?, Object?> to Map<String, dynamic>
+        final voiceData = Map<String, dynamic>.from(voice as Map);
+        final locale = voiceData['locale']?.toString() ?? '';
+        final voiceName = voiceData['name']?.toString() ?? 'Default';
+
+        // Only include voices for our supported languages
+        if (_supportedTtsLanguages.containsKey(locale)) {
+          // Initialize the set for this locale if not exists
+          seenVoices.putIfAbsent(locale, () => <String>{});
+
+          // Only add if we haven't seen this voice name for this locale
+          if (!seenVoices[locale]!.contains(voiceName)) {
+            seenVoices[locale]!.add(voiceName);
+            _filteredVoices.add({
+              'name': voiceName,
+              'locale': locale,
+            });
+          }
+        }
+      } catch (e) {
+        print('TTS: Error processing voice data: $e');
+        // Skip this voice if there's an error
+        continue;
+      }
+    }
+
+    print('TTS: Filtered ${_filteredVoices.length} voices for supported languages');
+  }
+
+  List<Map<String, dynamic>> _getVoicesForLanguage(String language) {
+    return _filteredVoices
+        .where((voice) => voice['locale'] == language)
+        .toList();
+  }
+
+  Future<void> _changeTtsLanguage(String language) async {
+    if (_flutterTts != null && _supportedTtsLanguages.containsKey(language)) {
+      try {
+        await _flutterTts!.setLanguage(language);
+        setState(() {
+          _selectedLanguage = language;
+          _selectedVoice = null; // Reset voice when language changes
+        });
+        await _saveTtsSettings(); // Save TTS settings
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('TTS language changed to ${_supportedTtsLanguages[language]}'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } catch (e) {
+        print('Error changing TTS language: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to change TTS language'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeTtsVoice(String voiceName) async {
+    if (_flutterTts != null) {
+      try {
+        final matchingVoice = _filteredVoices.firstWhere(
+          (voice) => voice['name'] == voiceName && voice['locale'] == _selectedLanguage,
+          orElse: () => {},
+        );
+
+        if (matchingVoice.isNotEmpty) {
+          await _flutterTts!.setVoice({
+            "name": matchingVoice['name'],
+            "locale": matchingVoice['locale']
+          });
+
+          setState(() {
+            _selectedVoice = voiceName;
+          });
+          await _saveTtsSettings();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Voice changed to $voiceName'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        print('Error changing TTS voice: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to change voice'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeTtsRate(double rate) async {
+    if (_flutterTts != null) {
+      try {
+        await _flutterTts!.setSpeechRate(rate);
+        setState(() {
+          _ttsRate = rate;
+        });
+        await _saveTtsSettings();
+      } catch (e) {
+        print('Error changing TTS rate: $e');
+      }
+    }
+  }
+
+  Future<void> _changeTtsPitch(double pitch) async {
+    if (_flutterTts != null) {
+      try {
+        await _flutterTts!.setPitch(pitch);
+        setState(() {
+          _ttsPitch = pitch;
+        });
+        await _saveTtsSettings();
+      } catch (e) {
+        print('Error changing TTS pitch: $e');
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(heading)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: SelectableText(
-            body,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
+      appBar: AppBar(
+        title: Text(widget.heading),
+        actions: [
+          // TTS control button
+          IconButton(
+            icon: Icon(
+              _isTtsPlaying ? Icons.volume_up : Icons.volume_off,
+              color: _isTtsPlaying ? Colors.orange : null,
+            ),
+            onPressed: () {
+              setState(() {
+                _showTtsControls = !_showTtsControls;
+              });
+            },
+            tooltip: 'Text-to-Speech',
           ),
-        ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          // Main content
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SelectableText(
+                    widget.body,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: _fontSize,
+                      height: 1.6,
+                    ),
+                  ),
+                  SizedBox(height: 80), // Space for TTS controls
+                ],
+              ),
+            ),
+          ),
+
+          // TTS Controls Overlay
+          if (_showTtsControls)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: Offset(0, -2),
+                    ),
+                  ],
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: SafeArea(
+                  child: _buildTtsControlPanel(),
+                ),
+              ),
+            ),
+        ],
+      ),
+      floatingActionButton: _showTtsControls && _isTtsInitialized
+          ? FloatingActionButton(
+              onPressed: _isTtsPlaying
+                  ? _pauseTtsReading
+                  : (_isTtsPaused ? _resumeTtsReading : _startTtsReading),
+              backgroundColor: Colors.orange,
+              child: Icon(
+                _isTtsPlaying ? Icons.pause : Icons.play_arrow,
+                color: Colors.white,
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildTtsControlPanel() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Text-to-Speech',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: Icon(Icons.close),
+                onPressed: () => setState(() => _showTtsControls = false),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+
+          // Playback controls
+          if (_isTtsInitialized) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.skip_previous),
+                  onPressed: _currentChunkIndex > 0 ? _previousTtsChunk : null,
+                  iconSize: 32,
+                ),
+                IconButton(
+                  icon: Icon(
+                    _isTtsPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    color: Colors.orange,
+                  ),
+                  onPressed: _isTtsPlaying
+                      ? _pauseTtsReading
+                      : (_isTtsPaused ? _resumeTtsReading : _startTtsReading),
+                  iconSize: 48,
+                ),
+                IconButton(
+                  icon: Icon(Icons.stop_circle),
+                  onPressed: (_isTtsPlaying || _isTtsPaused) ? _stopTtsReading : null,
+                  color: Colors.red,
+                  iconSize: 32,
+                ),
+                IconButton(
+                  icon: Icon(Icons.skip_next),
+                  onPressed: _currentChunkIndex < _textChunks.length - 1
+                      ? _nextTtsChunk
+                      : null,
+                  iconSize: 32,
+                ),
+              ],
+            ),
+
+            if (_isTtsPlaying || _isTtsPaused)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Center(
+                  child: Text(
+                    'Progress: ${_currentChunkIndex + 1}/${_textChunks.length}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              ),
+
+            Divider(),
+
+            // Language selection
+            Text('Language', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: _supportedTtsLanguages.containsKey(_selectedLanguage) ? _selectedLanguage : 'en-US',
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: _supportedTtsLanguages.entries.map((entry) {
+                return DropdownMenuItem(
+                  value: entry.key,
+                  child: Text(entry.value, style: TextStyle(fontSize: 14)),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  _changeTtsLanguage(value);
+                }
+              },
+            ),
+
+            SizedBox(height: 16),
+
+            // Voice Selection (only show if voices available for selected language)
+            if (_getVoicesForLanguage(_selectedLanguage).isNotEmpty) ...[
+              Text('Voice', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              SizedBox(height: 8),
+              Builder(
+                builder: (context) {
+                  final availableVoices = _getVoicesForLanguage(_selectedLanguage);
+                  final availableVoiceNames = availableVoices.map((v) => v['name'] as String).toList();
+
+                  // Validate that _selectedVoice exists in available voices, otherwise set to null
+                  final validatedVoice = (_selectedVoice != null && availableVoiceNames.contains(_selectedVoice))
+                      ? _selectedVoice
+                      : null;
+
+                  return DropdownButtonFormField<String>(
+                    initialValue: validatedVoice,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    hint: Text('Select Voice', style: TextStyle(fontSize: 14)),
+                    items: availableVoices.map((voice) {
+                      final voiceName = voice['name'] as String;
+                      return DropdownMenuItem(
+                        value: voiceName,
+                        child: Text(voiceName, style: TextStyle(fontSize: 14)),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        _changeTtsVoice(value);
+                      }
+                    },
+                  );
+                },
+              ),
+              SizedBox(height: 16),
+            ],
+
+            // Speed control
+            Text('Speech Speed: ${(_ttsRate * 100).round()}%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            SizedBox(height: 4),
+            Slider(
+              value: _ttsRate,
+              min: 0.1,
+              max: 1.0,
+              divisions: 18,
+              onChanged: (value) {
+                setState(() => _ttsRate = value);
+              },
+              onChangeEnd: (value) => _changeTtsRate(value),
+            ),
+
+            SizedBox(height: 12),
+
+            // Pitch control
+            Text('Voice Pitch: ${(_ttsPitch * 100).round()}%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            SizedBox(height: 4),
+            Slider(
+              value: _ttsPitch,
+              min: 0.5,
+              max: 2.0,
+              divisions: 30,
+              onChanged: (value) {
+                setState(() => _ttsPitch = value);
+              },
+              onChangeEnd: (value) => _changeTtsPitch(value),
+            ),
+
+            SizedBox(height: 16),
+
+            // TTS Test Button
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    final testText = _selectedLanguage.startsWith('hi')
+                        ? 'यह एक परीक्षण है।'
+                        : 'This is a test of text-to-speech.';
+                    await _flutterTts!.speak(testText);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('TTS test failed: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                icon: Icon(Icons.play_arrow),
+                label: Text('Test Voice'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  textStyle: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 16),
+            Divider(),
+            SizedBox(height: 8),
+
+            // Font size control
+            Text('Font Size: ${_fontSize.round()}'),
+            Slider(
+              value: _fontSize,
+              min: 14.0,
+              max: 28.0,
+              divisions: 7,
+              onChanged: (value) {
+                setState(() => _fontSize = value);
+              },
+              onChangeEnd: (value) => _saveTtsSettings(),
+            ),
+          ] else
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text('Text-to-Speech is initializing...'),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -359,13 +1188,14 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final void Function(ThemeMode) onThemeChange;
   final ThemeMode themeMode;
   final String userName;
   final void Function(String) onSetUserName;
   final void Function(Locale) onLocaleChange;
   final Locale locale;
+
   HomePage({
     required this.onThemeChange,
     required this.themeMode,
@@ -374,6 +1204,22 @@ class HomePage extends StatelessWidget {
     required this.onLocaleChange,
     required this.locale,
   });
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Show first-time name dialog after the UI is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UserProfileService.showFirstTimeNameDialog(context, widget.onSetUserName);
+      // Check and show rating prompt if conditions are met
+      RatingShareService.checkAndShowRatingPrompt(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -531,11 +1377,11 @@ class HomePage extends StatelessWidget {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
                   }),
-                  _buildDrawerItem(context, Icons.brightness_2, 'Next Ekadashi', () {
+                  _buildDrawerItem(context, Icons.brightness_2, loc.nextEkadashi, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => EkadashiPage()));
                   }),
-                  _buildDrawerItem(context, Icons.library_books, 'My Books Library', () {
+                  _buildDrawerItem(context, Icons.library_books, loc.myBooksLibrary, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => BooksLibraryPage()));
                   }),
@@ -543,11 +1389,11 @@ class HomePage extends StatelessWidget {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => AboutAppPage()));
                   }),
-                  _buildDrawerItem(context, Icons.star, 'Rate & Share App', () {
+                  _buildDrawerItem(context, Icons.star, loc.rateAndShareApp, () {
                     Navigator.pop(context);
                     RatingShareService.showRatingShareDialog(context);
                   }),
-                  _buildDrawerItem(context, Icons.notifications_active, 'Set Daily Notifications', () async {
+                  _buildDrawerItem(context, Icons.notifications_active, loc.setDailyNotifications, () async {
                     Navigator.pop(context);
 
                     // Show current notification configuration
@@ -570,10 +1416,12 @@ class HomePage extends StatelessWidget {
                       ),
                     );
                   }),
-                  _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
-                    Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
-                  }),
+                  // Only show "Buy me a coffee" option on Android
+                  if (Platform.isAndroid)
+                    _buildDrawerItem(context, Icons.coffee, loc.buyMeACoffee, () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => BuyMeACoffeePage()));
+                    }),
                 ],
               ),
             ),
@@ -615,6 +1463,8 @@ class HomePage extends StatelessWidget {
                       'assets/images/banner7.jpeg',
                       'assets/images/banner8.jpeg',
                       'assets/images/banner9.jpeg',
+                      'assets/images/banner10.jpg',
+                      'assets/images/banner11.jpg',
                       'assets/images/Antariksh.jpg',
                     ],
                   ),
@@ -739,7 +1589,7 @@ class HomePage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => AskAIPage(userName: userName)),
+                      MaterialPageRoute(builder: (_) => AskAIPage(userName: widget.userName)),
                     ),
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -771,7 +1621,7 @@ class HomePage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Talk to spiritual AI friend',
+                                  loc.talkToSpiritualAIFriend,
                                   style: GoogleFonts.playfairDisplay(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -818,7 +1668,9 @@ class HomePage extends StatelessWidget {
                 child: Text(
                   AppLocalizations.of(context)!.chooseSpiritualGuide,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.deepOrange.shade800,
+                    color: brightness == Brightness.dark
+                        ? Colors.orange.shade300
+                        : Colors.deepOrange.shade800,
                     fontSize: 20,
                   ),
                   textAlign: TextAlign.center,
@@ -845,10 +1697,15 @@ class HomePage extends StatelessWidget {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white,
-                            Colors.deepOrange.shade50,
-                          ],
+                          colors: brightness == Brightness.dark
+                              ? [
+                                  Colors.grey.shade800,
+                                  Colors.grey.shade900,
+                                ]
+                              : [
+                                  Colors.white,
+                                  Colors.deepOrange.shade50,
+                                ],
                         ),
                       ),
                       child: InkWell(
@@ -858,7 +1715,7 @@ class HomePage extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (_) => SaintPage(
                               saint: saintList[i],
-                              userName: userName,
+                              userName: widget.userName,
                             ),
                           ),
                         ),
@@ -898,7 +1755,9 @@ class HomePage extends StatelessWidget {
                                 style: GoogleFonts.playfairDisplay(
                                   fontSize: 14, // Reduced from 16 to 14
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.deepOrange.shade800,
+                                  color: brightness == Brightness.dark
+                                      ? Colors.orange.shade300
+                                      : Colors.deepOrange.shade800,
                                 ),
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
@@ -976,15 +1835,15 @@ class HomePage extends StatelessWidget {
       margin: EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: themeMode == mode ? Colors.deepOrange.shade50 : null,
+        color: widget.themeMode == mode ? Colors.deepOrange.shade50 : null,
       ),
       child: RadioListTile(
         title: Text(title),
         value: mode,
-        groupValue: themeMode,
+        groupValue: widget.themeMode,
         activeColor: Colors.deepOrange,
         onChanged: (val) {
-          onThemeChange(mode);
+          widget.onThemeChange(mode);
           Navigator.pop(context);
         },
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1018,15 +1877,15 @@ class HomePage extends StatelessWidget {
       margin: EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: locale == localeOption ? Colors.deepOrange.shade50 : null,
+        color: widget.locale == localeOption ? Colors.deepOrange.shade50 : null,
       ),
       child: RadioListTile<Locale>(
         title: Text(title),
         value: localeOption,
-        groupValue: locale,
+        groupValue: widget.locale,
         activeColor: Colors.deepOrange,
         onChanged: (val) {
-          onLocaleChange(localeOption);
+          widget.onLocaleChange(localeOption);
           Navigator.pop(context);
         },
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1036,7 +1895,7 @@ class HomePage extends StatelessWidget {
 
   void _showNameDialog(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final controller = TextEditingController(text: userName);
+    final controller = TextEditingController(text: widget.userName);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -1066,7 +1925,7 @@ class HomePage extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              onSetUserName(controller.text.trim());
+              widget.onSetUserName(controller.text.trim());
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -1186,42 +2045,108 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
   Future<void> _shareQuote(String quote) async {
     try {
       final image = await _screenshotController.captureFromWidget(
-        Container(
-          width: 600,
-          padding: EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.deepOrange.shade100, Colors.orange.shade50],
+        MediaQuery(
+          data: MediaQueryData(),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 650,
+              padding: EdgeInsets.all(40),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.deepOrange.shade50, Colors.orange.shade50],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.orange.shade200, width: 2),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Saint image
+                  if (widget.image.isNotEmpty)
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepOrange.withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        backgroundImage: AssetImage(widget.image),
+                        radius: 55,
+                        backgroundColor: Colors.white,
+                      ),
+                    ),
+                  SizedBox(height: 28),
+
+                  // Quote container
+                  Container(
+                    padding: EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.orange.shade100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.format_quote,
+                          color: Colors.deepOrange.shade400,
+                          size: 30,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          '"$quote"',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            height: 1.5,
+                            color: Colors.grey.shade800,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 22),
+
+                  // Saint attribution
+                  Text(
+                    '— ${widget.saintName}',
+                    style: GoogleFonts.notoSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepOrange.shade700,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  SizedBox(height: 25),
+
+                  // Bottom banner image
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/images/quotesbanner.jpg',
+                      fit: BoxFit.contain,
+                      width: 400,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.format_quote, size: 40, color: Colors.deepOrange.shade700),
-              SizedBox(height: 20),
-              Text(
-                '"$quote"',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.deepOrange.shade900,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 30),
-              Text(
-                '- ${widget.saintName}',
-                style: GoogleFonts.notoSans(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.deepOrange.shade800,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
           ),
         ),
       );
@@ -1231,7 +2156,17 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
       final imageFile = File(imagePath);
       await imageFile.writeAsBytes(image);
 
-      await Share.shareXFiles([XFile(imagePath)], text: '"$quote"\n\n- ${widget.saintName}');
+      // Get share position origin for iOS
+      final box = context.findRenderObject() as RenderBox?;
+      final sharePositionOrigin = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        text: '"$quote"\n\n— ${widget.saintName}\n\n✨ Shared from Talk with Saints App\nDownload now for daily spiritual wisdom!',
+        sharePositionOrigin: sharePositionOrigin,
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to share quote')),
@@ -1676,6 +2611,7 @@ class _QuotesTabState extends State<QuotesTab> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     final quoteTextStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
       fontStyle: FontStyle.italic,
       fontSize: 18,
@@ -1687,14 +2623,18 @@ class _QuotesTabState extends State<QuotesTab> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Colors.deepOrange.shade50,
-            Colors.white,
-          ],
+          colors: brightness == Brightness.dark
+              ? [Colors.grey.shade900, Colors.black]
+              : [Colors.deepOrange.shade50, Colors.white],
         ),
       ),
       child: ListView.separated(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).padding.bottom + 100, // Use MediaQuery for system padding + extra space
+        ),
         itemCount: widget.quotes.length + 1,
         separatorBuilder: (context, index) => SizedBox(height: 16),
         itemBuilder: (context, i) {
@@ -1736,13 +2676,22 @@ class _QuotesTabState extends State<QuotesTab> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: isRead
-                        ? [Colors.white, Colors.grey.shade50]
-                        : [Colors.white, Colors.orange.shade50],
+                    colors: brightness == Brightness.dark
+                        ? (isRead
+                            ? [Colors.grey.shade800, Colors.grey.shade900]
+                            : [Colors.grey.shade800, Colors.grey.shade800])
+                        : (isRead
+                            ? [Colors.white, Colors.grey.shade50]
+                            : [Colors.white, Colors.orange.shade50]),
                   ),
                   border: isRead
                       ? null
-                      : Border.all(color: Colors.deepOrange.shade100, width: 1),
+                      : Border.all(
+                          color: brightness == Brightness.dark
+                              ? Colors.orange.shade700
+                              : Colors.deepOrange.shade100,
+                          width: 1,
+                        ),
                 ),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
@@ -1787,23 +2736,33 @@ class _QuotesTabState extends State<QuotesTab> {
                                 '"$quote"',
                                 style: quoteTextStyle?.copyWith(
                                   fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
-                                  color: isRead
-                                      ? Colors.grey.shade700
-                                      : Colors.deepOrange.shade800,
+                                  color: brightness == Brightness.dark
+                                      ? (isRead
+                                          ? Colors.grey.shade400
+                                          : Colors.orange.shade300)
+                                      : (isRead
+                                          ? Colors.grey.shade700
+                                          : Colors.deepOrange.shade800),
                                 ),
                               ),
                             ),
                             Container(
                               decoration: BoxDecoration(
-                                color: isBookmarked
-                                    ? Colors.orange.shade100
-                                    : Colors.grey.shade100,
+                                color: brightness == Brightness.dark
+                                    ? (isBookmarked
+                                        ? Colors.orange.shade900
+                                        : Colors.grey.shade800)
+                                    : (isBookmarked
+                                        ? Colors.orange.shade100
+                                        : Colors.grey.shade100),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: IconButton(
                                 icon: Icon(
                                   isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                                  color: isBookmarked ? Colors.orange.shade700 : Colors.grey.shade600,
+                                  color: brightness == Brightness.dark
+                                      ? (isBookmarked ? Colors.orange.shade300 : Colors.grey.shade400)
+                                      : (isBookmarked ? Colors.orange.shade700 : Colors.grey.shade600),
                                   size: 22,
                                 ),
                                 onPressed: () => _toggleBookmark(quote),
@@ -1856,7 +2815,12 @@ class _ArticlesTabState extends State<ArticlesTab> {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: EdgeInsets.only(top: 16, bottom: 80), // Add bottom padding to prevent cut-off
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 100, // Use MediaQuery for system padding + extra space
+      ),
       itemCount: widget.articles.length,
       separatorBuilder: (context, index) => SizedBox(height: 12),
       itemBuilder: (context, i) {
@@ -1905,583 +2869,6 @@ class _ArticlesTabState extends State<ArticlesTab> {
   }
 }
 
-class AskTab extends StatefulWidget {
-  final Function(String, String) onSubmit;
-  final String saintId;
-  final String userName;
-  AskTab({required this.onSubmit, required this.saintId, required this.userName});
-  @override
-  _AskTabState createState() => _AskTabState();
-}
-
-class _AskTabState extends State<AskTab> {
-  final _controller = TextEditingController();
-  final List<String> _lines = [];
-  String? _answer;
-  bool _loading = false;
-  StreamSubscription<String>? _subscription;
-  http.Client? _client;
-  AppConfig? _config;
-  bool _configLoading = true;
-  String? _configError;
-  bool _hasTriedAsk = false;
-
-  // Helper function to get English saint name based on saint ID
-  String getEnglishSaintName(String saintId) {
-    // Handle the special "ALL" case
-    if (saintId == "ALL") {
-      return "All";
-    }
-
-    final englishSaint = saints.firstWhere(
-      (saint) => saint.id == saintId,
-      orElse: () => saints[0], // fallback to first saint if not found
-    );
-    return englishSaint.name;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(() {
-      if (_hasTriedAsk) {
-        setState(() {
-          _hasTriedAsk = false;
-          _lines.clear();
-          _answer = null;
-        });
-      }
-    });
-    _fetchConfig();
-  }
-
-  Future<void> _fetchConfig() async {
-    setState(() {
-      _configLoading = true;
-      _configError = null;
-    });
-    try {
-      print('AskTab: Starting to fetch config...');
-      final config = await ConfigService.fetchConfig();
-      if (!mounted) return;
-      setState(() {
-        _config = config;
-        _configLoading = false;
-      });
-    } catch (e) {
-      print('AskTab: Error fetching config: ' + e.toString());
-      if (!mounted) return;
-      setState(() {
-        _configError = 'Failed to load configuration.';
-        _configLoading = false;
-      });
-    }
-  }
-
-  Future<void> _askQuestion() async {
-    setState(() {
-      _hasTriedAsk = true;
-    });
-    if (_configLoading) {
-      setState(() {
-        _lines.clear();
-        _lines.add('Configuration is still loading. Please wait and try again.');
-        _loading = false;
-        _answer = null;
-      });
-      return;
-    }
-    if (_configError != null) {
-      setState(() {
-        _lines.clear();
-        _lines.add(_configError!);
-        _loading = false;
-        _answer = null;
-      });
-      return;
-    }
-    if (_config == null || !_config!.gradioServerRunning) {
-      setState(() {
-        _lines.clear();
-        _lines.add('Gradio server is not running. Please try again later.');
-        _loading = false;
-        _answer = null;
-      });
-      return;
-    }
-    if (!mounted) return;
-    setState(() {
-      _lines.clear();
-      _loading = true;
-      _answer = null;
-    });
-    final question = _controller.text;
-    _client = http.Client();
-    final String gradioStreamUrl = _config!.gradioServerLink + '/gradio_api/call/query_rag_stream';
-    final String language = Localizations.localeOf(context).languageCode;
-    print('AskTab: Using Gradio link: ' + gradioStreamUrl);
-    print('AskTab: Sending language context: ' + language);
-    try {
-      final postResponse = await _client!.post(
-        Uri.parse(gradioStreamUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "data": [
-            "My name is " + widget.userName + ". " + question,
-            getEnglishSaintName(widget.saintId), // Use English saint name consistently
-            language // Pass language context to backend
-          ]
-        }),
-      ).timeout(const Duration(seconds: 15), onTimeout: () {
-        throw Exception('Server timeout. Please try again later.');
-      });
-
-      if (!mounted) return;
-      if (postResponse.statusCode != 200) {
-        setState(() {
-          _lines.add('Apologies, Server is down, Please try later : POST failed: ${postResponse.statusCode}');
-          _loading = false;
-          _answer = null;
-        });
-        return;
-      }
-
-      final eventId = jsonDecode(postResponse.body)['event_id'] ?? '';
-      if (eventId.isEmpty) {
-        if (!mounted) return;
-        setState(() {
-          _lines.add('No event_id in response');
-          _loading = false;
-          _answer = null;
-        });
-        return;
-      }
-
-      // Use config gradioServerLink for stream URL
-      final streamUrl = _config!.gradioServerLink + '/gradio_api/call/query_rag_stream/' + eventId;
-      final request = http.Request('GET', Uri.parse(streamUrl));
-      final responseFuture = _client!.send(request);
-      late http.StreamedResponse response;
-      try {
-        response = await responseFuture.timeout(const Duration(seconds: 15), onTimeout: () {
-          throw Exception('Server timeout. Please try again later.');
-        });
-      } catch (e) {
-        if (!mounted) return;
-        setState(() {
-          _lines.add('Error: Server did not respond in time. Please try later.');
-          _loading = false;
-          _answer = null;
-        });
-        return;
-      }
-
-      bool gotResponse = false;
-      response.stream
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen((line) {
-        final trimmed = line.trim();
-        if (trimmed.isNotEmpty && trimmed != 'data' && trimmed != 'null') {
-          gotResponse = true;
-          String displayLine = trimmed;
-          final match = RegExp(r'\[\s*\[(.*?)\]\s*\]').firstMatch(displayLine);
-          if (match != null) {
-            displayLine = match.group(1) ?? '';
-          }
-          if (displayLine.startsWith('"') && displayLine.endsWith('"')) {
-            try {
-              displayLine = jsonDecode(displayLine);
-            } catch (_) {}
-          } else {
-            displayLine = displayLine.replaceAll(r'\n', '\n');
-            displayLine = displayLine.replaceAllMapped(
-              RegExp(r'\\u([0-9a-fA-F]{4})'),
-                  (m) => String.fromCharCode(int.parse(m.group(1)!, radix: 16)),
-            );
-            displayLine = displayLine.replaceAll(r'\\', r'\');
-            displayLine = displayLine.replaceAll(r'\"', '"');
-            displayLine = displayLine.replaceAll('[', '');
-            displayLine = displayLine.replaceAll('",', '\n');
-          }
-          if (!mounted) return;
-          setState(() {
-            _lines.clear(); // Clear error lines on success
-            // Remove the question if it appears at the start of the answer
-            String answerText = displayLine;
-            final question = _controller.text.trim();
-            final idx = answerText.indexOf(question);
-            if (idx != -1) {
-              // Take everything after the question
-              answerText = answerText.substring(idx + question.length).trim();
-              // Optionally, remove leading punctuation or newlines
-              answerText = answerText.replaceFirst(RegExp(r'^[:\-\s]+'), '');
-            }
-            _answer = answerText;
-          });
-        }
-      }, onDone: () {
-        if (!mounted) return;
-        setState(() {
-          _loading = false;
-        });
-        if (!gotResponse) {
-          setState(() {
-            _lines.add('No response from server. Please try again later.');
-            _answer = null;
-          });
-        } else if (_answer != null) {
-          widget.onSubmit(question, _answer!);
-        }
-      }, onError: (e) {
-        if (!mounted) return;
-        setState(() {
-          _lines.add('Error: Server seems to be down. Please try later.');
-          _loading = false;
-          _answer = null;
-        });
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _lines.add('Error: Server seems to be down. Please try later');
-        _loading = false;
-        _answer = null;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-
-    // Check if this is AnandMoyiMa and disable Ask AI feature
-    if (widget.saintId == 'anandmoyima') {
-      return SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.block,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Ask AI Feature Disabled',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'The Ask AI feature is not available for Anandamayi Ma.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Please explore her quotes and teachings in the other tabs.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                    fontStyle: FontStyle.italic,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    bool showError = false;
-    if (_hasTriedAsk && _lines.isNotEmpty && _answer == null) {
-      final errorKeywords = ['error', 'failed', 'not running', 'no response', 'did not respond'];
-      final firstLine = _lines.first.toLowerCase();
-      showError = errorKeywords.any((kw) => firstLine.contains(kw));
-    }
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: Text(
-                  loc.askDisclaimer,
-                  style: TextStyle(
-                    fontSize: 13, // Revert disclaimer font size to original
-                    color: Colors.orange[800],
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-              if (showError)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Text(_lines.join('\n'), style: TextStyle(color: Colors.red, fontSize: 15)),
-                ),
-              TextField(
-                controller: _controller,
-                decoration: InputDecoration(labelText: loc.askAQuestion),
-              ),
-              SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: _loading ? null : _askQuestion,
-                child: Text(loc.ask),
-              ),
-              if (_loading) CircularProgressIndicator(),
-              if (_answer != null)
-                Padding(
-                  padding: EdgeInsets.only(top: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SelectableText('${loc.answer}: $_answer', style: TextStyle(fontSize: 20)),
-                      SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        icon: Icon(Icons.flag),
-                        label: Text('Flag as Incorrect'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () async {
-                          final url = (_config?.gradioServerLink ?? '') + '/gradio_api/call/flag_and_show';
-                          try {
-                            final response = await http.post(
-                              Uri.parse(url),
-                              headers: {'Content-Type': 'application/json'},
-                              body: jsonEncode({
-                                "data": []
-                              }),
-                            );
-                            if (response.statusCode == 200) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Flag submitted. Thank you!')),
-                                );
-                              }
-                            } else {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to flag. Please try again.')),
-                                );
-                              }
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error submitting flag.')),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              // Add bottom padding to ensure content is visible above system UI
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class HistoryTab extends StatelessWidget {
-  final List<Map<String, dynamic>> history;
-  HistoryTab({required this.history});
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    if (history.isEmpty) return Center(child: Text(loc.noPreviousQuestions));
-    return ListView.builder(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).padding.bottom + 20,
-      ),
-      itemCount: history.length,
-      itemBuilder: (context, i) => ListTile(
-        title: Text('Q: \'${history[i]['question']}\''),
-        subtitle: Text('${loc.answer}: ${history[i]['answer']}'),
-      ),
-    );
-  }
-}
-
-// Standalone Ask AI page for accessing all saints
-class AskAIPage extends StatefulWidget {
-  final String userName;
-
-  const AskAIPage({required this.userName, Key? key}) : super(key: key);
-
-  @override
-  _AskAIPageState createState() => _AskAIPageState();
-}
-
-class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  List<Map<String, String>> _history = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _loadHistory();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final historyJson = prefs.getStringList('ask_all_history') ?? [];
-    setState(() {
-      _history = historyJson.map((item) => Map<String, String>.from(jsonDecode(item))).toList();
-    });
-  }
-
-  Future<void> _saveToHistory(String question, String answer) async {
-    final prefs = await SharedPreferences.getInstance();
-    final newEntry = {'question': question, 'answer': answer, 'timestamp': DateTime.now().toIso8601String()};
-    _history.insert(0, newEntry);
-    if (_history.length > 50) _history = _history.take(50).toList();
-
-    final historyJson = _history.map((item) => jsonEncode(item)).toList();
-    await prefs.setStringList('ask_all_history', historyJson);
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    final brightness = Theme.of(context).brightness;
-
-    final gradient = brightness == Brightness.dark
-        ? LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.grey.shade900, Colors.grey.shade800, Colors.black],
-          )
-        : LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.deepOrange.shade50, Colors.orange.shade50, Colors.white],
-          );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Talk to spiritual AI friend',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: brightness == Brightness.dark
-                ? LinearGradient(colors: [Colors.grey.shade900, Colors.grey.shade800])
-                : LinearGradient(colors: [Colors.deepOrange.shade100.withOpacity(0.9), Colors.orange.shade50.withOpacity(0.9)]),
-          ),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: loc.ask),
-            Tab(text: loc.history),
-          ],
-        ),
-      ),
-      body: Container(
-        decoration: BoxDecoration(gradient: gradient),
-        child: TabBarView(
-          controller: _tabController,
-          children: [
-            AskTab(
-              saintId: "ALL",
-              userName: widget.userName,
-              onSubmit: _saveToHistory,
-            ),
-            _buildHistoryTab(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHistoryTab() {
-    final loc = AppLocalizations.of(context)!;
-    if (_history.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(loc.noPreviousQuestions, style: TextStyle(fontSize: 18, color: Colors.grey)),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).padding.bottom + 20,
-      ),
-      itemCount: _history.length,
-      itemBuilder: (context, index) {
-        final item = _history[index];
-        final date = DateTime.parse(item['timestamp']!);
-        return Card(
-          margin: EdgeInsets.only(bottom: 16),
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item['question']!,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  item['answer']!,
-                  style: TextStyle(fontSize: 14),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 class SpiritualDiaryPage extends StatefulWidget {
   @override
@@ -2575,10 +2962,17 @@ class _SpiritualDiaryPageState extends State<SpiritualDiaryPage> {
 
       await file.writeAsString(exportContent);
 
+      // Get share position origin for iOS
+      final box = context.findRenderObject() as RenderBox?;
+      final sharePositionOrigin = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
       await Share.shareXFiles(
         [XFile(file.path)],
         text: 'My Spiritual Diary Export',
         subject: 'Spiritual Diary',
+        sharePositionOrigin: sharePositionOrigin,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2772,44 +3166,142 @@ class _SpiritualDiaryPageState extends State<SpiritualDiaryPage> {
   }
 }
 
-class AboutAppPage extends StatelessWidget {
+class AboutAppPage extends StatefulWidget {
+  @override
+  _AboutAppPageState createState() => _AboutAppPageState();
+}
+
+class _AboutAppPageState extends State<AboutAppPage> {
+  late YoutubePlayerController _controller;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Don't initialize controller here - wait for didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Get the current locale to determine which video to show
+    final locale = Localizations.localeOf(context);
+    final isHindi = locale.languageCode == 'hi';
+    final expectedVideoId = isHindi ? '-xgEbJzLs5k' : '7OXjZOvLW0Y';
+
+    // Initialize controller only once
+    if (!_isInitialized) {
+      _controller = YoutubePlayerController(
+        initialVideoId: expectedVideoId,
+        flags: YoutubePlayerFlags(
+          autoPlay: false,
+          mute: false,
+          enableCaption: true,
+        ),
+      );
+      _isInitialized = true;
+    } else {
+      // If language changes after initialization, load the new video
+      if (_controller.metadata.videoId != expectedVideoId) {
+        _controller.load(expectedVideoId);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(title: Text(loc.aboutApp)),
-      body: SafeArea(
-        // Ensures content isn't hidden behind system UI (bottom nav / home indicator)
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Image.asset(
-                    'assets/images/apppic.png', // Use your available image as aboutapp.jpg is not present
-                    width: 180,
-                    height: 180,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  loc.aboutApp,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  loc.aboutAppInstructions,
-                  style: TextStyle(fontSize: 16),
-                ),
-                SizedBox(height: 20), // small bottom spacing to ensure visibility
-              ],
-            ),
+
+    // Show loading indicator until controller is initialized
+    if (!_isInitialized) {
+      return Scaffold(
+        appBar: AppBar(title: Text(loc.aboutApp)),
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
           ),
         ),
+      );
+    }
+
+    return YoutubePlayerBuilder(
+      player: YoutubePlayer(
+        controller: _controller,
+        showVideoProgressIndicator: true,
+        progressIndicatorColor: Colors.deepOrange,
+        progressColors: ProgressBarColors(
+          playedColor: Colors.deepOrange,
+          handleColor: Colors.deepOrangeAccent,
+        ),
       ),
+      builder: (context, player) {
+        return Scaffold(
+          appBar: AppBar(title: Text(loc.aboutApp)),
+          body: SafeArea(
+            // Ensures content isn't hidden behind system UI (bottom nav / home indicator)
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Image.asset(
+                        'assets/images/apppic.png',
+                        width: 180,
+                        height: 180,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      loc.aboutApp,
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      loc.aboutAppInstructions,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    SizedBox(height: 30),
+                    // YouTube Video Player
+                    Text(
+                      loc.watchOurVideo,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.5),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: player,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -3082,8 +3574,7 @@ class _BookmarkedQuotesPageState extends State<BookmarkedQuotesPage> {
                                   ),
                                 ),
                               ),
-                            ),
-                          );
+                            ),);
                         },
                       ),
                     ),
@@ -3099,7 +3590,6 @@ class ContactPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           loc.contact,
@@ -3162,14 +3652,11 @@ class ContactPage extends StatelessWidget {
                           fit: BoxFit.contain,
                         ),
                         SizedBox(height: 24),
-                        Text(
-                          loc.contactUs,
+                        RichText(
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.notoSans(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                            height: 1.5,
-                            color: Colors.grey.shade800,
+                          text: _buildContactTextWithClickableEmail(
+                            loc.contactUs,
+                            context,
                           ),
                         ),
                         SizedBox(height: 32),
@@ -3192,6 +3679,99 @@ class ContactPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  TextSpan _buildContactTextWithClickableEmail(String text, BuildContext context) {
+    // Extract the email from the text
+    final emailRegex = RegExp(r'[\w\.-]+@[\w\.-]+\.\w+');
+    final emailMatch = emailRegex.firstMatch(text);
+
+    if (emailMatch == null) {
+      // No email found, return plain text
+      return TextSpan(
+        text: text,
+        style: GoogleFonts.notoSans(
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+          height: 1.5,
+          color: Colors.grey.shade800,
+        ),
+      );
+    }
+
+    final email = emailMatch.group(0)!;
+    final emailStart = emailMatch.start;
+    final emailEnd = emailMatch.end;
+
+    // Split text into parts: before email, email, after email
+    final beforeEmail = text.substring(0, emailStart);
+    final afterEmail = text.substring(emailEnd);
+
+    return TextSpan(
+      style: GoogleFonts.notoSans(
+        fontSize: 18,
+        fontWeight: FontWeight.w500,
+        height: 1.5,
+        color: Colors.grey.shade800,
+      ),
+      children: [
+        TextSpan(text: beforeEmail),
+        TextSpan(
+          text: email,
+          style: TextStyle(
+            color: Colors.deepOrange.shade700,
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.underline,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () async {
+              final emailUri = Uri.parse('mailto:$email');
+              try {
+                if (await canLaunchUrl(emailUri)) {
+                  await launchUrl(emailUri);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.email, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Opening email app...'),
+                        ],
+                      ),
+                      backgroundColor: Colors.deepOrange,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                } else {
+                  throw Exception('Could not launch email');
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Could not open email app. Email: $email'),
+                    backgroundColor: Colors.red.shade400,
+                    action: SnackBarAction(
+                      label: 'Copy',
+                      textColor: Colors.white,
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: email));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Email copied to clipboard!'),
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
+        ),
+        TextSpan(text: afterEmail),
+      ],
     );
   }
 }
@@ -3495,7 +4075,10 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
               SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
               ),
               SizedBox(width: 16),
               Text('Preparing quote image...'),
@@ -3520,10 +4103,17 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
         final File imageFile = File(imagePath);
         await imageFile.writeAsBytes(imageBytes);
 
+        // Get share position origin for iOS
+        final box = context.findRenderObject() as RenderBox?;
+        final sharePositionOrigin = box != null
+            ? box.localToGlobal(Offset.zero) & box.size
+            : null;
+
         // Share the image with text
         await Share.shareXFiles(
           [XFile(imagePath)],
           text: '"$quote"\n\n- $saintName\n\n✨ Shared from Talk with Saints App',
+          sharePositionOrigin: sharePositionOrigin,
         );
       } else {
         throw Exception('Failed to capture screenshot');
@@ -3594,10 +4184,15 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
               : Screenshot(
                   controller: screenshotController,
                   child: Container(
-                    padding: EdgeInsets.all(32),
+                    padding: EdgeInsets.all(35),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.white, Colors.orange.shade50],
+                      ),
                       borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: Colors.orange.shade200, width: 2),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.deepOrange.withOpacity(0.3),
@@ -3610,6 +4205,8 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+
+                        // Saint image
                         if (saintImage.isNotEmpty)
                           Container(
                             decoration: BoxDecoration(
@@ -3624,45 +4221,69 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                             ),
                             child: CircleAvatar(
                               backgroundImage: AssetImage(saintImage),
-                              radius: 60,
+                              radius: 55,
+                              backgroundColor: Colors.white,
                             ),
                           ),
-                        SizedBox(height: 32),
+                        SizedBox(height: 28),
+
+                        // Quote container
                         Container(
-                          padding: EdgeInsets.all(20),
+                          padding: EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.orange.shade50,
-                            borderRadius: BorderRadius.circular(15),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
                             border: Border.all(color: Colors.orange.shade100),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: Text(
-                            '"$quote"',
-                            style: GoogleFonts.notoSans(
-                              fontSize: 20,
-                              fontStyle: FontStyle.italic,
-                              height: 1.6,
-                              color: Colors.grey.shade800,
-                            ),
-                            textAlign: TextAlign.center,
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.format_quote,
+                                color: Colors.deepOrange.shade400,
+                                size: 30,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                '"$quote"',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.5,
+                                  color: Colors.grey.shade800,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 24),
+                        SizedBox(height: 22),
+
+                        // Saint attribution
                         Text(
-                          '- $saintName',
-                          style: GoogleFonts.playfairDisplay(
+                          '— $saintName',
+                          style: GoogleFonts.notoSans(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.deepOrange.shade700,
+                            fontStyle: FontStyle.italic,
                           ),
                         ),
-                        SizedBox(height: 20),
-                        // App attribution for screenshot
-                        Text(
-                          '✨ Talk with Saints App',
-                          style: GoogleFonts.notoSans(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontStyle: FontStyle.italic,
+                        SizedBox(height: 25),
+
+                        // Bottom banner image
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            'assets/images/quotesbanner.jpg',
+                            fit: BoxFit.contain,
+                            width: 400,
                           ),
                         ),
                       ],
@@ -3703,3 +4324,160 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
     );
   }
 }
+
+class AskAIPage extends StatefulWidget {
+  final String userName;
+
+  const AskAIPage({required this.userName, Key? key}) : super(key: key);
+
+  @override
+  _AskAIPageState createState() => _AskAIPageState();
+}
+
+class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<Map<String, String>> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadHistory();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final historyJson = prefs.getStringList('ask_all_history') ?? [];
+    setState(() {
+      _history = historyJson.map((item) => Map<String, String>.from(jsonDecode(item))).toList();
+    });
+  }
+
+  Future<void> _saveToHistory(String question, String answer) async {
+    final prefs = await SharedPreferences.getInstance();
+    final newEntry = {'question': question, 'answer': answer, 'timestamp': DateTime.now().toIso8601String()};
+    _history.insert(0, newEntry);
+    if (_history.length > 50) _history = _history.take(50).toList();
+
+    final historyJson = _history.map((item) => jsonEncode(item)).toList();
+    await prefs.setStringList('ask_all_history', historyJson);
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final brightness = Theme.of(context).brightness;
+
+    final gradient = brightness == Brightness.dark
+        ? LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.grey.shade900, Colors.grey.shade800, Colors.black],
+          )
+        : LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.deepOrange.shade50, Colors.orange.shade50, Colors.white],
+          );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          loc.talkToSpiritualAIFriend,
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: brightness == Brightness.dark
+                ? LinearGradient(colors: [Colors.grey.shade900, Colors.grey.shade800])
+                : LinearGradient(colors: [Colors.deepOrange.shade100.withOpacity(0.9), Colors.orange.shade50.withOpacity(0.9)]),
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: loc.ask),
+            Tab(text: loc.history),
+          ],
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(gradient: gradient),
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            AskTab(
+              saintId: "ALL",
+              userName: widget.userName,
+              onSubmit: _saveToHistory,
+            ),
+            _buildHistoryTab(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryTab() {
+    final loc = AppLocalizations.of(context)!;
+    if (_history.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(loc.noPreviousQuestions, style: TextStyle(fontSize: 18, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
+      itemCount: _history.length,
+      itemBuilder: (context, index) {
+        final item = _history[index];
+        final date = DateTime.parse(item['timestamp']!);
+        return Card(
+          margin: EdgeInsets.only(bottom: 16),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['question']!,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  item['answer']!,
+                  style: TextStyle(fontSize: 14),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+

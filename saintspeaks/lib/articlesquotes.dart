@@ -629,6 +629,292 @@ final saints = [
         body: 'One of Anandamayi Ma\'s central teachings was the practice of seeing God in all beings and circumstances. She would say that when the devotee\'s vision is purified through spiritual practice, they begin to see the Divine presence everywhere.\n\nThis vision transforms one\'s entire relationship with the world. Instead of seeing separate individuals, one sees the one Divine playing different roles. Service to others becomes worship of God. Every interaction becomes an opportunity for spiritual growth.\n\nMa taught that this vision must be cultivated gradually through practice. In the beginning, we may need to make an effort to remember God, but eventually it becomes natural and effortless. The advanced devotee lives in constant communion with the Divine.\n\nShe would often remind her devotees that God is not distant but is the very life within all beings. The Divine is nearer than our own breath, closer than our own thoughts. Realizing this nearness of God is the fruit of spiritual practice and the source of eternal bliss.'
       )
     ],
+  ),
+  Saint(
+    'nisargadatta',
+    'Nisargadatta maharaj',
+    'assets/images/nisargadatta.jpg',
+    [
+      'You are not what you take yourself to be. Find out what you are.',
+      'The real does not die, the unreal never lived.',
+      'Wisdom tells me I am nothing. Love tells me I am everything. Between these two my life flows.',
+      'You are the Supreme Reality. Don\'t be small-minded.',
+      'To know what you are, you must first investigate and know what you are not.',
+      'The consciousness in you and the consciousness in me, apparently two, are one, seek unity and that is love.',
+      'All you need is to get rid of the tendency to define yourself.',
+      'Once you realize that the road is the goal and that you are always on the road, not to reach a goal, but to enjoy its beauty and its wisdom, life ceases to be a task and becomes natural and simple.',
+      'You are not the body. You are not even the mind. You are the awareness in which both appear.',
+      'The moment you know your real being, you are afraid of nothing.',
+      'Stop imagining yourself being or doing this or that and the realization that you are the source and heart of all will dawn upon you.',
+      'Nothing you perceive is your own. Nothing you perceive has anything to do with you.',
+      'Discard all traditional standards. Leave them to the adherents of tradition.',
+      'Your true home is in nothingness, in emptiness of all content.',
+      'When I look within and see that I am nothing, that is wisdom. When I look without and see that I am everything, that is love.',
+      'The mind creates the abyss, the heart crosses it.',
+      'Whatever you think you are, you are not.',
+      'You take yourself to be a person, but you have never been born as a person.',
+      'In reality you are not a thing, nor separate from other things.',
+      'The search for reality is the most dangerous of all undertakings, for it destroys the world in which you live.',
+      'All separation, every kind of estrangement and alienation is false.',
+      'You are the ultimate potentiality of which the all-embracing consciousness is the manifestation and expression.',
+      'The personal needs protection, the real needs no protection.',
+      'Nothing can trouble you but your own imagination.',
+      'Once you know with absolute certainty that nothing can trouble you but your own imagination, you come to disregard your desires and fears.',
+      'You are not in the world, the world is in you.',
+      'The feeling \'I am\' is your own. You cannot part with it, but you can impart it to anything, as in \'I am young\', \'I am rich\' etc.',
+      'Between the banks of pain and pleasure the river of life flows. It is only when the mind refuses to flow with life, and gets stuck at the banks, that it becomes a problem.',
+      'Freedom is from the known.',
+      'Your weakness is due to your conviction that you were born into the world.',
+      'Don\'t rely on your mind for liberation. It is the mind that brought you into bondage.',
+      'The real teacher is life itself.',
+      'You need not get at it, for you are it.',
+      'Love says \'I am everything\'. Wisdom says \'I am nothing\'. Between the two, my life flows.',
+      'The trinity: mind, self and spirit, when looked into, becomes unity.',
+      'Just be. Let your true nature emerge. Don\'t disturb your mind with seeking.',
+      'Your own self is your ultimate teacher. The outer teacher is merely a milestone.',
+      'In your world everything must have a beginning and an end. If it does not, you call it eternal.',
+      'The realized man sees the world as it is: one in essence, varied in appearance.',
+      'Learn to look without imagination, to listen without distortion.',
+      'It is the mind that tells you that the mind is there. Don\'t be deceived.',
+      'Truth is not a reward for good behavior, nor a prize for passing some tests.',
+      'That which makes you think that you are a human is not human.',
+      'You have put so much energy into building a prison for yourself. Now spend as much on demolishing it.',
+      'To understand that you are not the person, watch the person. Look at the person as a thing in consciousness.',
+      'What is the difficulty in dropping the body-mind identity? After all, you are not the body-mind.',
+      'You are afraid of death because you do not know yourself. The real you is deathless.',
+      'What prevents you from knowing yourself as all and beyond all is the mind based on memory.',
+      'The mind exists in time, we are beyond time.',
+      'You are love itself - when you are not afraid.'
+    ],
+    [
+      Article(
+          heading: 'Who Am I? - The Fundamental Question',
+          body: 'Nisargadatta Maharaj\'s teaching centered around the fundamental question "Who Am I?" He would relentlessly point his disciples to investigate their true nature beyond all concepts and identifications.\n\n"You are not what you take yourself to be," he would say. "Find out what you are." This investigation is not an intellectual exercise but a direct inquiry into the source of the \'I\' feeling.\n\nMaharaj taught that we habitually identify ourselves with the body, mind, thoughts, emotions, and various roles we play in life. But all these are objects that appear in consciousness. We are the consciousness in which they appear, not the objects themselves.\n\nThe process of self-inquiry involves negating all that you are not - "I am not the body, I am not the mind, I am not the thoughts" - until you arrive at what remains. What remains is pure awareness, pure being, your true nature.\n\n"To know what you are, you must first investigate and know what you are not," Maharaj emphasized. This process of elimination leads to the recognition of your fundamental nature as pure consciousness, beyond all attributes and limitations.\n\nThe question "Who Am I?" must be pursued with intense earnestness and sincerity. It is not enough to understand it intellectually; it must become a living inquiry that permeates every moment of your existence until the false sense of being a separate person dissolves completely.'
+      ),
+      Article(
+          heading: 'The Nature of Consciousness',
+          body: 'Nisargadatta Maharaj had a unique way of explaining consciousness that was both profound and accessible. He distinguished between the personal consciousness (which he called the "I am" feeling) and the absolute consciousness which is beyond all experience.\n\nThe "I am" is the first movement in consciousness, the primary concept that gives rise to all other experiences. Maharaj taught that we should hold on to this pure "I am" feeling without any additions like "I am this" or "I am that."\n\n"The consciousness in you and the consciousness in me, apparently two, are one," he would say. This understanding dissolves the illusion of separation and reveals the unity underlying all apparent diversity.\n\nMaharaj explained that consciousness is not produced by the brain or body. Rather, the body and brain appear in consciousness. Consciousness is not personal; it is universal, and what we take to be individual consciousness is simply a reflection of this universal consciousness.\n\nThe absolute reality is even beyond consciousness - it is that in which consciousness itself appears and disappears. This is your true nature, prior to consciousness, prior to existence and non-existence.\n\n"You are the Supreme Reality," Maharaj would declare. "Don\'t be small-minded." This Supreme Reality cannot be known as an object because you are it. It can only be recognized through the dissolution of all that you think you are.'
+      ),
+      Article(
+          heading: 'The Illusion of the Person',
+          body: 'One of Nisargadatta Maharaj\'s most radical teachings was about the illusory nature of the person. He would say, "You take yourself to be a person, but you have never been born as a person."\n\nThe person is simply a collection of memories, thoughts, and identifications that create an apparent continuity. But when examined closely, there is no solid entity that can be called a person. It is like a movie - individual frames creating an illusion of movement and story.\n\nMaharaj taught that the person is a mental construct, a bundle of concepts with no independent reality. "Whatever you think you are, you are not," he would insist. The person appears in you (consciousness) but you are not the person.\n\nThis understanding is liberating because it means that all the problems, limitations, and suffering of the person are also illusory. When you realize you are not the person, you are free from the person\'s destiny, karma, and conditioning.\n\n"Nothing you perceive is your own. Nothing you perceive has anything to do with you," Maharaj would say. This includes the body, mind, thoughts, and emotions that we usually consider to be ours.\n\nThe recognition that you are not the person is not a philosophical position but a direct realization that comes through earnest self-inquiry. When this recognition becomes stable and unshakeable, you abide as what you truly are - pure awareness, pure being, beyond all personal limitations.'
+      ),
+      Article(
+          heading: 'Love and Wisdom - The Two Wings of Truth',
+          body: 'Nisargadatta Maharaj beautifully expressed the paradox of realization in his famous statement: "Wisdom tells me I am nothing. Love tells me I am everything. Between these two my life flows."\n\nWisdom is the recognition of your true nature as pure awareness, which has no attributes, no form, no qualities - essentially nothing that can be grasped by the mind. From this perspective, you are the void, the emptiness in which all experience appears.\n\nLove, on the other hand, is the recognition that this same awareness is the very essence of everything that appears. You are not separate from anything; you are the one appearing as the many. This is the love that embraces all existence as your own self.\n\nThese are not contradictory truths but two aspects of the same realization. The absolute is both the void and the fullness, nothing and everything, transcendent and immanent.\n\n"When I look within and see that I am nothing, that is wisdom. When I look without and see that I am everything, that is love," Maharaj explained. This dual recognition is the hallmark of complete understanding.\n\nLiving from this understanding means being established in the peace of knowing yourself as nothing (no-thing) while simultaneously loving all that appears as your own manifestation. This is the natural state of the realized being - empty of self yet full of love for all.'
+      ),
+      Article(
+          heading: 'Beyond Birth and Death',
+          body: 'Nisargadatta Maharaj\'s teachings on death and immortality were particularly powerful and comforting. "The real does not die, the unreal never lived," he would say with absolute certainty.\n\nFrom his perspective, what we call birth and death are simply appearances in consciousness, like scenes in a dream. The body is born and dies, but you - the awareness in which the body appears - are never born and therefore cannot die.\n\n"You are afraid of death because you do not know yourself," Maharaj would point out. "The real you is deathless." This fear of death comes from identifying with the mortal body rather than recognizing yourself as immortal consciousness.\n\nMaharaj taught that we have never actually experienced birth or death. We have memories of the past and imagination about the future, but our actual experience is always of the present moment of awareness. This awareness has always been and always will be.\n\nThe understanding of your deathless nature is not a belief or consolation but a direct recognition. When you truly know yourself as pure awareness, the fear of death simply disappears because you realize there is nothing that can die.\n\n"Your weakness is due to your conviction that you were born into the world," he would say. In reality, the world appears in you; you do not appear in the world. This fundamental shift in understanding transforms your entire relationship with life and death.\n\nThe practical implication of this teaching is tremendous freedom and fearlessness. When you know yourself as the deathless reality, you can live fully and love completely without the shadow of mortality clouding your natural joy and peace.'
+      )
+    ],
+  ),
+  Saint(
+      'baba_neeb_karori',
+      'Neem Karoli Baba',
+      'assets/images/baba_neeb_karori.jpg',
+      [
+        // 50 quotes from Baba Neeb Karori (Neem Karoli Baba)
+        'Love everyone, serve everyone, remember God.',
+        'It is better to see God in everything than to try to figure it out.',
+        'The best form to worship God is every form.',
+        'Do what you must do with another person, but never put them out of your heart.',
+        'Tell the truth. Tell the truth. Tell the truth.',
+        'The guru is not a person. The guru is grace itself.',
+        'If you want to see God, kill desires. Desires are in the mind. When you have a desire for something, don\'t act on it and it will go away.',
+        'Attachment is the strongest block to realization.',
+        'The suffering is all in the mind.',
+        'Love is the strongest medicine.',
+        'All action is prayer. All trees are desire-fulfilling. All water is Ganga. All land is Vrindavan.',
+        'Be like a dog, eat what is given, sleep anywhere.',
+        'Don\'t throw anyone out of your heart.',
+        'By serving others, you serve God.',
+        'Serve, love, give, purify, meditate, realize.',
+        'See God in everyone. This is the way.',
+        'The best way to take care of the future is to take care of the present moment.',
+        'Don\'t be attached to anything. Attachment causes suffering.',
+        'Ego is a ghost. Let it go.',
+        'Christ died on the cross, Hitler died in the war. Where is the difference? The One who suffered on the cross also suffered in the war.',
+        'Every saint has a past, and every sinner has a future.',
+        'Bhakti is love without motive.',
+        'Hanuman knows Ram is God, and that is why he is so powerful.',
+        'Ram, Ram, Ram - this is the greatest mantra.',
+        'Feed people. Serve people. That is the highest dharma.',
+        'Give love. Be love. Live in love.',
+        'God is love and love is God.',
+        'When you are with someone you love, you are in heaven.',
+        'The whole universe is compassion.',
+        'Suffering is grace.',
+        'Pain is inevitable, but misery is optional.',
+        'All religions are one. All people are one.',
+        'The heart that gives, gathers.',
+        'Simple. Love. Serve. Remember.',
+        'Don\'t worry. Be happy. Do your best.',
+        'Grace eliminates time.',
+        'Silence is the language of God.',
+        'Your nature is love. Don\'t deny it.',
+        'The soul loves to meditate, for in contact with the Spirit lies its greatest joy.',
+        'Everything is perfect just as it is.',
+        'Love all, serve all.',
+        'Be present. Be here now.',
+        'The only way out is through the heart.',
+        'Service to man is service to God.',
+        'Let go and let God.',
+        'Faith is a bird that feels dawn breaking and sings while it is still dark.',
+        'The mind creates the abyss, the heart crosses it.',
+        'When the heart weeps for what it has lost, the soul laughs for what it has found.',
+        'Compassion is the ultimate and most meaningful embodiment of emotional maturity.',
+        'Love is the bridge between two hearts.',
+      ],
+      [
+        // Articles about Baba Neeb Karori
+        Article(
+            heading: 'The Life of Neem Karoli Baba',
+            body: '''Neem Karoli Baba, also known as Baba Neeb Karori, was a Hindu guru who lived in the mountains of northern India. His exact birth date is unknown, but he is believed to have been born sometime between 1890-1900. He left his body on September 11, 1973, at the Vrindavan hospital.
+
+Known for his unconditional love and miraculous powers, Neem Karoli Baba attracted devotees from all walks of life, including many Westerners in the 1960s and 70s. Among his Western devotees were Ram Dass (Richard Alpert), Krishna Das, and many others who brought his teachings to the West.
+
+Baba was known for his simplicity and his teaching that "Love everyone, serve everyone, remember God." He rarely gave formal discourses, preferring to teach through his presence and actions. His ashrams were always open to all, regardless of caste, creed, or nationality.
+
+The name "Neem Karoli" comes from the village where he first appeared to his devotees, sitting under a neem tree. Throughout his life, he was known to appear in multiple places simultaneously, demonstrating his transcendental nature.
+
+His legacy continues through the numerous ashrams, hospitals, and schools built in his name, and through the countless lives he touched with his boundless love and compassion.'''
+        ),
+        Article(
+            heading: 'The Miracle of Unconditional Love',
+            body: '''One of the most remarkable aspects of Neem Karoli Baba was his ability to love unconditionally. Stories abound of his treating everyone - from the poorest beggar to the wealthiest person - with the same boundless love and respect.
+
+He would often say, "Love is the strongest medicine," and lived this principle completely. Devotees recall how he would feed anyone who came to him, often multiplying food miraculously to ensure no one left hungry.
+
+His love was not sentimental or emotional, but rather a pure, divine love that saw the same consciousness in all beings. This love transformed the lives of thousands of people who came into contact with him.
+
+Western devotees often speak of how Baba's love healed their psychological wounds and spiritual seeking. Ram Dass famously said that meeting Neem Karoli Baba changed his life completely, showing him what it meant to love without conditions.
+
+Baba taught that this love is not something to be achieved but something to be remembered - it is our true nature. By serving others and keeping God in our hearts, we naturally express this divine love that we already are.'''
+        ),
+        Article(
+            heading: 'Serve, Love, Give - The Core Teaching',
+            body: '''Neem Karoli Baba's primary teaching was beautifully simple: "Serve, love, give, purify, meditate, realize." These six words encompass the entire spiritual path according to his understanding.
+
+Service (Seva) was central to his teaching. He established numerous hospitals, schools, and feeding programs. He taught that serving others is the fastest way to purify the heart and realize God. "By serving others, you serve God," he would say.
+
+Love was not just an emotion for Baba but the very fabric of existence. He encouraged his devotees to love all beings as manifestations of the Divine. This love was to be practical and active, not merely philosophical.
+
+Giving was another cornerstone. Baba himself owned nothing and gave everything away. He taught that the more we give, the more we receive, and that holding onto things creates suffering.
+
+Purification happens naturally through service, love, and giving. As the heart becomes pure, meditation deepens, and realization dawns. For Baba, this was not a linear process but a dynamic interplay of all these elements.
+
+His approach was practical and accessible to householders and renunciates alike, showing that enlightenment is possible while living an ordinary life filled with love and service.'''
+        ),
+        Article(
+            heading: 'The Power of Ram Nam (God\'s Name)',
+            body: '''Neem Karoli Baba was a great devotee of Lord Ram and constantly chanted "Ram, Ram, Ram." He taught that the name of God (Ram Nam) is the most powerful spiritual practice available to humanity.
+
+He would often say that in this age of Kali Yuga, chanting the name of God is the most effective spiritual practice. "Ram, Ram, Ram - this is the greatest mantra," he would tell his devotees.
+
+Baba explained that the name of God contains the full power and presence of the Divine. When we chant with devotion, we invoke that divine presence into our lives. The repetition of God's name purifies the mind and heart, removing negativity and filling us with divine qualities.
+
+He taught that Ram Nam could be chanted at any time - while working, walking, or resting. There was no special posture or ritual required. The key was constant remembrance with love and devotion.
+
+Many devotees experienced profound transformations through the simple practice of chanting Ram Nam as taught by Baba. He demonstrated that the most profound spiritual practices are often the simplest ones, accessible to all regardless of education or social status.
+
+The power of the Divine Name, according to Baba, lies not in the sound itself but in the love and faith with which it is chanted. "God is love, and love is God," he would say, showing that the name connects us directly to the source of all love.'''
+        ),
+        Article(
+            heading: 'Miracles and the Transcendental Nature',
+            body: '''Stories of Neem Karoli Baba's miraculous powers are legendary among his devotees. He was known to appear in multiple places simultaneously, know people's thoughts before they spoke them, and manifest food and objects when needed.
+
+However, Baba himself never emphasized these powers. When devotees would marvel at his miracles, he would redirect their attention to love and service. He understood that fascination with miraculous powers could become a distraction from the real spiritual goal.
+
+One famous story tells of how he saved a devotee's train from derailing by appearing on the tracks. Another recounts how he multiplied a small amount of food to feed hundreds of people. Western devotees like Ram Dass documented numerous instances of Baba's omniscience and supernatural abilities.
+
+Yet for Baba, these manifestations were simply expressions of his natural state of consciousness. He lived in the understanding that all of existence is one divine play, and from that perspective, what we call miracles are simply different movements within the same cosmic dance.
+
+His true miracle was his ability to awaken love and devotion in people's hearts. Devotees often say that being in his presence was itself the greatest miracle - feeling unconditionally loved and accepted exactly as they were.
+
+Baba taught that these powers are available to anyone who surrenders completely to the Divine. The key is not to seek the powers themselves but to seek God with complete devotion, and then whatever is needed for service will naturally manifest.'''
+        ),
+        Article(
+            heading: 'The Western Connection - Ram Dass and Beyond',
+            body: '''In the late 1960s and early 1970s, Neem Karoli Baba became known to the Western world primarily through Harvard psychology professor Richard Alpert, who became Ram Dass after meeting Baba in India.
+
+Ram Dass had gone to India seeking spiritual experiences after his experiments with psychedelic substances. When he met Neem Karoli Baba, he found something far beyond what any drug could provide - pure, unconditional love and acceptance.
+
+Baba's interaction with Ram Dass became legendary. He reportedly took several tabs of LSD that Ram Dass gave him and showed no effects, saying "It's useful, but it's not the true samadhi." This demonstrated his complete transcendence of ordinary consciousness states.
+
+Through Ram Dass's books, particularly "Be Here Now," millions of Westerners learned about Neem Karoli Baba and his teachings. Many were inspired to visit India and seek him out, though few were able to meet him before he left his body in 1973.
+
+Other notable Western devotees included musician Krishna Das, who became one of the foremost kirtan artists in the West, and many others who established ashrams, meditation centers, and service organizations based on Baba's teachings.
+
+Baba's influence on Western spirituality cannot be overstated. He showed that authentic spiritual realization transcends cultural boundaries and that the universal principles of love, service, and devotion speak to hearts everywhere.
+
+His legacy in the West continues through the numerous teachers, musicians, and service organizations founded by his devotees, all carrying forward his essential message of love and service.'''
+        ),
+        Article(
+            heading: 'The Ashrams and Service Projects',
+            body: '''Throughout his life, Neem Karoli Baba established numerous ashrams, temples, hospitals, and schools. His approach to service was comprehensive, addressing both spiritual and material needs of people.
+
+The main ashrams associated with Baba include Kainchi Dham near Nainital, Vrindavan, and several others in the Himalayan foothills. Kainchi Dham, established in 1964, became the most famous and continues to attract thousands of devotees annually.
+
+Baba's service projects were extensive. He built hospitals to serve the poor, schools to educate children regardless of their ability to pay, and feeding programs that continue to this day. He believed that serving humanity was the highest form of worship.
+
+The hospitals built under his guidance provided free medical care to all who needed it. The schools he established offered education without discrimination based on caste, creed, or economic status. This was revolutionary in the social context of his time.
+
+His devotees continue these service traditions today. The Neem Karoli Baba Ashram organizations worldwide run numerous charitable projects, including medical clinics, schools, feeding programs, and disaster relief efforts.
+
+Baba taught that these service projects were not separate from spiritual practice but were spiritual practice itself. By serving others, particularly the poor and suffering, devotees purify their hearts and come closer to God.
+
+The ashrams serve not just as places of worship but as centers of service, continuing Baba's vision that spirituality and service are inseparable aspects of the same divine love in action.'''
+        ),
+        Article(
+            heading: 'Teachings on Surrender and Faith',
+            body: '''One of Neem Karoli Baba's central teachings was the importance of complete surrender to the Divine. He often said, "Let go and let God," teaching that our attempts to control life create suffering.
+
+Baba demonstrated perfect surrender in his own life. He owned nothing, planned nothing, and yet everything he needed for his service always appeared. He trusted completely in divine providence and taught his devotees to do the same.
+
+He explained that surrender doesn't mean passivity but rather aligning our will with divine will. When we surrender our ego's desires and fears, we become instruments through which the Divine can work in the world.
+
+Faith was another cornerstone of his teaching. He said, "Faith is a bird that feels dawn breaking and sings while it is still dark." This faith was not blind belief but a deep trust in the fundamental goodness and intelligence of existence.
+
+Baba taught that doubt and worry are forms of self-torture that serve no useful purpose. Instead of worrying about the future, he encouraged devotees to focus on serving and loving in the present moment, trusting that the future would take care of itself.
+
+His own life was a perfect example of this teaching. Despite having no material security, he lived in complete joy and peace, caring for thousands of devotees and maintaining numerous service projects through divine grace alone.
+
+For Baba, surrender and faith were not just spiritual concepts but practical approaches to living that lead to greater effectiveness, joy, and service in the world.'''
+        ),
+        Article(
+            heading: 'The Universal Message - All Religions Are One',
+            body: '''Neem Karoli Baba taught that all religions lead to the same truth when practiced with sincerity and devotion. He would say, "All religions are one. All people are one," demonstrating this belief through his interactions with people of all faiths.
+
+His ashrams welcomed people regardless of their religious background. Christians, Muslims, Buddhists, Jews, Hindus, and people of no formal religion all found acceptance and love in his presence. He saw beyond external religious forms to the universal spiritual essence within all traditions.
+
+Baba often spoke about Christ with great reverence, saying that Christ and Ram were the same divine consciousness appearing in different forms. He taught that religious conflicts arise from ignorance of this fundamental unity.
+
+He encouraged his devotees to practice their own religious traditions with greater depth rather than converting to another religion. A Christian devotee would be encouraged to become a better Christian, a Muslim to become a better Muslim, and so on.
+
+This inclusive approach was revolutionary and healing for many Western devotees who had become disillusioned with organized religion. Baba showed them that spirituality transcends religious boundaries while honoring all authentic spiritual paths.
+
+His teaching that "God is love and love is God" provided a common ground for people of all backgrounds. Regardless of how they conceived of the Divine, everyone could understand and practice love.
+
+This universal message continues to be relevant in our increasingly connected but often divided world, offering a vision of unity that respects diversity while recognizing the common spiritual heart of all authentic religious seeking.'''
+        ),
+        Article(
+            heading: 'Living the Teachings Today',
+            body: '''The teachings of Neem Karoli Baba remain as relevant today as they were during his lifetime. In our modern world filled with stress, conflict, and uncertainty, his simple message of love and service offers a practical path to peace and fulfillment.
+
+His core teaching - "Love everyone, serve everyone, remember God" - can be applied in any life situation. Whether we are parents, professionals, students, or retirees, we can practice these principles in our daily activities.
+
+Serving others doesn't require joining an organization or traveling to distant places. It can be as simple as listening to a friend in need, helping an elderly neighbor, or treating colleagues with kindness and respect. Baba taught that any act done with love and selflessness is service to God.
+
+Remembering God can happen throughout the day through prayer, chanting, meditation, or simply maintaining an attitude of gratitude and awareness. Baba emphasized that constant remembrance of the Divine transforms ordinary activities into spiritual practice.
+
+The practice of "feeding people" that was so important to Baba can be literal or metaphorical. We can feed others physically, emotionally, or spiritually by sharing food, love, encouragement, or wisdom according to our abilities and circumstances.
+
+His teaching to "tell the truth" becomes increasingly important in a world where honesty is often compromised. Living truthfully means being authentic in our relationships and honest in our dealings with others.
+
+Modern devotees continue to find that Baba's teachings work. By practicing love, service, and remembrance, people report greater happiness, better relationships, and a deeper sense of meaning and purpose in their lives.'''
+        )
+      ]
   )
 
 

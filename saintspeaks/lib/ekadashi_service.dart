@@ -63,16 +63,21 @@ class EkadashiDate {
   }
 
   static String _generateEkadashiName(DateTime date) {
-    final monthNames = [
-      'Pausha', 'Magha', 'Phalguna', 'Chaitra', 'Vaishakha', 'Jyeshtha',
-      'Ashadha', 'Shravana', 'Bhadrapada', 'Ashwin', 'Kartika', 'Margashirsha'
-    ];
+    final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-    final dayOfMonth = date.day;
-    final phase = dayOfMonth <= 15 ? 'Shukla' : 'Krishna';
-    final monthName = monthNames[date.month - 1];
+    // Try to get name from cached ekadashi data
+    final ekadashiData = EkadashiService.getEkadashiData();
+    print('[EkadashiDate] Looking up name for date: $dateKey');
+    print('[EkadashiDate] Available data keys: ${ekadashiData.keys.toList()}');
 
-    return '$phase $monthName Ekadashi';
+    if (ekadashiData.containsKey(dateKey)) {
+      print('[EkadashiDate] Found name: ${ekadashiData[dateKey]}');
+      return ekadashiData[dateKey]!;
+    }
+
+    // Default fallback
+    print('[EkadashiDate] No name found, using default');
+    return 'Ekadashi';
   }
 
   bool isToday() {
@@ -99,9 +104,10 @@ class EkadashiDate {
 }
 
 class EkadashiService {
-  static const String _cacheKey = 'cached_ekadashi_dates';
+  static const String _cacheDataKey = 'cached_ekadashi_data';
   static const String _lastFetchKey = 'last_ekadashi_fetch';
   static List<EkadashiDate>? _cachedDates;
+  static Map<String, String>? _cachedEkadashiData;
 
   static Future<List<EkadashiDate>> getEkadashiDates() async {
     if (_cachedDates != null && _cachedDates!.isNotEmpty) {
@@ -110,30 +116,45 @@ class EkadashiService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cachedJson = prefs.getString(_cacheKey);
+      final cachedData = prefs.getString(_cacheDataKey);
       final lastFetch = prefs.getString(_lastFetchKey);
 
-      if (cachedJson != null && lastFetch != null) {
+      if (cachedData != null && lastFetch != null) {
         final lastFetchDate = DateTime.parse(lastFetch);
         final daysSinceLastFetch = DateTime.now().difference(lastFetchDate).inDays;
 
         if (daysSinceLastFetch < 7) {
-          final List<dynamic> cachedList = json.decode(cachedJson);
-          _cachedDates = cachedList.map((dateStr) => EkadashiDate.fromString(dateStr)).toList();
+          // Load cached ekadashi data FIRST before parsing dates
+          final Map<String, dynamic> dataMap = json.decode(cachedData);
+          _cachedEkadashiData = dataMap.map((key, value) => MapEntry(key, value.toString()));
+
+          // Extract dates from the keys
+          final dateKeys = _cachedEkadashiData!.keys.toList();
+          _cachedDates = dateKeys.map((dateStr) => EkadashiDate.fromString(dateStr)).toList();
+          _cachedDates!.sort((a, b) => a.date.compareTo(b.date));
           return _cachedDates!;
         }
       }
 
       final config = await ConfigService.fetchConfig();
 
-      if (config.ekadashiDates.isNotEmpty) {
-        _cachedDates = config.ekadashiDates
+      if (config.ekadashiData.isNotEmpty) {
+        // Store ekadashi data map FIRST before parsing dates
+        _cachedEkadashiData = config.ekadashiData;
+        print('[EkadashiService] Loaded ekadashi data: $_cachedEkadashiData');
+
+        // Extract dates from the ekadashi_data keys
+        final dateKeys = config.ekadashiData.keys.toList();
+        print('[EkadashiService] Extracted date keys: $dateKeys');
+
+        _cachedDates = dateKeys
             .map((dateStr) => EkadashiDate.fromString(dateStr))
             .toList();
 
         _cachedDates!.sort((a, b) => a.date.compareTo(b.date));
 
-        await prefs.setString(_cacheKey, json.encode(config.ekadashiDates));
+        // Only cache the ekadashi_data (not dates separately)
+        await prefs.setString(_cacheDataKey, json.encode(config.ekadashiData));
         await prefs.setString(_lastFetchKey, DateTime.now().toIso8601String());
 
         return _cachedDates!;
@@ -143,6 +164,10 @@ class EkadashiService {
     }
 
     return [];
+  }
+
+  static Map<String, String> getEkadashiData() {
+    return _cachedEkadashiData ?? {};
   }
 
   static Future<EkadashiDate?> getNextEkadashi() async {
@@ -189,9 +214,10 @@ class EkadashiService {
 
   static Future<void> clearCache() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_cacheKey);
+    await prefs.remove(_cacheDataKey);
     await prefs.remove(_lastFetchKey);
     _cachedDates = null;
+    _cachedEkadashiData = null;
   }
 }
 

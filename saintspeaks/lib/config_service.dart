@@ -4,22 +4,33 @@ import 'package:http/http.dart' as http;
 class AppConfig {
   final bool gradioServerRunning;
   final String gradioServerLink;
-  final List<String> ekadashiDates;
+  final Map<String, String> ekadashiData;
 
   AppConfig({
     required this.gradioServerRunning,
     required this.gradioServerLink,
-    required this.ekadashiDates,
+    required this.ekadashiData,
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
     print('[AppConfig] Parsing config JSON: ' + json.toString());
+
+    // Parse ekadashi_data if available, otherwise use empty map
+    Map<String, String> ekadashiData = {};
+    if (json['ekadashi_data'] != null) {
+      final data = json['ekadashi_data'] as Map<String, dynamic>;
+      ekadashiData = data.map((key, value) => MapEntry(key, value.toString()));
+    }
+
     return AppConfig(
       gradioServerRunning: json['gradio_server_running'] ?? false,
       gradioServerLink: json['gradio_server_link'] ?? '',
-      ekadashiDates: List<String>.from(json['ekadashi_dates'] ?? []),
+      ekadashiData: ekadashiData,
     );
   }
+
+  // Get list of dates from ekadashi_data keys
+  List<String> get ekadashiDates => ekadashiData.keys.toList();
 }
 
 class ConfigService {

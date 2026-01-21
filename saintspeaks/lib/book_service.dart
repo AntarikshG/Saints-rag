@@ -164,6 +164,7 @@ class BookService {
   // Streams to notify UI of sample-download state and progress
   static final StreamController<bool> _sampleDownloadInProgressController = StreamController<bool>.broadcast();
   static final StreamController<double> _sampleDownloadProgressController = StreamController<double>.broadcast();
+  static final StreamController<String> _currentDownloadingBookController = StreamController<String>.broadcast();
 
   /// Stream that emits `true` when sample downloads start and `false` when they finish
   static Stream<bool> get sampleDownloadInProgressStream => _sampleDownloadInProgressController.stream;
@@ -171,10 +172,14 @@ class BookService {
   /// Stream that emits progress values in range [0.0, 1.0] for the currently downloading sample book
   static Stream<double> get sampleDownloadProgressStream => _sampleDownloadProgressController.stream;
 
+  /// Stream that emits the title of the book currently being downloaded
+  static Stream<String> get currentDownloadingBookStream => _currentDownloadingBookController.stream;
+
   /// Call this to close the sample download streams (optional)
   static void disposeSampleDownloadStreams() {
     if (!_sampleDownloadInProgressController.isClosed) _sampleDownloadInProgressController.close();
     if (!_sampleDownloadProgressController.isClosed) _sampleDownloadProgressController.close();
+    if (!_currentDownloadingBookController.isClosed) _currentDownloadingBookController.close();
   }
 
   // Sample books data moved to the top of the class
@@ -209,6 +214,11 @@ class BookService {
       'title': 'Hindu Sanskrit Tales',
       'author': 'Traditional',
       'url': 'https://www.gutenberg.org/ebooks/11310.epub3.images',
+    },
+    {
+      'title': 'Lectures on Jnana Yoga',
+      'author': 'Swami Vivekananda',
+      'url': 'https://www.gutenberg.org/ebooks/72368.epub3.images',
     },
   ];
 
@@ -919,6 +929,9 @@ class BookService {
             continue;
           }
 
+          // Emit the current book name being downloaded
+          _currentDownloadingBookController.add(bookData['title']!);
+
           print('Downloading "${bookData['title']}" by ${bookData['author']}...');
 
           // Download and add the book; forward per-file progress to UI
@@ -937,22 +950,7 @@ class BookService {
 
         } catch (e) {
           print('Failed to add "${bookData['title']}" by ${bookData['author']}: $e');
-
-          // If download fails, create a placeholder entry only if not already downloaded
-          if (!alreadyDownloaded) {
-            try {
-              final placeholderBook = Book(
-                title: bookData['title']!,
-                author: bookData['author']!,
-                filePath: 'placeholder_${bookData['title']!.toLowerCase().replaceAll(' ', '_')}.epub',
-                dateAdded: DateTime.now(),
-              );
-              await addBook(placeholderBook);
-              print('Added placeholder for "${bookData['title']}"');
-            } catch (placeholderError) {
-              print('Failed to add placeholder for "${bookData['title']}": $placeholderError');
-            }
-          }
+          // Just log the error and continue - don't create placeholder books
         }
       }
     } finally {
@@ -963,6 +961,10 @@ class BookService {
       // Reset per-file progress to 0.0 when done
       try {
         _sampleDownloadProgressController.add(0.0);
+      } catch (_) {}
+      // Clear the current book name
+      try {
+        _currentDownloadingBookController.add('');
       } catch (_) {}
     }
 
@@ -1033,4 +1035,3 @@ class BookService {
     return List<Map<String, String>>.from(_sampleBooksData);
   }
 }
-

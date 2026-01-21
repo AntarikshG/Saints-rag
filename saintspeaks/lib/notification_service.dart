@@ -101,8 +101,15 @@ class NotificationService {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
+    const DarwinInitializationSettings iOSSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
     final InitializationSettings settings = InitializationSettings(
       android: androidSettings,
+      iOS: iOSSettings,
     );
 
     try {
@@ -346,6 +353,12 @@ class NotificationService {
         ticker: isPreReminder ? 'Ekadashi Tomorrow' : 'Ekadashi Today',
         visibility: NotificationVisibility.public,
         color: Color(0xFFFF6F00), // Orange color for Ekadashi notifications
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: 'default',
       ),
     );
   }
@@ -612,6 +625,12 @@ class NotificationService {
                   ticker: 'Daily Quote',
                   visibility: NotificationVisibility.public,
                 ),
+                iOS: DarwinNotificationDetails(
+                  presentAlert: true,
+                  presentBadge: true,
+                  presentSound: true,
+                  sound: 'default',
+                ),
               ),
               androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
             );
@@ -679,6 +698,12 @@ class NotificationService {
             showWhen: true,
             icon: '@mipmap/ic_launcher',
             styleInformation: BigTextStyleInformation(''),
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+            sound: 'default',
           ),
         ),
       );

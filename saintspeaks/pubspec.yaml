@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 2.1.0+8
 
 environment:
   sdk: ^3.9.2
@@ -39,11 +39,18 @@ flutter:
     - assets/images/banner7.jpeg
     - assets/images/banner8.jpeg
     - assets/images/banner9.jpeg
+    - assets/images/banner10.jpg
+    - assets/images/banner11.jpg
     - assets/images/apppic.png
     - assets/images/antarikshverse.png
     - assets/images/paramhansa.jpg
     - assets/images/raman.jpg
     - assets/images/Antariksh.jpg
+    - assets/images/nisargadatta.jpg
+    - assets/images/baba_neeb_karori.jpg
+    - assets/images/quotesbanner.jpg
+    - assets/images/quotesbanner_dark.jpg
+    - assets/images/Promote_1.jpeg
   uses-material-design: true
 
 # Dependencies specify other packages that your package needs in order to work.
@@ -87,11 +94,15 @@ dependencies:
   flutter_tts: ^3.8.5
   # In-app review for rating functionality
   in_app_review: ^2.0.8
+  # YouTube player
+  youtube_player_flutter: ^9.0.3
 
 dev_dependencies:
   flutter_launcher_icons: ^0.11.0
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/images/apppic.png"
+  remove_alpha_ios: true
+  min_sdk_android: 21
