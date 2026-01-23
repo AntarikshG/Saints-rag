@@ -4,9 +4,10 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'dart:convert';
 import 'dart:async';
-import 'articlesquotes.dart';
 import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
+import 'articlesquotes_de.dart';
+import 'articlesquotes_kn.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -29,8 +30,6 @@ import 'rating_share_service.dart';
 import 'ekadashi_service.dart';
 import 'ask_ai_page.dart';
 import 'user_profile_service.dart';
-import 'articlesquotes_de.dart';
-import 'articlesquotes_kn.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1213,21 +1212,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-
-  // Helper method to get saints list based on language
-  List<dynamic> _getSaintsForLanguage(String languageCode) {
-    switch (languageCode) {
-      case 'hi':
-        return saintsHi;
-      case 'de':
-        return saintsDe;
-      case 'kn':
-        return saintsKn;
-      default:
-        return saintsEn;
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -1244,7 +1228,11 @@ class _HomePageState extends State<HomePage> {
     final loc = AppLocalizations.of(context)!;
     final brightness = Theme.of(context).brightness;
     final languageCode = Localizations.localeOf(context).languageCode;
-    final List<dynamic> saintList = _getSaintsForLanguage(languageCode);
+    final List<dynamic> saintList = languageCode == 'hi'
+        ? saintsHi
+        : languageCode == 'kn'
+            ? saintsKn
+            : saintsEn;
     // Theme-aware gradients
     final mainGradient = brightness == Brightness.dark
         ? LinearGradient(
@@ -1416,8 +1404,8 @@ class _HomePageState extends State<HomePage> {
 
                     // Show current notification configuration
                     final configInfo = NotificationService.getNotificationConfigInfo();
-                    final locale = Localizations.localeOf(context);
-                    await NotificationService.showTestNotification(locale);
+                    final currentLocale = Localizations.localeOf(context);
+                    await NotificationService.showTestNotification(currentLocale);
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -1762,8 +1750,7 @@ class _HomePageState extends State<HomePage> {
                                     child: CircleAvatar(
                                       radius: 27, // Reduced from 32 to 27
                                       backgroundImage: saintList[i].image.startsWith('assets/')
-                                          ? AssetImage(saintList[i].image) as ImageProvider
-                                          : NetworkImage(saintList[i].image),
+                                          ? AssetImage(saintList[i].image) : NetworkImage(saintList[i].image),
                                     ),
                                   ),
                                 ),
@@ -1886,7 +1873,7 @@ class _HomePageState extends State<HomePage> {
             _buildLanguageOption(loc.english, Locale('en'), context),
             _buildLanguageOption(loc.hindi, Locale('hi'), context),
             _buildLanguageOption(loc.german, Locale('de'), context),
-            _buildLanguageOption(loc.kannada, Locale('kn'), context),
+            _buildLanguageOption(loc.kannada, Locale('kn'), context), // Kannada option
           ],
         ),
       ),
@@ -1970,6 +1957,68 @@ class SaintPage extends StatefulWidget {
   _SaintPageState createState() => _SaintPageState();
 }
 
+class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.saint.name),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: 'Quotes'),
+            Tab(text: 'Articles'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Quotes Tab
+          ListView.builder(
+            itemCount: widget.saint.quotes.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                title: Text(widget.saint.quotes[index]),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SingleQuoteViewPage(
+                        quotes: widget.saint.quotes,
+                        initialIndex: index,
+                        saintName: widget.saint.name,
+                        saintId: widget.saint.id,
+                        image: widget.saint.image,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+          // Articles Tab
+          ArticlesTab(articles: widget.saint.articles),
+        ],
+      ),
+    );
+  }
+}
+
 // New page to display single quote with navigation
 class SingleQuoteViewPage extends StatefulWidget {
   final List<String> quotes;
@@ -2027,28 +2076,16 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
   }
 
   String _quoteId(String quote) {
-    final languageCode = Localizations.localeOf(context).languageCode;
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final isKannada = Localizations.localeOf(context).languageCode == 'kn';
     String saintNameForId;
 
-    // Get saint name from appropriate language list
-    List<dynamic> saintsList;
-    switch (languageCode) {
-      case 'hi':
-        saintsList = saintsHi;
-        break;
-      case 'de':
-        saintsList = saintsDe;
-        break;
-      case 'kn':
-        saintsList = saintsKn;
-        break;
-      default:
-        saintsList = saintsEn;
-    }
-
-    if (languageCode != 'en') {
-      final saint = saintsList.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsList[0] as Saint);
-      saintNameForId = saint.name;
+    if (isHindi) {
+      final hindiSaint = saintsHi.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsHi[0]);
+      saintNameForId = hindiSaint.name;
+    } else if (isKannada) {
+      final kannadaSaint = saintsKn.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsKn[0]);
+      saintNameForId = kannadaSaint.name;
     } else {
       saintNameForId = widget.saintName;
     }
@@ -2211,36 +2248,9 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
     }
   }
 
-  Future<void> _copyQuote(String quote) async {
-    final textToCopy = '"$quote"\n\n— ${widget.saintName}';
-
-    try {
-      await Clipboard.setData(ClipboardData(text: textToCopy));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Quote copied to clipboard!'),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to copy quote'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     final brightness = Theme.of(context).brightness;
 
     return Scaffold(
@@ -2383,10 +2393,8 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
                     ),
                     SizedBox(height: 40),
                     // Action Buttons
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 12,
-                      runSpacing: 12,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _buildActionButton(
                           icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
@@ -2394,12 +2402,7 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
                           onPressed: () => _toggleBookmark(quote),
                           color: isBookmarked ? Colors.orange : Colors.grey,
                         ),
-                        _buildActionButton(
-                          icon: Icons.copy,
-                          label: 'Copy',
-                          onPressed: () => _copyQuote(quote),
-                          color: Colors.green,
-                        ),
+                        SizedBox(width: 20),
                         _buildActionButton(
                           icon: Icons.share,
                           label: 'Share',
@@ -2480,395 +2483,6 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
   }
 }
 
-class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  late Database db;
-  List<Map<String, dynamic>> history = [];
-  bool _useHindi = false;
-
-  // Helper function to get English saint name based on saint ID
-  String getEnglishSaintName(String saintId) {
-    // Handle the special "ALL" case
-    if (saintId == "ALL") {
-      return "All";
-    }
-
-    final englishSaint = saintsEn.firstWhere(
-      (saint) => saint.id == saintId,
-      orElse: () => saintsEn[0] as Saint, // fallback to first saint if not found
-    );
-    return englishSaint.name;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final locale = Localizations.localeOf(context);
-    setState(() {
-      _useHindi = locale.languageCode == 'hi';
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 5, vsync: this); // Changed from 4 to 5 for Books tab
-    _initDb();
-  }
-
-  Future<void> _initDb() async {
-    db = await openDatabase(
-      p.join(await getDatabasesPath(), 'qna.db'),
-      onCreate: (db, version) {
-        return db.execute(
-          'CREATE TABLE qna(id INTEGER PRIMARY KEY, saint TEXT, question TEXT, answer TEXT)',
-        );
-      },
-      version: 1,
-    );
-    _loadHistory();
-  }
-
-  Future<void> _loadHistory() async {
-    final List<Map<String, dynamic>> maps = await db.query(
-      'qna',
-      where: 'saint = ?',
-      whereArgs: [widget.saint.name],
-      orderBy: 'id DESC',
-    );
-    setState(() {
-      history = maps;
-    });
-  }
-
-  Future<void> _addQnA(String question, String answer) async {
-    await db.insert('qna', {
-      'saint': widget.saint.name,
-      'question': question,
-      'answer': answer,
-    });
-    _loadHistory();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    db.close();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
-    final saintId = widget.saint.id;
-    final saintName = widget.saint.name;
-    final saintImage = widget.saint.image;
-    final saintQuotes = widget.saint.quotes;
-    final saintArticles = widget.saint.articles;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(saintName),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: loc.quotes),
-            Tab(text: loc.articles),
-            Tab(text: loc.ask),
-            Tab(text: loc.history),
-            Tab(text: 'Books'), // New Books tab
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          QuotesTab(
-            quotes: saintQuotes,
-            image: saintImage,
-            saintName: saintName,
-            saintId: saintId, // Pass saint ID to QuotesTab
-          ),
-          ArticlesTab(
-            articles: saintArticles as List<Article>,
-          ),
-          AskTab(
-            onSubmit: (q, a) => _addQnA(q, a),
-            saintId: saintId, // Pass saint ID instead of saint name
-            userName: widget.userName,
-          ),
-          HistoryTab(history: history),
-          BooksTab(saintId: saintId, saintName: saintName), // Pass both saint ID and name to BooksTab
-        ],
-      ),
-    );
-  }
-}
-
-class QuotesTab extends StatefulWidget {
-  final List<String> quotes;
-  final String image;
-  final String saintName;
-  final String saintId; // Add saint ID to find the correct Hindi name
-  QuotesTab({required this.quotes, required this.image, required this.saintName, required this.saintId});
-  @override
-  _QuotesTabState createState() => _QuotesTabState();
-}
-
-class _QuotesTabState extends State<QuotesTab> {
-  Set<String> _readQuotes = {};
-  Set<String> _bookmarkedQuotes = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadReadQuotes();
-    _loadBookmarkedQuotes();
-  }
-
-  Future<void> _loadReadQuotes() async {
-    final read = await ReadStatusService.getReadQuotes();
-    setState(() {
-      _readQuotes = read;
-    });
-  }
-
-  Future<void> _loadBookmarkedQuotes() async {
-    final bookmarked = await ReadStatusService.getBookmarkedQuotes();
-    setState(() {
-      _bookmarkedQuotes = bookmarked;
-    });
-  }
-
-  String _quoteId(String quote) {
-    // Use the correct saint name based on current language
-    final languageCode = Localizations.localeOf(context).languageCode;
-    String saintNameForId;
-
-    // Get saint name from appropriate language list
-    List<dynamic> saintsList;
-    switch (languageCode) {
-      case 'hi':
-        saintsList = saintsHi;
-        break;
-      case 'de':
-        saintsList = saintsDe;
-        break;
-      case 'kn':
-        saintsList = saintsKn;
-        break;
-      default:
-        saintsList = saintsEn;
-    }
-
-    if (languageCode != 'en') {
-      // Find the saint name in the current language using the saint ID
-      final saint = saintsList.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsList[0] as Saint);
-      saintNameForId = saint.name;
-    } else {
-      saintNameForId = widget.saintName;
-    }
-
-    return '$saintNameForId|||$quote';
-  }
-
-  Future<void> _toggleBookmark(String quote) async {
-    final id = _quoteId(quote);
-    final isBookmarked = _bookmarkedQuotes.contains(id);
-
-    if (isBookmarked) {
-      await ReadStatusService.removeBookmark(id);
-      setState(() {
-        _bookmarkedQuotes.remove(id);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Quote removed from bookmarks')),
-      );
-    } else {
-      await ReadStatusService.bookmarkQuote(id);
-      setState(() {
-        _bookmarkedQuotes.add(id);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Quote bookmarked!')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final quoteTextStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
-      fontStyle: FontStyle.italic,
-      fontSize: 18,
-      height: 1.4,
-    );
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: brightness == Brightness.dark
-              ? [Colors.grey.shade900, Colors.black]
-              : [Colors.deepOrange.shade50, Colors.white],
-        ),
-      ),
-      child: ListView.separated(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 100, // Use MediaQuery for system padding + extra space
-        ),
-        itemCount: widget.quotes.length + 1,
-        separatorBuilder: (context, index) => SizedBox(height: 16),
-        itemBuilder: (context, i) {
-          if (i == 0) {
-            return Container(
-              margin: EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.deepOrange.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(25),
-                child: SaintImagePlaceholder(imagePath: widget.image),
-              ),
-            );
-          }
-          final quote = widget.quotes[i - 1];
-          final id = _quoteId(quote);
-          final isRead = _readQuotes.contains(id);
-          final isBookmarked = _bookmarkedQuotes.contains(id);
-
-          return Container(
-            margin: EdgeInsets.symmetric(horizontal: 4),
-            child: Material(
-              elevation: isRead ? 4 : 8,
-              borderRadius: BorderRadius.circular(20),
-              shadowColor: isRead
-                  ? Colors.grey.withOpacity(0.3)
-                  : Colors.deepOrange.withOpacity(0.4),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: brightness == Brightness.dark
-                        ? (isRead
-                            ? [Colors.grey.shade800, Colors.grey.shade900]
-                            : [Colors.grey.shade800, Colors.grey.shade800])
-                        : (isRead
-                            ? [Colors.white, Colors.grey.shade50]
-                            : [Colors.white, Colors.orange.shade50]),
-                  ),
-                  border: isRead
-                      ? null
-                      : Border.all(
-                          color: brightness == Brightness.dark
-                              ? Colors.orange.shade700
-                              : Colors.deepOrange.shade100,
-                          width: 1,
-                        ),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () async {
-                    // Navigate to single quote view page
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SingleQuoteViewPage(
-                          quotes: widget.quotes,
-                          initialIndex: i - 1,
-                          saintName: widget.saintName,
-                          saintId: widget.saintId,
-                          image: widget.image,
-                        ),
-                      ),
-                    );
-                    // Reload read status after returning from single quote view
-                    _loadReadQuotes();
-                    _loadBookmarkedQuotes();
-                  },
-                  child: Padding(
-                    padding: EdgeInsets.all(12), // Reduced from 16 to 12
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (!isRead)
-                              Container(
-                                margin: EdgeInsets.only(top: 4, right: 12),
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: Colors.deepOrange,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            Expanded(
-                              child: Text(
-                                '"$quote"',
-                                style: quoteTextStyle?.copyWith(
-                                  fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
-                                  color: brightness == Brightness.dark
-                                      ? (isRead
-                                          ? Colors.grey.shade400
-                                          : Colors.orange.shade300)
-                                      : (isRead
-                                          ? Colors.grey.shade700
-                                          : Colors.deepOrange.shade800),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: brightness == Brightness.dark
-                                    ? (isBookmarked
-                                        ? Colors.orange.shade900
-                                        : Colors.grey.shade800)
-                                    : (isBookmarked
-                                        ? Colors.orange.shade100
-                                        : Colors.grey.shade100),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: IconButton(
-                                icon: Icon(
-                                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                                  color: brightness == Brightness.dark
-                                      ? (isBookmarked ? Colors.orange.shade300 : Colors.grey.shade400)
-                                      : (isBookmarked ? Colors.orange.shade700 : Colors.grey.shade600),
-                                  size: 22,
-                                ),
-                                onPressed: () => _toggleBookmark(quote),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            )
-          );
-        },
-      ),
-    );
-  }
-}
-
 class ArticlesTab extends StatefulWidget {
   final List<Article> articles;
   ArticlesTab({required this.articles});
@@ -2894,8 +2508,8 @@ class _ArticlesTabState extends State<ArticlesTab> {
   }
 
   String _articleId(Article a) {
-    // Use heading + saint as unique ID (adjust if you have a better unique key)
-    return a.heading;
+    // Use explicit ID if provided, otherwise fall back to heading
+    return a.id ?? a.heading;
   }
 
   @override
@@ -3273,9 +2887,8 @@ class _AboutAppPageState extends State<AboutAppPage> {
 
     // Get the current locale to determine which video to show
     final locale = Localizations.localeOf(context);
-    final languageCode = locale.languageCode;
-    // Hindi has its own video, others use English video
-    final expectedVideoId = languageCode == 'hi' ? '-xgEbJzLs5k' : '7OXjZOvLW0Y';
+    final isHindi = locale.languageCode == 'hi';
+    final expectedVideoId = isHindi ? '-xgEbJzLs5k' : '7OXjZOvLW0Y';
 
     // Initialize controller only once
     if (!_isInitialized) {
@@ -3411,38 +3024,51 @@ class _BookmarkedQuotesPageState extends State<BookmarkedQuotesPage> {
 
   Future<void> _loadBookmarkedQuotes() async {
     final bookmarked = await ReadStatusService.getBookmarkedQuotes();
-    final languageCode = Localizations.localeOf(context).languageCode;
-
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final isKannada = Localizations.localeOf(context).languageCode == 'kn';
     // Get all quotes from all saints
     final allQuotes = <Map<String, String>>[];
 
-    // Get the appropriate saints list based on language
-    List<dynamic> saintsList;
-    switch (languageCode) {
-      case 'hi':
-        saintsList = saintsHi;
-        break;
-      case 'de':
-        saintsList = saintsDe;
-        break;
-      case 'kn':
-        saintsList = saintsKn;
-        break;
-      default:
-        saintsList = saintsEn;
-    }
-
-    // Collect all bookmarked quotes from the appropriate language
-    for (final saint in saintsList) {
-      for (final quote in saint.quotes) {
-        final quoteId = '${saint.name}|||$quote';
-        if (bookmarked.contains(quoteId)) {
-          allQuotes.add({
-            'quote': quote,
-            'saint': saint.name,
-            'image': saint.image,
-            'id': quoteId,
-          });
+    if (isHindi) {
+      for (final saint in saintsHi) {
+        for (final quote in saint.quotes) {
+          final quoteId = '${saint.name}|||$quote';
+          if (bookmarked.contains(quoteId)) {
+            allQuotes.add({
+              'quote': quote,
+              'saint': saint.name,
+              'image': saint.image,
+              'id': quoteId,
+            });
+          }
+        }
+      }
+    } else if (isKannada) {
+      for (final saint in saintsKn) {
+        for (final quote in saint.quotes) {
+          final quoteId = '${saint.name}|||$quote';
+          if (bookmarked.contains(quoteId)) {
+            allQuotes.add({
+              'quote': quote,
+              'saint': saint.name,
+              'image': saint.image,
+              'id': quoteId,
+            });
+          }
+        }
+      }
+    } else {
+      for (final saint in saintsEn) {
+        for (final quote in saint.quotes) {
+          final quoteId = '${saint.name}|||$quote';
+          if (bookmarked.contains(quoteId)) {
+            allQuotes.add({
+              'quote': quote,
+              'saint': saint.name,
+              'image': saint.image,
+              'id': quoteId,
+            });
+          }
         }
       }
     }
@@ -3868,11 +3494,13 @@ class BuyMeACoffeePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final isKannada = Localizations.localeOf(context).languageCode == 'kn';
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          loc.buyMeACoffee,
+          isHindi ? 'मुझे कॉफी खरीदें' : (isKannada ? 'ನಾನು ಕಾಫಿ ಖರೀದಿಸಿ' : 'Buy me a coffee'),
           style: GoogleFonts.playfairDisplay(
             fontWeight: FontWeight.bold,
             fontSize: 24,
@@ -3931,7 +3559,7 @@ class BuyMeACoffeePage extends StatelessWidget {
                       SizedBox(height: 24),
                       RichText(
                         text: TextSpan(
-                          text: '☕ ${loc.buyMeACoffee}',
+                          text: isHindi ? '☕ मुझे कॉफी खरीदें' : (isKannada ? '☕ ನಾನು ಕಾಫಿ ಖರೀದಿಸಿ' : '☕ Buy me a coffee'),
                           style: GoogleFonts.playfairDisplay(
                             color: Colors.deepOrange.shade700,
                             decoration: TextDecoration.underline,
@@ -3986,12 +3614,14 @@ class BuyMeACoffeePage extends StatelessWidget {
                                 }
 
                                 if (!launched) {
-                                  final isHindi = Localizations.localeOf(context).languageCode == 'hi';
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(isHindi
                                         ? 'लिंक खोलने में असमर्थ। कृपया मैन्युअल रूप से buymeacoffee.com/AntarikshVerse पर जाएं।'
-                                        : 'Unable to open link. Please visit buymeacoffee.com/AntarikshVerse manually.'
+                                        : (isKannada
+                                          ? 'ಲಿಂಕ್ ತೆರೆಯಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ. ದಯವಿಟ್ಟು ಖರೀದಿಸುಮೆ ಕಾಫಿ.ಕಾಮ್/ಅಂತಾರಿಕ್ಷವರ್ಸ್ ಗೆ ಹೋಗಿ.'
+                                          : 'Unable to open link. Please visit buymeacoffee.com/AntarikshVerse manually.'
+                                        ),
                                       ),
                                       duration: Duration(seconds: 5),
                                       action: SnackBarAction(
@@ -4014,13 +3644,14 @@ class BuyMeACoffeePage extends StatelessWidget {
                                 }
                               } catch (e) {
                                 print('General URL launch error: $e');
-                                final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+                                final message = isHindi
+                                    ? 'ब्राउज़र खोलने में विफल: ${e.toString()}'
+                                    : (isKannada
+                                        ? 'ಬ್ರೌಸರ್ ತೆರೆಯಲು ವಿಫಲವಾಗಿದೆ: ${e.toString()}'
+                                        : 'Failed to open browser: ${e.toString()}');
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text((isHindi
-                                      ? 'ब्राउज़र खोलने में विफल: '
-                                      : 'Failed to open browser: ') + e.toString()
-                                    ),
+                                    content: Text(message),
                                     duration: Duration(seconds: 5),
                                   ),
                                 );
@@ -4030,7 +3661,7 @@ class BuyMeACoffeePage extends StatelessWidget {
                       ),
                       SizedBox(height: 32),
                       Text(
-                        Localizations.localeOf(context).languageCode == 'hi' ? loc.supportTextHi : loc.supportTextEn,
+                        isHindi ? loc.supportTextHi : loc.supportTextEn,
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey.shade700,
@@ -4094,23 +3725,10 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
 
       String image = 'assets/images/vivekananda.jpg'; // default
 
-      // Get the appropriate saints list based on language
-      List<dynamic> saintsList;
-      switch (languageCode) {
-        case 'hi':
-          saintsList = saintsHi;
-          break;
-        case 'de':
-          saintsList = saintsDe;
-          break;
-        case 'kn':
-          saintsList = saintsKn;
-          break;
-        default:
-          saintsList = saintsEn;
-      }
+      final List<dynamic> saintsList = languageCode == 'hi'
+          ? saintsHi
+          : (languageCode == 'kn' ? saintsKn : saintsEn);
 
-      // Find the saint image
       for (final saint in saintsList) {
         if (saint.name == quoteData['saint']) {
           image = saint.image;
@@ -4223,37 +3841,10 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
     }
   }
 
-  Future<void> _copyQuoteOfTheDay() async {
-    final textToCopy = '"$quote"\n\n— $saintName';
-
-    try {
-      await Clipboard.setData(ClipboardData(text: textToCopy));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Quote copied to clipboard!'),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to copy quote'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final brightness = Theme.of(context).brightness;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -4291,10 +3882,9 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.deepOrange.shade50,
-              Colors.white,
-            ],
+            colors: brightness == Brightness.dark
+                ? [Colors.grey.shade900, Colors.black]
+                : [Colors.deepOrange.shade50, Colors.white],
           ),
         ),
         child: Center(
@@ -4426,20 +4016,6 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                   heroTag: "refresh",
                   child: Icon(Icons.refresh, color: Colors.white),
                   tooltip: 'Get New Quote',
-                ),
-                SizedBox(height: 16),
-                FloatingActionButton.extended(
-                  onPressed: _copyQuoteOfTheDay,
-                  backgroundColor: Colors.green.shade600,
-                  heroTag: "copy",
-                  icon: Icon(Icons.copy, color: Colors.white),
-                  label: Text(
-                    'Copy Quote',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
                 ),
                 SizedBox(height: 16),
                 FloatingActionButton.extended(

@@ -5,8 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:permission_handler/permission_handler.dart';
-import 'articlesquotes.dart';
+import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
+import 'articlesquotes_de.dart';
+import 'articlesquotes_kn.dart';
 import 'ekadashi_service.dart';
 
 class NotificationService {
@@ -486,26 +488,36 @@ class NotificationService {
     final random = Random();
 
     try {
+      final allQuotes = <Map<String, String>>[];
+
       if (locale.languageCode == 'hi') {
-        final allQuotes = <Map<String, String>>[];
         for (final s in saintsHi) {
           for (final q in s.quotes) {
             allQuotes.add({'quote': q, 'saint': s.name});
           }
         }
-        if (allQuotes.isNotEmpty) {
-          return allQuotes[random.nextInt(allQuotes.length)];
-        }
-      } else {
-        final allQuotes = <Map<String, String>>[];
-        for (final s in saints) {
+      } else if (locale.languageCode == 'kn') {
+        for (final s in saintsKn) {
           for (final q in s.quotes) {
             allQuotes.add({'quote': q, 'saint': s.name});
           }
         }
-        if (allQuotes.isNotEmpty) {
-          return allQuotes[random.nextInt(allQuotes.length)];
+      } else if (locale.languageCode == 'de') {
+        for (final s in saintsDe) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
         }
+      } else {
+        for (final s in saintsEn) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      }
+
+      if (allQuotes.isNotEmpty) {
+        return allQuotes[random.nextInt(allQuotes.length)];
       }
     } catch (e) {
       print('Error getting random quote: $e');
@@ -679,10 +691,10 @@ class NotificationService {
     }
   }
 
-  static Future<void> showTestNotification() async {
+  static Future<void> showTestNotification(Locale locale) async {
     try {
-      // Get the quote of the day for the test notification
-      final quote = await _getQuoteOfTheDay(const Locale('en')); // Default to English for test
+      // Get the quote of the day for the test notification using the provided locale
+      final quote = await _getQuoteOfTheDay(locale);
 
       await _notificationsPlugin.show(
         999,
@@ -707,7 +719,7 @@ class NotificationService {
           ),
         ),
       );
-      print('✓ Test notification sent with Quote of the Day: ${quote['quote']}');
+      print('✓ Test notification sent with Quote of the Day (${locale.languageCode}): ${quote['quote']}');
     } catch (e) {
       print('✗ Error showing test notification: $e');
     }
@@ -718,22 +730,25 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final today = DateTime.now().toIso8601String().substring(0, 10); // YYYY-MM-DD format
+      final languageCode = locale.languageCode;
 
-      // Check if we already have a quote for today
+      // Check if we already have a quote for today in the current language
       final savedDate = prefs.getString('quote_of_day_date');
+      final savedLanguage = prefs.getString('quote_of_day_language');
       final savedQuote = prefs.getString('quote_of_day_quote');
       final savedSaint = prefs.getString('quote_of_day_saint');
 
-      if (savedDate == today && savedQuote != null && savedSaint != null) {
-        // Return today's already selected quote
+      if (savedDate == today && savedLanguage == languageCode && savedQuote != null && savedSaint != null) {
+        // Return today's already selected quote for this language
         return {'quote': savedQuote, 'saint': savedSaint};
       }
 
-      // Generate new quote for today
+      // Generate new quote for today in the current language
       final quote = _getRandomQuote(locale);
 
-      // Save today's quote
+      // Save today's quote with the language code
       await prefs.setString('quote_of_day_date', today);
+      await prefs.setString('quote_of_day_language', languageCode);
       await prefs.setString('quote_of_day_quote', quote['quote']!);
       await prefs.setString('quote_of_day_saint', quote['saint']!);
 

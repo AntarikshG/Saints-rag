@@ -51,6 +51,8 @@ flutter:
     - assets/images/quotesbanner.jpg
     - assets/images/quotesbanner_dark.jpg
     - assets/images/Promote_1.jpeg
+    - assets/images/ramkrishna.jpg
+    - assets/images/tapovan_maharaj.jpg
   uses-material-design: true
 
 # Dependencies specify other packages that your package needs in order to work.

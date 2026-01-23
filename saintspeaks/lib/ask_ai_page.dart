@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config_service.dart';
 import 'l10n/app_localizations.dart';
-import 'articlesquotes.dart'; // For saints data
+import 'articlesquotes_en.dart'; // For saints data
 import 'rich_text_parser.dart'; // For FormattedSelectableText
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
@@ -341,6 +341,31 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
                       ),
                     ),
                     Spacer(),
+                    // Copy button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.green.shade900.withOpacity(0.3)
+                            : Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? Colors.green.shade700 : Colors.green.shade200
+                        ),
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _copyHistoryItem(index),
+                        child: Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.copy,
+                            color: isDark ? Colors.green.shade400 : Colors.green.shade700,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
                     // Share button
                     Container(
                       decoration: BoxDecoration(
@@ -451,6 +476,40 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
       },
     );
   }
+
+  // Copy history item to clipboard
+  Future<void> _copyHistoryItem(int index) async {
+    final item = _history[index];
+    final textToCopy = 'Question: ${item['question']}\n\nAnswer: ${item['answer']}';
+
+    try {
+      await Clipboard.setData(ClipboardData(text: textToCopy));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Copied to clipboard!'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }
 
 class AskTab extends StatefulWidget {
@@ -482,9 +541,9 @@ class _AskTabState extends State<AskTab> {
       return "All";
     }
 
-    final englishSaint = saints.firstWhere(
+    final englishSaint = saintsEn.firstWhere(
       (saint) => saint.id == saintId,
-      orElse: () => saints[0], // fallback to first saint if not found
+      orElse: () => saintsEn[0] as Saint, // fallback to first saint if not found
     );
     return englishSaint.name;
   }
@@ -739,6 +798,42 @@ class _AskTabState extends State<AskTab> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error sharing: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Copy current question and answer to clipboard
+  Future<void> _copyCurrentAnswer() async {
+    if (_answer == null) return;
+
+    final textToCopy = 'Question: ${_controller.text}\n\nAnswer: $_answer';
+
+
+    try {
+      await Clipboard.setData(ClipboardData(text: textToCopy));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Copied to clipboard!'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1214,25 +1309,46 @@ class _AskTabState extends State<AskTab> {
               if (_answer != null)
                 Container(
                   margin: EdgeInsets.only(top: 16),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          icon: Icon(Icons.share),
-                          label: Text('Share as Image'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isDark ? Colors.blue.shade600 : Colors.blue.shade600,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: Icon(Icons.copy),
+                              label: Text('Copy Text'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isDark ? Colors.green.shade600 : Colors.green.shade600,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _copyCurrentAnswer,
                             ),
                           ),
-                          onPressed: _shareQuestionAnswer,
-                        ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: Icon(Icons.share),
+                              label: Text('Share Image'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isDark ? Colors.blue.shade600 : Colors.blue.shade600,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _shareQuestionAnswer,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
+                      SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: Icon(Icons.flag_outlined),
                           label: Text('Flag'),
