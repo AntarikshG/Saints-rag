@@ -618,7 +618,7 @@ class _AskTabState extends State<AskTab> {
     if (_config == null || !_config!.gradioServerRunning) {
       setState(() {
         _lines.clear();
-        _lines.add('Gradio server is not running. Please try again later.');
+        _lines.add('Gradio server is meditating and not working :-). Seek answer in meditation and please try again later.');
         _loading = false;
         _answer = null;
       });
@@ -678,7 +678,7 @@ class _AskTabState extends State<AskTab> {
       final responseFuture = _client!.send(request);
       late http.StreamedResponse response;
       try {
-        response = await responseFuture.timeout(const Duration(seconds: 15), onTimeout: () {
+        response = await responseFuture.timeout(const Duration(seconds: 60), onTimeout: () {
           throw Exception('Server timeout. Please try again later.');
         });
       } catch (e) {
