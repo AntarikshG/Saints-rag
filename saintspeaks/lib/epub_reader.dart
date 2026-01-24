@@ -100,12 +100,16 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
-  // Filtered TTS languages - only English and Hindi variants from UK, India, and US
+  // Filtered TTS languages - English, Hindi, Kannada, and German variants
   final Map<String, String> _supportedTtsLanguages = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
     'en-IN': 'English (India)',
     'hi-IN': 'Hindi (India)',
+    'kn-IN': 'Kannada (India)',
+    'de-DE': 'German (Germany)',
+    'de-AT': 'German (Austria)',
+    'de-CH': 'German (Switzerland)',
   };
 
   // Filtered voices based on supported languages
@@ -2466,9 +2470,16 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                             child: ElevatedButton.icon(
                               onPressed: () async {
                                 try {
-                                  final testText = _selectedLanguage.startsWith('hi')
-                                      ? 'यह एक परीक्षण है।'
-                                      : 'This is a test of text-to-speech.';
+                                  String testText;
+                                  if (_selectedLanguage.startsWith('hi')) {
+                                    testText = 'यह एक परीक्षण है।';
+                                  } else if (_selectedLanguage.startsWith('kn')) {
+                                    testText = 'ಇದು ಒಂದು ಪರೀಕ್ಷೆಯಾಗಿದೆ.';
+                                  } else if (_selectedLanguage.startsWith('de')) {
+                                    testText = 'Dies ist ein Test der Sprachausgabe.';
+                                  } else {
+                                    testText = 'This is a test of text-to-speech.';
+                                  }
                                   await _flutterTts!.speak(testText);
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(

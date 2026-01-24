@@ -79,12 +79,16 @@ class _ArticlePageState extends State<ArticlePage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
-  // Supported TTS languages map for Article
+  // Supported TTS languages map for Article - English, Hindi, Kannada, and German
   final Map<String, String> _supportedTtsLanguages = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
     'en-IN': 'English (India)',
     'hi-IN': 'Hindi (India)',
+    'kn-IN': 'Kannada (India)',
+    'de-DE': 'German (Germany)',
+    'de-AT': 'German (Austria)',
+    'de-CH': 'German (Switzerland)',
   };
 
   // Filtered voices based on supported languages
@@ -849,9 +853,16 @@ class _ArticlePageState extends State<ArticlePage> {
               child: ElevatedButton.icon(
                 onPressed: () async {
                   try {
-                    final testText = _selectedLanguage.startsWith('hi')
-                        ? 'यह एक परीक्षण है।'
-                        : 'This is a test of text-to-speech.';
+                    String testText;
+                    if (_selectedLanguage.startsWith('hi')) {
+                      testText = 'यह एक परीक्षण है।';
+                    } else if (_selectedLanguage.startsWith('kn')) {
+                      testText = 'ಇದು ಒಂದು ಪರೀಕ್ಷೆಯಾಗಿದೆ.';
+                    } else if (_selectedLanguage.startsWith('de')) {
+                      testText = 'Dies ist ein Test der Sprachausgabe.';
+                    } else {
+                      testText = 'This is a test of text-to-speech.';
+                    }
                     await _flutterTts!.speak(testText);
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -1962,6 +1973,66 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// Custom painter for mindmap connecting lines
+class MindMapLinesPainter extends CustomPainter {
+  final bool isDark;
+
+  MindMapLinesPainter({this.isDark = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = isDark
+          ? Colors.deepOrange.withOpacity(0.5)
+          : Colors.deepOrange.withOpacity(0.3)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+
+    // Draw lines from center to top options (Quotes and Articles)
+    // Top left (Quotes)
+    canvas.drawLine(
+      Offset(centerX, centerY - 30),
+      Offset(centerX - 80, 40),
+      paint,
+    );
+
+    // Top right (Articles)
+    canvas.drawLine(
+      Offset(centerX, centerY - 30),
+      Offset(centerX + 80, 40),
+      paint,
+    );
+
+    // Draw lines from center to bottom options (Ask AI, History, Books)
+    // Bottom left (Ask AI)
+    canvas.drawLine(
+      Offset(centerX, centerY + 30),
+      Offset(centerX - 110, size.height - 40),
+      paint,
+    );
+
+    // Bottom center (History)
+    canvas.drawLine(
+      Offset(centerX, centerY + 30),
+      Offset(centerX, size.height - 40),
+      paint,
+    );
+
+    // Bottom right (Books)
+    canvas.drawLine(
+      Offset(centerX, centerY + 30),
+      Offset(centerX + 110, size.height - 40),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class SaintPage extends StatefulWidget {
   final dynamic saint; // Accept both Saint and SaintHi
   final String userName;
@@ -2480,8 +2551,7 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
   }
 }
 
-class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _SaintPageState extends State<SaintPage> {
   late Database db;
   List<Map<String, dynamic>> history = [];
   bool _useHindi = false;
@@ -2512,7 +2582,6 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this); // Changed from 4 to 5 for Books tab
     _initDb();
   }
 
@@ -2552,7 +2621,6 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
 
   @override
   void dispose() {
-    _tabController.dispose();
     db.close();
     super.dispose();
   }
@@ -2566,40 +2634,308 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
     final saintImage = widget.saint.image;
     final saintQuotes = widget.saint.quotes;
     final saintArticles = widget.saint.articles;
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(saintName),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: loc.quotes),
-            Tab(text: loc.articles),
-            Tab(text: loc.ask),
-            Tab(text: loc.history),
-            Tab(text: 'Books'), // New Books tab
+        centerTitle: true,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [
+                    Colors.grey.shade900,
+                    Colors.grey.shade800,
+                    Colors.grey.shade900,
+                  ]
+                : [
+                    Colors.orange.shade50,
+                    Colors.white,
+                    Colors.orange.shade50,
+                  ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              children: [
+                SizedBox(height: 20),
+
+                // Top row - 2 options (Quotes and Articles)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 30),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.format_quote,
+                        label: loc.quotes,
+                        color: isDark ? Colors.deepPurple.shade300 : Colors.deepPurple,
+                        onTap: () => _navigateToTab(context, 0, loc),
+                      ),
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.article,
+                        label: loc.articles,
+                        color: isDark ? Colors.blue.shade300 : Colors.blue,
+                        onTap: () => _navigateToTab(context, 1, loc),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 30),
+
+                // Center - Saint Image with decorative lines
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Connecting lines
+                    CustomPaint(
+                      size: Size(MediaQuery.of(context).size.width, 280),
+                      painter: MindMapLinesPainter(isDark: isDark),
+                    ),
+
+                    // Saint Image
+                    Hero(
+                      tag: 'saint_${saintId}',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.deepOrange.withOpacity(isDark ? 0.6 : 0.4),
+                              blurRadius: 30,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                          border: Border.all(
+                            color: isDark ? Colors.grey.shade700 : Colors.white,
+                            width: 5,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 80,
+                          backgroundImage: AssetImage(saintImage),
+                          backgroundColor: isDark ? Colors.grey.shade800 : Colors.white,
+                        ),
+                      ),
+                    ),
+
+                    // Saint name badge below image
+                    Positioned(
+                      bottom: 20,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isDark
+                                ? [Colors.deepOrange.shade400, Colors.orange.shade300]
+                                : [Colors.deepOrange, Colors.orange],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.deepOrange.withOpacity(isDark ? 0.5 : 0.4),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          saintName,
+                          style: GoogleFonts.playfairDisplay(
+                            color: isDark ? Colors.grey.shade900 : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 30),
+
+                // Bottom row - 3 options (Ask AI, History, Books)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.chat_bubble_outline,
+                        label: loc.ask,
+                        color: isDark ? Colors.green.shade300 : Colors.green,
+                        onTap: () => _navigateToTab(context, 2, loc),
+                      ),
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.history,
+                        label: loc.history,
+                        color: isDark ? Colors.orange.shade300 : Colors.orange,
+                        onTap: () => _navigateToTab(context, 3, loc),
+                      ),
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.menu_book,
+                        label: 'Books',
+                        color: isDark ? Colors.red.shade300 : Colors.red,
+                        onTap: () => _navigateToTab(context, 4, loc),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 30),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMindMapOption({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 100,
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey.shade900 : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(isDark ? 0.4 : 0.3),
+              blurRadius: 15,
+              offset: Offset(0, 5),
+            ),
+          ],
+          border: Border.all(
+            color: color.withOpacity(isDark ? 0.5 : 0.3),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [color.withOpacity(0.7), color.withOpacity(0.9)]
+                      : [color.withOpacity(0.8), color],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(isDark ? 0.5 : 0.4),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              label,
+              style: GoogleFonts.notoSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.grey.shade200 : Colors.grey.shade800,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          QuotesTab(
-            quotes: saintQuotes,
-            image: saintImage,
-            saintName: saintName,
-            saintId: saintId, // Pass saint ID to QuotesTab
+    );
+  }
+
+  void _navigateToTab(BuildContext context, int tabIndex, AppLocalizations loc) {
+    final saintId = widget.saint.id;
+    final saintName = widget.saint.name;
+    final saintImage = widget.saint.image;
+    final saintQuotes = widget.saint.quotes;
+    final saintArticles = widget.saint.articles;
+
+    Widget page;
+    String title;
+
+    switch (tabIndex) {
+      case 0:
+        page = QuotesTab(
+          quotes: saintQuotes,
+          image: saintImage,
+          saintName: saintName,
+          saintId: saintId,
+        );
+        title = loc.quotes;
+        break;
+      case 1:
+        page = ArticlesTab(
+          articles: saintArticles as List<Article>,
+        );
+        title = loc.articles;
+        break;
+      case 2:
+        page = AskTab(
+          onSubmit: (q, a) => _addQnA(q, a),
+          saintId: saintId,
+          userName: widget.userName,
+        );
+        title = loc.ask;
+        break;
+      case 3:
+        page = HistoryTab(history: history);
+        title = loc.history;
+        break;
+      case 4:
+        page = BooksTab(saintId: saintId, saintName: saintName);
+        title = 'Books';
+        break;
+      default:
+        return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text('$saintName - $title'),
           ),
-          ArticlesTab(
-            articles: saintArticles as List<Article>,
-          ),
-          AskTab(
-            onSubmit: (q, a) => _addQnA(q, a),
-            saintId: saintId, // Pass saint ID instead of saint name
-            userName: widget.userName,
-          ),
-          HistoryTab(history: history),
-          BooksTab(saintId: saintId, saintName: saintName), // Pass both saint ID and name to BooksTab
-        ],
+          body: page,
+        ),
       ),
     );
   }

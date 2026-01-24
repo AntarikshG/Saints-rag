@@ -847,68 +847,6 @@ class _AskTabState extends State<AskTab> {
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
 
-    // Check if this is AnandMoyiMa or Baba Neeb Karori and disable Ask AI feature
-    if (widget.saintId == 'anandmoyima' || widget.saintId == 'baba_neeb_karori') {
-      final String unavailableMessage = widget.saintId == 'anandmoyima'
-          ? loc.askAINotAvailableForAnandmoyima
-          : loc.askAINotAvailableForBabaNeebKarori;
-
-      return SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.block,
-                  size: 64,
-                  color: isDark ? Colors.grey[400] : Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  loc.askAIFeatureDisabled,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.grey[300] : Colors.grey[700],
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  unavailableMessage,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  loc.comingSoon,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.orange[300] : Colors.deepOrange,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  loc.exploreOtherTabs,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? Colors.grey[500] : Colors.grey[500],
-                    fontStyle: FontStyle.italic,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
 
     bool showError = false;
     if (_hasTriedAsk && _lines.isNotEmpty && _answer == null) {
@@ -1105,6 +1043,7 @@ class _AskTabState extends State<AskTab> {
                           child: _loading
                             ? Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   SizedBox(
                                     width: 20,
@@ -1115,23 +1054,30 @@ class _AskTabState extends State<AskTab> {
                                     ),
                                   ),
                                   SizedBox(width: 12),
-                                  Text(
-                                    loc.gettingWisdomFromSaints,
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                  Flexible(
+                                    child: Text(
+                                      loc.gettingWisdomFromSaints,
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ],
                               )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     Icons.send_rounded,
                                     size: 22,
                                   ),
                                   SizedBox(width: 8),
-                                  Text(
-                                    hasText ? loc.askAISpiritualFriend : loc.enterQuestionToAsk,
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                  Flexible(
+                                    child: Text(
+                                      hasText ? loc.askAISpiritualFriend : loc.enterQuestionToAsk,
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ],
                               ),
