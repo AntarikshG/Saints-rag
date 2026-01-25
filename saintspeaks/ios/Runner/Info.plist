@@ -33,13 +33,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app uses microphone access</string>
+	<string>This app uses microphone to enable voice input for asking spiritual questions</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app needs access to save and share quote images</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to share quote images</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app uses speech recognition</string>
+	<string>This app uses speech recognition to convert your spoken questions into text</string>
 	<key>NSSpeechSynthesisUsageDescription</key>
 	<string>This app uses speech synthesis to read books aloud</string>
 	<key>NSAppTransportSecurity</key>

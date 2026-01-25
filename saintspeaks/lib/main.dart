@@ -34,6 +34,9 @@ import 'articlesquotes_kn.dart';
 import 'bookmarked_quotes_page.dart';
 import 'quote_of_the_day_page.dart';
 import 'spiritual_diary_page.dart';
+import 'notification_settings_page.dart';
+import 'badge_service.dart';
+import 'badge_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -955,6 +958,9 @@ class SaintImagePlaceholder extends StatelessWidget {
 }
 
 class MyApp extends StatefulWidget {
+  // Add global navigator key to enable navigation from notifications
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   State<MyApp> createState() => _MyAppState();
 }
@@ -972,7 +978,8 @@ class _MyAppState extends State<MyApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         print('🚀 Initializing app notifications...');
-        await NotificationService.initialize(context);
+        // Pass the navigator key for notification tap handling
+        await NotificationService.initialize(context, navigatorKey: MyApp.navigatorKey);
 
         // Check and auto-reschedule if needed instead of always scheduling
         await NotificationService.checkAndRescheduleIfNeeded(_locale);
@@ -1085,6 +1092,7 @@ class _MyAppState extends State<MyApp> {
       );
     }
     return MaterialApp(
+      navigatorKey: MyApp.navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Motivational Saints',
       themeMode: _themeMode,
@@ -1227,6 +1235,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final GlobalKey<BadgeWidgetState> _badgeKey = GlobalKey<BadgeWidgetState>();
 
   // Helper method to get saints list based on language
   List<dynamic> _getSaintsForLanguage(String languageCode) {
@@ -1240,6 +1249,10 @@ class _HomePageState extends State<HomePage> {
       default:
         return saintsEn;
     }
+  }
+
+  void _refreshBadge() {
+    _badgeKey.currentState?.refresh();
   }
 
   @override
@@ -1311,6 +1324,12 @@ class _HomePageState extends State<HomePage> {
           loc.inspiringSaints,
           style: Theme.of(context).textTheme.headlineMedium,
         ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: BadgeWidget(key: _badgeKey, showDetails: false),
+          ),
+        ],
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: appBarGradient,
@@ -1385,6 +1404,15 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
+                  // Badge display in drawer
+                  BadgeWidget(showDetails: true, userName: widget.userName),
+                  Divider(
+                    color: brightness == Brightness.dark
+                        ? Colors.white24
+                        : Colors.black12,
+                    thickness: 1,
+                    height: 1,
+                  ),
                   _buildDrawerItem(context, Icons.contact_page, loc.contact, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => ContactPage()));
@@ -1425,28 +1453,11 @@ class _HomePageState extends State<HomePage> {
                     Navigator.pop(context);
                     RatingShareService.showRatingShareDialog(context);
                   }),
-                  _buildDrawerItem(context, Icons.notifications_active, loc.setDailyNotifications, () async {
+                  _buildDrawerItem(context, Icons.notifications_active, loc.setDailyNotifications, () {
                     Navigator.pop(context);
-
-                    // Show current notification configuration
-                    final configInfo = NotificationService.getNotificationConfigInfo();
-                    final locale = Localizations.localeOf(context);
-                    await NotificationService.showTestNotification(locale);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('✅ Test notification sent!'),
-                            SizedBox(height: 4),
-                            Text(configInfo, style: TextStyle(fontSize: 12)),
-                          ],
-                        ),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 5),
-                      ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => NotificationSettingsPage()),
                     );
                   }),
                   // Only show "Buy me a coffee" option on Android
@@ -1527,7 +1538,7 @@ class _HomePageState extends State<HomePage> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()),
-                    ),
+                    ).then((_) => _refreshBadge()),
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       child: Row(
@@ -1536,7 +1547,9 @@ class _HomePageState extends State<HomePage> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.deepOrange.shade50,
+                              color: brightness == Brightness.dark
+                                  ? Colors.orange.shade900
+                                  : Colors.deepOrange.shade50,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
@@ -1548,7 +1561,9 @@ class _HomePageState extends State<HomePage> {
                             ),
                             child: Icon(
                               Icons.format_quote,
-                              color: Colors.deepOrange.shade700,
+                              color: brightness == Brightness.dark
+                                  ? Colors.orange.shade300
+                                  : Colors.deepOrange.shade700,
                               size: 20,
                             ),
                           ),
@@ -1584,12 +1599,16 @@ class _HomePageState extends State<HomePage> {
                           Container(
                             padding: EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: Colors.deepOrange.shade100,
+                              color: brightness == Brightness.dark
+                                  ? Colors.orange.shade900
+                                  : Colors.deepOrange.shade100,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               Icons.arrow_forward_ios,
-                              color: Colors.deepOrange.shade700,
+                              color: brightness == Brightness.dark
+                                  ? Colors.orange.shade300
+                                  : Colors.deepOrange.shade700,
                               size: 14,
                             ),
                           ),
@@ -1751,7 +1770,7 @@ class _HomePageState extends State<HomePage> {
                               userName: widget.userName,
                             ),
                           ),
-                        ),
+                        ).then((_) => _refreshBadge()),
                         child: Padding(
                           padding: EdgeInsets.all(10), // Reduced from 12 to 10
                           child: Column(
@@ -2078,6 +2097,22 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
     _pageController = PageController(initialPage: widget.initialIndex);
     _loadReadQuotes();
     _loadBookmarkedQuotes();
+    _markInitialQuoteAsRead();
+  }
+
+  Future<void> _markInitialQuoteAsRead() async {
+    // Mark the initial quote as read when the page opens
+    final quote = widget.quotes[widget.initialIndex];
+    final id = _quoteId(quote);
+    final wasAlreadyRead = await ReadStatusService.wasQuoteRead(id);
+    await ReadStatusService.markQuoteRead(id);
+    setState(() {
+      _readQuotes.add(id);
+    });
+    // Award points only if this is the first time reading
+    if (!wasAlreadyRead) {
+      await BadgeService.awardQuotePoints();
+    }
   }
 
   @override
@@ -2278,6 +2313,25 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
         text: '"$quote"\n\n— ${widget.saintName}\n\n✨ Shared from Talk with Saints App\nDownload now for daily spiritual wisdom!',
         sharePositionOrigin: sharePositionOrigin,
       );
+
+      // Award points for sharing (distribution of knowledge)
+      await BadgeService.awardSharePoints();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.stars, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('Quote shared! +${BadgeService.POINTS_SHARE_QUOTE} points earned! 🎉'),
+              ],
+            ),
+            backgroundColor: Colors.green.shade600,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to share quote')),
@@ -2357,10 +2411,15 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
             // Mark quote as read when viewed
             final quote = widget.quotes[index];
             final id = _quoteId(quote);
+            final wasAlreadyRead = await ReadStatusService.wasQuoteRead(id);
             await ReadStatusService.markQuoteRead(id);
             setState(() {
               _readQuotes.add(id);
             });
+            // Award points only if this is the first time reading
+            if (!wasAlreadyRead) {
+              await BadgeService.awardQuotePoints();
+            }
           },
           itemCount: widget.quotes.length,
           itemBuilder: (context, index) {
@@ -3276,10 +3335,15 @@ class _ArticlesTabState extends State<ArticlesTab> {
             ),
             trailing: Icon(Icons.article, color: Colors.blueGrey[300]),
             onTap: () async {
+              final wasAlreadyRead = await ReadStatusService.wasArticleRead(id);
               await ReadStatusService.markArticleRead(id);
               setState(() {
                 _readArticles.add(id);
               });
+              // Award points only if this is the first time reading
+              if (!wasAlreadyRead) {
+                await BadgeService.awardArticlePoints();
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(

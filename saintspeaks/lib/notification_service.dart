@@ -10,10 +10,12 @@ import 'articlesquotes_hi.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
 import 'ekadashi_service.dart';
+import 'quote_of_the_day_page.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static GlobalKey<NavigatorState>? _navigatorKey;
 
   // Configurable notification settings - Changed from 60 to 2 for better reliability
   static const int NOTIFICATIONS_PER_DAY = 2; // Morning and evening notifications
@@ -56,10 +58,13 @@ class NotificationService {
     return '✨ Night Contemplation';
   }
 
-  static Future<void> initialize(BuildContext? context) async {
+  static Future<void> initialize(BuildContext? context, {GlobalKey<NavigatorState>? navigatorKey}) async {
     if (_initialized) return;
 
     print('🚀 Initializing NotificationService...');
+
+    // Store the navigator key for handling notification taps
+    _navigatorKey = navigatorKey;
 
     // Initialize timezone database
     try {
@@ -119,6 +124,7 @@ class NotificationService {
         settings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           print('Notification tapped: ${response.payload}');
+          _handleNotificationTap(response);
         },
       );
 
@@ -615,6 +621,9 @@ class NotificationService {
           final title = _getNotificationTitle(hour);
 
           try {
+            // Create payload with quote data
+            final payload = 'daily_quote|${quote['quote']}|${quote['saint']}';
+
             await _notificationsPlugin.zonedSchedule(
               notificationId++,
               title,
@@ -645,6 +654,7 @@ class NotificationService {
                 ),
               ),
               androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+              payload: payload,
             );
 
             successCount++;
@@ -696,6 +706,9 @@ class NotificationService {
       // Get the quote of the day for the test notification using the provided locale
       final quote = await _getQuoteOfTheDay(locale);
 
+      // Create payload with quote data
+      final payload = 'daily_quote|${quote['quote']}|${quote['saint']}';
+
       await _notificationsPlugin.show(
         999,
         '✅ Quote of the Day',
@@ -718,6 +731,7 @@ class NotificationService {
             sound: 'default',
           ),
         ),
+        payload: payload,
       );
       print('✓ Test notification sent with Quote of the Day (${locale.languageCode}): ${quote['quote']}');
     } catch (e) {
@@ -768,6 +782,46 @@ class NotificationService {
   static Map<String, String> getRandomQuoteNow(Locale locale) {
     return _getRandomQuote(locale);
   }
+
+  // Handle notification tap - navigate to Quote of the Day page
+  static void _handleNotificationTap(NotificationResponse response) {
+    print('📱 Handling notification tap with payload: ${response.payload}');
+
+    // Use the navigator key to navigate to the Quote of the Day page
+    if (_navigatorKey?.currentContext != null) {
+      final context = _navigatorKey!.currentContext!;
+
+      // Parse the payload to extract quote data
+      String? quoteText;
+      String? saintName;
+
+      if (response.payload != null && response.payload!.startsWith('daily_quote|')) {
+        try {
+          final parts = response.payload!.split('|');
+          if (parts.length >= 3) {
+            quoteText = parts[1];
+            saintName = parts[2];
+            print('📝 Parsed quote: "$quoteText" by $saintName');
+          }
+        } catch (e) {
+          print('⚠️ Error parsing payload: $e');
+        }
+      }
+
+      // Navigate to Quote of the Day page with the quote data
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => QuoteOfTheDayPage(
+            notificationQuote: quoteText,
+            notificationSaint: saintName,
+          ),
+        ),
+      );
+      print('✓ Navigated to Quote of the Day page');
+    } else {
+      print('⚠️ Navigator context not available');
+    }
+  }
 }
 
 class ReadStatusService {
@@ -783,8 +837,15 @@ class ReadStatusService {
   static Future<void> markArticleRead(String articleId) async {
     final prefs = await SharedPreferences.getInstance();
     final read = prefs.getStringList(_readArticlesKey)?.toSet() ?? <String>{};
+    final wasNew = !read.contains(articleId);
     read.add(articleId);
     await prefs.setStringList(_readArticlesKey, read.toList());
+
+    // Award points only if this is the first time reading this article
+    if (wasNew) {
+      // Import badge_service dynamically to avoid circular dependencies
+      // The calling code will handle points awarding
+    }
   }
 
   static Future<Set<String>> getReadQuotes() async {
@@ -795,8 +856,26 @@ class ReadStatusService {
   static Future<void> markQuoteRead(String quoteId) async {
     final prefs = await SharedPreferences.getInstance();
     final read = prefs.getStringList(_readQuotesKey)?.toSet() ?? <String>{};
+    final wasNew = !read.contains(quoteId);
     read.add(quoteId);
     await prefs.setStringList(_readQuotesKey, read.toList());
+
+    // Award points only if this is the first time reading this quote
+    if (wasNew) {
+      // Import badge_service dynamically to avoid circular dependencies
+      // The calling code will handle points awarding
+    }
+  }
+
+  // Helper methods to check if quote/article was already read before marking
+  static Future<bool> wasQuoteRead(String quoteId) async {
+    final read = await getReadQuotes();
+    return read.contains(quoteId);
+  }
+
+  static Future<bool> wasArticleRead(String articleId) async {
+    final read = await getReadArticles();
+    return read.contains(articleId);
   }
 
   static Future<Set<String>> getBookmarkedQuotes() async {

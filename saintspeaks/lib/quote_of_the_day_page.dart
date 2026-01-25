@@ -14,6 +14,15 @@ import 'notification_service.dart';
 import 'l10n/app_localizations.dart';
 
 class QuoteOfTheDayPage extends StatefulWidget {
+  final String? notificationQuote;
+  final String? notificationSaint;
+
+  const QuoteOfTheDayPage({
+    Key? key,
+    this.notificationQuote,
+    this.notificationSaint,
+  }) : super(key: key);
+
   @override
   _QuoteOfTheDayPageState createState() => _QuoteOfTheDayPageState();
 }
@@ -44,8 +53,21 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
       if (!mounted) return;
 
       final locale = Localizations.localeOf(context);
-      // Use the new method to get a fresh random quote each time
-      final quoteData = NotificationService.getRandomQuoteNow(locale);
+
+      // Check if we have notification data to display
+      Map<String, String> quoteData;
+      if (widget.notificationQuote != null && widget.notificationSaint != null) {
+        // Use the quote from the notification
+        quoteData = {
+          'quote': widget.notificationQuote!,
+          'saint': widget.notificationSaint!,
+        };
+        print('📱 Using quote from notification: "${widget.notificationQuote}" by ${widget.notificationSaint}');
+      } else {
+        // Use the new method to get a fresh random quote each time
+        quoteData = NotificationService.getRandomQuoteNow(locale);
+        print('🎲 Loading random quote');
+      }
 
       // Ensure we got valid quote data
       if (quoteData['quote'] == null || quoteData['saint'] == null) {
@@ -217,6 +239,8 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -233,17 +257,25 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.deepOrange.shade100.withOpacity(0.9),
-                Colors.orange.shade50.withOpacity(0.9),
-              ],
+              colors: isDark
+                  ? [
+                      Colors.grey.shade900.withOpacity(0.95),
+                      Colors.grey.shade800.withOpacity(0.95),
+                    ]
+                  : [
+                      Colors.deepOrange.shade100.withOpacity(0.9),
+                      Colors.orange.shade50.withOpacity(0.9),
+                    ],
             ),
           ),
         ),
         actions: [
           if (!isLoading)
             IconButton(
-              icon: Icon(Icons.share, color: Colors.deepOrange.shade700),
+              icon: Icon(
+                Icons.share,
+                color: isDark ? Colors.orange.shade300 : Colors.deepOrange.shade700,
+              ),
               onPressed: _shareQuoteScreenshot,
               tooltip: 'Share Quote',
             ),
@@ -254,10 +286,15 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.deepOrange.shade50,
-              Colors.white,
-            ],
+            colors: isDark
+                ? [
+                    Colors.grey.shade900,
+                    Colors.black,
+                  ]
+                : [
+                    Colors.deepOrange.shade50,
+                    Colors.white,
+                  ],
           ),
         ),
         child: Center(
@@ -265,7 +302,9 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
             padding: const EdgeInsets.all(24.0),
             child: isLoading
               ? CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isDark ? Colors.orange.shade300 : Colors.deepOrange,
+                  ),
                 )
               : Screenshot(
                   controller: screenshotController,
@@ -275,13 +314,20 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Colors.white, Colors.orange.shade50],
+                        colors: isDark
+                            ? [Colors.grey.shade800, Colors.grey.shade900]
+                            : [Colors.white, Colors.orange.shade50],
                       ),
                       borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Colors.orange.shade200, width: 2),
+                      border: Border.all(
+                        color: isDark ? Colors.orange.shade800 : Colors.orange.shade200,
+                        width: 2,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.deepOrange.withOpacity(0.3),
+                          color: isDark
+                              ? Colors.black.withOpacity(0.5)
+                              : Colors.deepOrange.withOpacity(0.3),
                           blurRadius: 15,
                           offset: Offset(0, 5),
                         ),
@@ -299,7 +345,9 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.deepOrange.withOpacity(0.3),
+                                  color: isDark
+                                      ? Colors.orange.shade900.withOpacity(0.5)
+                                      : Colors.deepOrange.withOpacity(0.3),
                                   blurRadius: 15,
                                   offset: Offset(0, 5),
                                 ),
@@ -308,7 +356,7 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                             child: CircleAvatar(
                               backgroundImage: AssetImage(saintImage),
                               radius: 55,
-                              backgroundColor: Colors.white,
+                              backgroundColor: isDark ? Colors.grey.shade800 : Colors.white,
                             ),
                           ),
                         SizedBox(height: 28),
@@ -317,12 +365,16 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                         Container(
                           padding: EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: isDark ? Colors.grey.shade700 : Colors.white,
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Colors.orange.shade100),
+                            border: Border.all(
+                              color: isDark ? Colors.orange.shade900 : Colors.orange.shade100,
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
+                                color: isDark
+                                    ? Colors.black.withOpacity(0.3)
+                                    : Colors.grey.withOpacity(0.1),
                                 blurRadius: 12,
                                 offset: Offset(0, 4),
                               ),
@@ -332,7 +384,9 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                             children: [
                               Icon(
                                 Icons.format_quote,
-                                color: Colors.deepOrange.shade400,
+                                color: isDark
+                                    ? Colors.orange.shade300
+                                    : Colors.deepOrange.shade400,
                                 size: 30,
                               ),
                               SizedBox(height: 16),
@@ -342,7 +396,7 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
                                   height: 1.5,
-                                  color: Colors.grey.shade800,
+                                  color: isDark ? Colors.white : Colors.grey.shade800,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -357,7 +411,9 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                           style: GoogleFonts.notoSans(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.deepOrange.shade700,
+                            color: isDark
+                                ? Colors.orange.shade300
+                                : Colors.deepOrange.shade700,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -385,7 +441,7 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
               children: [
                 FloatingActionButton(
                   onPressed: _loadQuoteOfTheDay,
-                  backgroundColor: Colors.orange.shade600,
+                  backgroundColor: isDark ? Colors.orange.shade700 : Colors.orange.shade600,
                   heroTag: "refresh",
                   child: Icon(Icons.refresh, color: Colors.white),
                   tooltip: 'Get New Quote',
@@ -393,7 +449,7 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                 SizedBox(height: 16),
                 FloatingActionButton.extended(
                   onPressed: _copyQuoteOfTheDay,
-                  backgroundColor: Colors.green.shade600,
+                  backgroundColor: isDark ? Colors.green.shade700 : Colors.green.shade600,
                   heroTag: "copy",
                   icon: Icon(Icons.copy, color: Colors.white),
                   label: Text(
@@ -407,7 +463,7 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
                 SizedBox(height: 16),
                 FloatingActionButton.extended(
                   onPressed: _shareQuoteScreenshot,
-                  backgroundColor: Colors.deepOrange.shade600,
+                  backgroundColor: isDark ? Colors.deepOrange.shade700 : Colors.deepOrange.shade600,
                   heroTag: "share",
                   icon: Icon(Icons.share, color: Colors.white),
                   label: Text(

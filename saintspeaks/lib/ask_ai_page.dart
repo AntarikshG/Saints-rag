@@ -12,6 +12,9 @@ import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter_tts/flutter_tts.dart';
+import 'badge_service.dart';
 
 class AskAIPage extends StatefulWidget {
   final String userName;
@@ -56,6 +59,10 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
 
     final historyJson = _history.map((item) => jsonEncode(item)).toList();
     await prefs.setStringList('ask_all_history', historyJson);
+
+    // Award points for asking a question
+    await BadgeService.awardQuestionPoints();
+
     setState(() {});
   }
 
@@ -534,6 +541,41 @@ class _AskTabState extends State<AskTab> {
   bool _hasTriedAsk = false;
   final ScreenshotController _screenshotController = ScreenshotController();
 
+  // STT (Speech-to-Text) functionality for voice input
+  stt.SpeechToText? _speechToText;
+  bool _isListening = false;
+  bool _speechAvailable = false;
+  String _recognizedText = '';
+  String _sttLanguage = 'en_US'; // Default STT language
+
+  // TTS (Text-to-Speech) functionality for answer reading
+  FlutterTts? _flutterTts;
+  bool _isTtsPlaying = false;
+  bool _isTtsPaused = false;
+  bool _isTtsInitialized = false;
+  String _ttsLanguage = 'en-US'; // Default TTS language
+  double _ttsRate = 0.5; // Speech rate
+  double _ttsPitch = 1.0; // Speech pitch
+  List<dynamic> _availableTtsLanguages = [];
+  List<String> _availableSttLanguages = [];
+
+  // Supported languages map
+  final Map<String, String> _supportedLanguages = {
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    'en-IN': 'English (India)',
+    'hi-IN': 'Hindi (India)',
+    'de-DE': 'German (Germany)',
+  };
+
+  final Map<String, String> _sttLanguageCodes = {
+    'en-US': 'en_US',
+    'en-GB': 'en_GB',
+    'en-IN': 'en_IN',
+    'hi-IN': 'hi_IN',
+    'de-DE': 'de_DE',
+  };
+
   // Helper function to get English saint name based on saint ID
   String getEnglishSaintName(String saintId) {
     // Handle the special "ALL" case
@@ -551,6 +593,11 @@ class _AskTabState extends State<AskTab> {
   @override
   void initState() {
     super.initState();
+    _loadSettings();
+    _speechToText = stt.SpeechToText();
+    // Don't initialize speech-to-text here - wait until user tries to record
+    _flutterTts = FlutterTts();
+    _initializeTts();
     _controller.addListener(() {
       // Clear results when text changes after a question has been asked
       if (_hasTriedAsk) {
@@ -565,6 +612,34 @@ class _AskTabState extends State<AskTab> {
       }
     });
     _fetchConfig();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _ttsLanguage = prefs.getString('ask_ai_tts_language') ?? 'en-US';
+      _ttsRate = prefs.getDouble('ask_ai_tts_rate') ?? 0.5;
+      _ttsPitch = prefs.getDouble('ask_ai_tts_pitch') ?? 1.0;
+      _sttLanguage = prefs.getString('ask_ai_stt_language') ?? 'en_US';
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('ask_ai_tts_language', _ttsLanguage);
+    await prefs.setDouble('ask_ai_tts_rate', _ttsRate);
+    await prefs.setDouble('ask_ai_tts_pitch', _ttsPitch);
+    await prefs.setString('ask_ai_stt_language', _sttLanguage);
+  }
+
+  @override
+  void dispose() {
+    _stopTts();
+    _flutterTts?.stop();
+    _controller.dispose();
+    _subscription?.cancel();
+    _client?.close();
+    super.dispose();
   }
 
   Future<void> _fetchConfig() async {
@@ -590,7 +665,485 @@ class _AskTabState extends State<AskTab> {
     }
   }
 
+  // STT (Speech-to-Text) Methods for Voice Input
+  Future<void> _initializeSpeechToText() async {
+    try {
+      if (_speechToText == null) return;
+
+      bool available = await _speechToText!.initialize(
+        onStatus: (status) {
+          print('STT Status: $status');
+          if (status == 'done' || status == 'notListening') {
+            if (mounted) {
+              setState(() {
+                _isListening = false;
+              });
+            }
+          }
+        },
+        onError: (error) {
+          print('STT Error: $error');
+          if (mounted) {
+            setState(() {
+              _isListening = false;
+            });
+
+            // Provide helpful error messages
+            String errorMessage = 'Speech recognition error';
+            if (error.errorMsg.contains('error_no_match')) {
+              errorMessage = 'No speech detected. Please try again or check your microphone.';
+              if (Platform.isAndroid || Platform.isIOS) {
+                errorMessage += '\n\nNote: Voice input may not work on emulators/simulators. Please test on a real device.';
+              }
+            } else if (error.errorMsg.contains('error_network')) {
+              errorMessage = 'Network error. Please check your internet connection.';
+            } else if (error.errorMsg.contains('error_busy')) {
+              errorMessage = 'Speech recognizer is busy. Please try again in a moment.';
+            } else if (error.errorMsg.contains('error_not_available')) {
+              errorMessage = 'Speech recognition not available on this device.';
+            } else {
+              errorMessage = 'Speech recognition error: ${error.errorMsg}';
+            }
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage),
+                backgroundColor: Colors.orange.shade700,
+                duration: Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'OK',
+                  textColor: Colors.white,
+                  onPressed: () {},
+                ),
+              ),
+            );
+          }
+        },
+      );
+
+      if (available && mounted) {
+        // Get available locales
+        try {
+          final locales = await _speechToText!.locales();
+          final supportedLocales = locales.where((locale) {
+            final localeId = locale.localeId.replaceAll('-', '_');
+            return _sttLanguageCodes.values.contains(localeId);
+          }).toList();
+
+          setState(() {
+            _speechAvailable = true;
+            _availableSttLanguages = supportedLocales.map((l) => l.localeId.replaceAll('-', '_')).toList();
+          });
+        } catch (e) {
+          print('STT: Error getting locales: $e');
+          setState(() {
+            _speechAvailable = available;
+          });
+        }
+      }
+
+      print('STT: Speech recognition available: $available');
+      print('STT: Available languages: $_availableSttLanguages');
+    } catch (e) {
+      print('STT: Initialization error: $e');
+      if (mounted) {
+        setState(() {
+          _speechAvailable = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _startListening() async {
+    if (_speechToText == null) {
+      print('STT: Speech recognition not available');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Speech recognition not available on this device'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Initialize speech-to-text if not already done (this will request permission)
+    if (!_speechAvailable) {
+      await _initializeSpeechToText();
+
+      // Check if initialization was successful
+      if (!_speechAvailable) {
+        print('STT: Failed to initialize speech recognition');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initialize speech recognition. Please check microphone permissions.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+    }
+
+    // Check if running on simulator/emulator and show warning
+    final isEmulator = await _isRunningOnEmulator();
+    if (isEmulator && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⚠️ Voice input may not work on emulator/simulator. Please test on a real device.'),
+          backgroundColor: Colors.orange.shade600,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+
+    setState(() {
+      _isListening = true;
+      _recognizedText = '';
+    });
+
+    await _speechToText!.listen(
+      onResult: (result) {
+        if (mounted) {
+          setState(() {
+            _recognizedText = result.recognizedWords;
+            // Update the text field with recognized text
+            _controller.text = _recognizedText;
+            // Move cursor to end
+            _controller.selection = TextSelection.fromPosition(
+              TextPosition(offset: _controller.text.length),
+            );
+          });
+        }
+      },
+      localeId: _sttLanguage,
+      listenMode: stt.ListenMode.confirmation,
+      cancelOnError: true,
+      partialResults: true,
+    );
+  }
+
+  void _stopListening() async {
+    if (_speechToText != null && _isListening) {
+      await _speechToText!.stop();
+      setState(() {
+        _isListening = false;
+      });
+    }
+  }
+
+  // Helper method to detect if running on emulator/simulator
+  Future<bool> _isRunningOnEmulator() async {
+    try {
+      if (Platform.isAndroid) {
+        // For Android, we'll show the warning in error handler instead
+        // since it's hard to reliably detect emulator without additional packages
+        return false;
+      } else if (Platform.isIOS) {
+        // For iOS, check environment variables that might indicate simulator
+        return Platform.environment.containsKey('SIMULATOR_UDID') ||
+               Platform.environment.containsKey('FLUTTER_TEST');
+      }
+    } catch (e) {
+      print('Error detecting emulator: $e');
+    }
+    return false;
+  }
+
+  // TTS Initialization and Control Methods
+  Future<void> _initializeTts() async {
+    try {
+      print('TTS: Initializing Text-to-Speech for Ask AI...');
+
+      if (_flutterTts == null) {
+        print('TTS: FlutterTts instance is null');
+        return;
+      }
+
+      // Set up TTS handlers
+      _flutterTts!.setStartHandler(() {
+        print('TTS: Started speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = true;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setCompletionHandler(() {
+        print('TTS: Completed speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setCancelHandler(() {
+        print('TTS: Cancelled speaking');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      _flutterTts!.setErrorHandler((msg) {
+        print('TTS: Error - $msg');
+        if (mounted) {
+          setState(() {
+            _isTtsPlaying = false;
+            _isTtsPaused = false;
+          });
+        }
+      });
+
+      // Get available languages
+      try {
+        _availableTtsLanguages = await _flutterTts!.getLanguages;
+        print('TTS: Available languages: $_availableTtsLanguages');
+      } catch (e) {
+        print('TTS: Error getting languages: $e');
+      }
+
+      // Set TTS properties from saved settings
+      await _flutterTts!.setLanguage(_ttsLanguage);
+      await _flutterTts!.setSpeechRate(_ttsRate);
+      await _flutterTts!.setPitch(_ttsPitch);
+
+      setState(() {
+        _isTtsInitialized = true;
+      });
+
+      print('TTS: Initialization completed with language: $_ttsLanguage, rate: $_ttsRate, pitch: $_ttsPitch');
+    } catch (e) {
+      print('TTS: Initialization failed: $e');
+      setState(() {
+        _isTtsInitialized = false;
+      });
+    }
+  }
+
+  Future<void> _startTts() async {
+    if (_flutterTts == null || !_isTtsInitialized || _answer == null) {
+      print('TTS: Cannot start - not initialized or no answer available');
+      return;
+    }
+
+    try {
+      await _flutterTts!.speak(_answer!);
+      print('TTS: Started reading answer');
+    } catch (e) {
+      print('TTS: Error starting: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('TTS Error: Unable to read answer'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pauseTts() async {
+    if (_flutterTts != null && _isTtsPlaying) {
+      try {
+        await _flutterTts!.pause();
+        setState(() {
+          _isTtsPaused = true;
+          _isTtsPlaying = false;
+        });
+        print('TTS: Paused');
+      } catch (e) {
+        print('TTS: Error pausing: $e');
+      }
+    }
+  }
+
+  Future<void> _stopTts() async {
+    if (_flutterTts != null) {
+      try {
+        await _flutterTts!.stop();
+        setState(() {
+          _isTtsPlaying = false;
+          _isTtsPaused = false;
+        });
+        print('TTS: Stopped');
+      } catch (e) {
+        print('TTS: Error stopping: $e');
+      }
+    }
+  }
+
+  // Show settings dialog for STT and TTS configuration
+  void _showVoiceSettings() {
+    final loc = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.settings_voice, color: isDark ? Colors.blue.shade300 : Colors.blue.shade700),
+                  SizedBox(width: 12),
+                  Text('Voice Settings'),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // TTS Settings
+                    Text(
+                      'Text-to-Speech (Reading)',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.purple.shade300 : Colors.purple.shade700,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+
+                    // TTS Language
+                    Text('Language:', style: TextStyle(fontWeight: FontWeight.w600)),
+                    SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _ttsLanguage,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: _supportedLanguages.entries.map((entry) {
+                        return DropdownMenuItem(
+                          value: entry.key,
+                          child: Text(entry.value),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() {
+                            _ttsLanguage = value;
+                          });
+                          setState(() {
+                            _ttsLanguage = value;
+                          });
+                          _flutterTts?.setLanguage(value);
+                          _saveSettings();
+                        }
+                      },
+                    ),
+                    SizedBox(height: 16),
+
+                    // Speech Rate
+                    Text('Speech Rate: ${_ttsRate.toStringAsFixed(1)}',
+                         style: TextStyle(fontWeight: FontWeight.w600)),
+                    Slider(
+                      value: _ttsRate,
+                      min: 0.1,
+                      max: 1.0,
+                      divisions: 9,
+                      label: _ttsRate.toStringAsFixed(1),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _ttsRate = value;
+                        });
+                        setState(() {
+                          _ttsRate = value;
+                        });
+                        _flutterTts?.setSpeechRate(value);
+                        _saveSettings();
+                      },
+                    ),
+                    SizedBox(height: 16),
+
+                    // Pitch
+                    Text('Pitch: ${_ttsPitch.toStringAsFixed(1)}',
+                         style: TextStyle(fontWeight: FontWeight.w600)),
+                    Slider(
+                      value: _ttsPitch,
+                      min: 0.5,
+                      max: 2.0,
+                      divisions: 15,
+                      label: _ttsPitch.toStringAsFixed(1),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _ttsPitch = value;
+                        });
+                        setState(() {
+                          _ttsPitch = value;
+                        });
+                        _flutterTts?.setPitch(value);
+                        _saveSettings();
+                      },
+                    ),
+                    SizedBox(height: 24),
+
+                    // STT Settings
+                    Text(
+                      'Speech-to-Text (Voice Input)',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+
+                    // STT Language
+                    Text('Language:', style: TextStyle(fontWeight: FontWeight.w600)),
+                    SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _sttLanguage,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: _sttLanguageCodes.entries.map((entry) {
+                        return DropdownMenuItem(
+                          value: entry.value,
+                          child: Text(_supportedLanguages[entry.key] ?? entry.key),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() {
+                            _sttLanguage = value;
+                          });
+                          setState(() {
+                            _sttLanguage = value;
+                          });
+                          _saveSettings();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _askQuestion() async {
+    // Stop TTS if it's playing
+    await _stopTts();
+
     // Dismiss keyboard first (especially important for iOS)
     FocusScope.of(context).unfocus();
 
@@ -909,6 +1462,17 @@ class _AskTabState extends State<AskTab> {
                             ),
                           ),
                         ),
+                        // Voice Settings Button
+                        IconButton(
+                          icon: Icon(
+                            Icons.settings_voice,
+                            color: isDark ? Colors.blue.shade300 : Colors.purple.shade600,
+                          ),
+                          onPressed: _showVoiceSettings,
+                          tooltip: 'Voice Settings',
+                          padding: EdgeInsets.all(8),
+                          constraints: BoxConstraints(),
+                        ),
                       ],
                     ),
                     SizedBox(height: 12),
@@ -983,44 +1547,109 @@ class _AskTabState extends State<AskTab> {
                         ),
                       ),
                       SizedBox(height: 12),
-                      TextField(
-                        controller: _controller,
-                        maxLines: 4,
-                        decoration: InputDecoration(
-                          hintText: loc.questionPlaceholder,
-                          hintStyle: TextStyle(
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: isDark ? Colors.grey.shade600 : Colors.purple.shade200
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              maxLines: 4,
+                              decoration: InputDecoration(
+                                hintText: loc.questionPlaceholder,
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade500
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: isDark ? Colors.grey.shade600 : Colors.purple.shade200
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: isDark ? Colors.blue.shade400 : Colors.purple.shade400,
+                                    width: 2
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: isDark ? Colors.grey.shade600 : Colors.purple.shade200
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: isDark
+                                    ? Colors.grey.shade800.withOpacity(0.5)
+                                    : Colors.purple.shade50,
+                                contentPadding: EdgeInsets.all(16),
+                              ),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
+                              ),
                             ),
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: isDark ? Colors.blue.shade400 : Colors.purple.shade400,
-                              width: 2
+                          SizedBox(width: 12),
+                          // Voice Input Button
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _isListening
+                                ? Colors.red.shade400
+                                : (isDark ? Colors.blue.shade700 : Colors.purple.shade600),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: _isListening
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.red.withOpacity(0.5),
+                                      blurRadius: 8,
+                                      spreadRadius: 2,
+                                    ),
+                                  ]
+                                : [],
+                            ),
+                            child: IconButton(
+                              icon: Icon(
+                                _isListening ? Icons.mic : Icons.mic_none,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                              onPressed: () {
+                                if (_isListening) {
+                                  _stopListening();
+                                } else {
+                                  _startListening();
+                                }
+                              },
+                              tooltip: _isListening ? 'Stop Listening' : 'Voice Input',
+                              padding: EdgeInsets.all(16),
                             ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: isDark ? Colors.grey.shade600 : Colors.purple.shade200
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: isDark
-                              ? Colors.grey.shade800.withOpacity(0.5)
-                              : Colors.purple.shade50,
-                          contentPadding: EdgeInsets.all(16),
-                        ),
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                        ),
+                        ],
                       ),
+                      // Show listening indicator
+                      if (_isListening)
+                        Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.graphic_eq,
+                                color: Colors.red.shade400,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Listening... Speak your question',
+                                style: TextStyle(
+                                  color: Colors.red.shade400,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       SizedBox(height: 16),
 
                       // Enhanced Ask AI Button - Always visible
@@ -1257,6 +1886,67 @@ class _AskTabState extends State<AskTab> {
                   margin: EdgeInsets.only(top: 16),
                   child: Column(
                     children: [
+                      // First row: TTS button (full width)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: Icon(
+                            _isTtsPlaying
+                              ? Icons.pause_circle_filled
+                              : (_isTtsPaused ? Icons.play_circle_filled : Icons.volume_up),
+                            size: 24,
+                          ),
+                          label: Text(
+                            _isTtsPlaying
+                              ? 'Pause Reading'
+                              : (_isTtsPaused ? 'Resume Reading' : 'Read Answer Aloud'),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDark ? Colors.purple.shade600 : Colors.purple.shade600,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 4,
+                          ),
+                          onPressed: () {
+                            if (_isTtsPlaying) {
+                              _pauseTts();
+                            } else if (_isTtsPaused) {
+                              _startTts();
+                            } else {
+                              _startTts();
+                            }
+                          },
+                        ),
+                      ),
+                      // Stop button (only show when TTS is playing or paused)
+                      if (_isTtsPlaying || _isTtsPaused)
+                        Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: Icon(Icons.stop_circle_outlined),
+                              label: Text('Stop Reading'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: isDark ? Colors.purple.shade300 : Colors.purple.shade700,
+                                side: BorderSide(
+                                  color: isDark ? Colors.purple.shade300 : Colors.purple.shade600,
+                                  width: 2,
+                                ),
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _stopTts,
+                            ),
+                          ),
+                        ),
+                      SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(

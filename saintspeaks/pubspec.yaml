@@ -25,6 +25,7 @@ flutter:
   # Add this line to enable the generation of localization files
   generate: true
   assets:
+    - assets/audio/
     - assets/images/vivekananda.jpg
     - assets/images/sivananda.jpg
     - assets/images/shankaracharya.jpg
@@ -94,6 +95,8 @@ dependencies:
   file_picker: ^8.0.6
   # Text-to-Speech
   flutter_tts: ^3.8.5
+  # Speech-to-Text (voice input)
+  speech_to_text: ^7.3.0
   # In-app review for rating functionality
   in_app_review: ^2.0.8
   # YouTube player
