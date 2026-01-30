@@ -15,6 +15,7 @@ import 'saints_hi/nisargadatta_hi.dart';
 import 'saints_hi/neem_karoli_baba_hi.dart';
 import 'saints_hi/tapovan_maharaj_hi.dart';
 import 'saints_hi/ramakrishna_hi.dart';
+import 'saints_hi/sitaramdas_omkarnath_hi.dart';
 
 
 // Create the Hindi saints list from individual saint files
@@ -29,4 +30,5 @@ final saintsHi = [
   neem_karoli_babaSaintHi,
   tapovanMaharajSaintHi,
   ramakrishnaSaintHi,
+  sitaramdasSaintHi,
 ];

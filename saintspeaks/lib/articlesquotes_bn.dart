@@ -16,6 +16,7 @@ import 'saints_bn/nisargadatta_bn.dart';
 import 'saints_bn/neem_karoli_baba_bn.dart';
 import 'saints_bn/tapovan_maharaj_bn.dart';
 import 'saints_bn/ramakrishna_bn.dart';
+import 'saints_bn/sitaramdas_omkarnath_bn.dart';
 
 
 // Create the Bengali saints list from individual saint files
@@ -29,6 +30,6 @@ final saintsBn = [
   nisargadattaSaintBn,
   neemKaroliBabaSaintBn,
   tapovanMaharajSaintBn,
-  ramakrishnaSaintBn,
+  ramakrishnaSaintBn
 ];
 

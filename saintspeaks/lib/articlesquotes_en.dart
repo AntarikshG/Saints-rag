@@ -13,6 +13,7 @@ import 'saints/ramana_en.dart';
 import 'saints/shankaracharya_en.dart';
 import 'saints/ramakrishna_en.dart';
 import 'saints/anandmoyima_en.dart';
+import 'saints/sitaramdas_omkarnath_en.dart';
 import 'saints/nisargadatta_en.dart';
 import 'saints/neem_karoli_baba_en.dart';
 import 'saints/tapovan_maharaj_en.dart';
@@ -28,4 +29,5 @@ final saintsEn = [
   nisargadattaSaint,
   neemKaroliBabaSaint,
   tapovanMaharajSaint,
+  sitaramdasSaint
 ];
