@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_bn.dart';
 import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
 import 'app_localizations_hi.dart';
@@ -96,6 +97,7 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
+    Locale('bn'),
     Locale('de'),
     Locale('en'),
     Locale('hi'),
@@ -335,6 +337,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Kannada'**
   String get kannada;
+
+  /// No description provided for @bengali.
+  ///
+  /// In en, this message translates to:
+  /// **'Bengali'**
+  String get bengali;
 
   /// No description provided for @supportTextHi.
   ///
@@ -611,6 +619,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Discover Saints Speak - Spiritual Wisdom App 🙏'**
   String get shareSubject;
+
+  /// No description provided for @notificationPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Spiritual Wisdom'**
+  String get notificationPermissionTitle;
+
+  /// No description provided for @notificationPermissionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive inspiring quotes from saints twice daily - once in the morning to start your day with wisdom, and once in the evening for reflection.\n\n🌅 Morning wisdom to guide your day\n🌙 Evening reflection for inner peace\n\nThis feature enriches your spiritual journey and is highly recommended!'**
+  String get notificationPermissionMessage;
+
+  /// No description provided for @enableNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Notifications'**
+  String get enableNotifications;
+
+  /// No description provided for @maybeLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Maybe Later'**
+  String get maybeLater;
+
+  /// No description provided for @wisdomSharingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'📖 Share the Wisdom'**
+  String get wisdomSharingTitle;
+
+  /// No description provided for @wisdomSharingVivekanandaQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'The greatest religion is to be true to your own nature. Have faith in yourselves!'**
+  String get wisdomSharingVivekanandaQuote;
+
+  /// No description provided for @wisdomSharingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve been exploring profound spiritual wisdom. Would you like to share this transformative experience with others?'**
+  String get wisdomSharingMessage;
+
+  /// No description provided for @wisdomSharingGyaanaDana.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing knowledge is one of the highest forms of service (Gyaana Dana 📚)'**
+  String get wisdomSharingGyaanaDana;
+
+  /// No description provided for @wisdomSharingCallToAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Help others discover these timeless teachings'**
+  String get wisdomSharingCallToAction;
+
+  /// No description provided for @wisdomSharingGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it!'**
+  String get wisdomSharingGotIt;
 }
 
 class _AppLocalizationsDelegate
@@ -624,7 +692,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['de', 'en', 'hi', 'kn'].contains(locale.languageCode);
+      <String>['bn', 'de', 'en', 'hi', 'kn'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -633,6 +701,8 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'bn':
+      return AppLocalizationsBn();
     case 'de':
       return AppLocalizationsDe();
     case 'en':

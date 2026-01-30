@@ -38,6 +38,7 @@
   "hindi": "Hindi",
   "german": "German",
   "kannada": "Kannada",
+  "bengali": "Bengali",
   "supportTextHi": "स्वाध्याय के मार्ग में विज्ञापन नहीं आना चाहिए, इसलिए यहाँ कोई विज्ञापन नहीं है। यदि आप चाहते हैं कि हमारा सर्वर 24x7 चले और अधिक लोगों तक पहुँचे, तो कृपया इस पहल का समर्थन करें: buymeacoffee.com/Antarikshverse",
   "supportTextEn": "Advertisement shouldn't come in way of Swadhaya and therefore there are no advertisement here. If you like our server to run 24x7 and reach more people, consider supporting this initiative: buymeacoffee.com/Antarikshverse",
   "talkToSpiritualAIFriend": "Talk to spiritual AI friend",
@@ -83,5 +84,15 @@
   "thankYouForSharing": "Thank you for sharing the spiritual journey! 🌟",
   "unableToShare": "Unable to share at the moment. Please try again.",
   "shareMessageAndroid": "🙏Talk with Saints on Android & Ios:\n\n I liked the app and recommend this for staying positive with wisdom of saints, hence sharing this divine experience! 🕉️\n\nDiscover wisdom from great saints and transform your spiritual journey with Talk with Saints.\n\nDownload now\n Android: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints \n iOS : https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070",
-  "shareSubject": "Discover Saints Speak - Spiritual Wisdom App 🙏"
+  "shareSubject": "Discover Saints Speak - Spiritual Wisdom App 🙏",
+  "notificationPermissionTitle": "Daily Spiritual Wisdom",
+  "notificationPermissionMessage": "Receive inspiring quotes from saints twice daily - once in the morning to start your day with wisdom, and once in the evening for reflection.\n\n🌅 Morning wisdom to guide your day\n🌙 Evening reflection for inner peace\n\nThis feature enriches your spiritual journey and is highly recommended!",
+  "enableNotifications": "Enable Notifications",
+  "maybeLater": "Maybe Later",
+  "wisdomSharingTitle": "📖 Share the Wisdom",
+  "wisdomSharingVivekanandaQuote": "The greatest religion is to be true to your own nature. Have faith in yourselves!",
+  "wisdomSharingMessage": "You've been exploring profound spiritual wisdom. Would you like to share this transformative experience with others?",
+  "wisdomSharingGyaanaDana": "Sharing knowledge is one of the highest forms of service (Gyaana Dana 📚)",
+  "wisdomSharingCallToAction": "Help others discover these timeless teachings",
+  "wisdomSharingGotIt": "Got it!"
 }

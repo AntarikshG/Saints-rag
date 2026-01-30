@@ -1,21 +1,29 @@
 import 'dart:math';
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
+import 'articlesquotes_bn.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
 import 'ekadashi_service.dart';
 import 'quote_of_the_day_page.dart';
+import 'l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
   static GlobalKey<NavigatorState>? _navigatorKey;
+
+  // SharedPreferences key for tracking if we've shown the permission dialog
+  static const String _hasAskedNotificationPermissionKey = 'hasAskedNotificationPermission';
 
   // Configurable notification settings - Changed from 60 to 2 for better reliability
   static const int NOTIFICATIONS_PER_DAY = 2; // Morning and evening notifications
@@ -23,6 +31,9 @@ class NotificationService {
 
   // Ekadashi notification IDs - separate range to avoid conflicts
   static const int EKADASHI_NOTIFICATION_ID_START = 5000;
+
+  // App update notification ID
+  static const int APP_UPDATE_NOTIFICATION_ID = 9000;
 
   // Calculate notification times based on notifications per day
   static List<int> get _notificationHours {
@@ -56,6 +67,114 @@ class NotificationService {
     if (hour < 18) return '🌤️ Afternoon Reflection';
     if (hour < 21) return '🌙 Evening Guidance';
     return '✨ Night Contemplation';
+  }
+
+  /// Check if we've already asked for notification permission
+  static Future<bool> hasAskedForNotificationPermission() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_hasAskedNotificationPermissionKey) ?? false;
+  }
+
+  /// Mark that we've asked for notification permission
+  static Future<void> markNotificationPermissionAsAsked() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hasAskedNotificationPermissionKey, true);
+  }
+
+  /// Show pre-permission dialog explaining notification benefits
+  static Future<bool> showNotificationPermissionDialog(BuildContext context) async {
+    print('📱 Showing notification permission dialog...');
+    final loc = AppLocalizations.of(context)!;
+
+    bool userAccepted = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // User must interact with dialog
+      builder: (_) => PopScope(
+        canPop: false, // Prevent back button dismiss
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Column(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.deepOrange.shade300, Colors.deepOrange.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.notifications_active,
+                  size: 40,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                loc.notificationPermissionTitle,
+                style: GoogleFonts.playfairDisplay(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                loc.notificationPermissionMessage,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.5,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                print('👤 User clicked "Maybe Later"');
+                userAccepted = false;
+                Navigator.pop(context);
+              },
+              child: Text(
+                loc.maybeLater,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                print('✅ User clicked "Enable Notifications"');
+                userAccepted = true;
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: Text(
+                loc.enableNotifications,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    print('📱 Dialog closed. User accepted: $userAccepted');
+    return userAccepted;
   }
 
   static Future<void> initialize(BuildContext? context, {GlobalKey<NavigatorState>? navigatorKey}) async {
@@ -108,10 +227,11 @@ class NotificationService {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
+    // iOS settings - don't auto-request permissions, we'll do it after showing dialog
     const DarwinInitializationSettings iOSSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     final InitializationSettings settings = InitializationSettings(
@@ -130,16 +250,21 @@ class NotificationService {
 
       if (initialized == true) {
         print('✓ Notifications initialized successfully');
-        _initialized = true;
+      } else if (initialized == false) {
+        print('⚠️ Notification initialization returned false (this is normal on some platforms)');
       } else {
-        print('✗ Notification initialization returned false');
+        print('⚠️ Notification initialization returned null');
       }
+
+      // Mark as initialized regardless - we can still use notifications
+      _initialized = true;
     } catch (e) {
       print('✗ Error initializing notifications: $e');
+      _initialized = true; // Still mark as initialized to allow scheduling
     }
 
-    // Request all necessary permissions
-    await _requestAllPermissions();
+    // Don't automatically request permissions here
+    // We'll show the pre-permission dialog first and request based on user's choice
   }
 
   static Future<void> _createNotificationChannels() async {
@@ -159,6 +284,14 @@ class NotificationService {
       importance: Importance.high,
     );
 
+    // App update notifications channel
+    const AndroidNotificationChannel updateChannel = AndroidNotificationChannel(
+      'app_update_notifications',
+      'App Updates',
+      description: 'Notifications about new app versions with new saints and features',
+      importance: Importance.high,
+    );
+
     // Create the notification channels
     final androidPlugin = _notificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -166,6 +299,7 @@ class NotificationService {
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(quotesChannel);
       await androidPlugin.createNotificationChannel(ekadashiChannel);
+      await androidPlugin.createNotificationChannel(updateChannel);
       print('✓ Created notification channels');
     }
   }
@@ -174,7 +308,25 @@ class NotificationService {
     bool allGranted = true;
 
     try {
-      // Request notification permission only
+      // For iOS, we need to request permissions through the plugin
+      if (Platform.isIOS) {
+        final bool? result = await _notificationsPlugin
+            .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+            ?.requestPermissions(
+              alert: true,
+              badge: true,
+              sound: true,
+            );
+
+        if (result == true) {
+          print('✓ iOS notification permissions granted');
+        } else {
+          print('✗ iOS notification permissions denied');
+          allGranted = false;
+        }
+      }
+
+      // For Android, use permission_handler
       final notificationStatus = await Permission.notification.status;
       if (!notificationStatus.isGranted) {
         final result = await Permission.notification.request();
@@ -502,6 +654,12 @@ class NotificationService {
             allQuotes.add({'quote': q, 'saint': s.name});
           }
         }
+      } else if (locale.languageCode == 'bn') {
+        for (final s in saintsBn) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
       } else if (locale.languageCode == 'kn') {
         for (final s in saintsKn) {
           for (final q in s.quotes) {
@@ -787,6 +945,13 @@ class NotificationService {
   static void _handleNotificationTap(NotificationResponse response) {
     print('📱 Handling notification tap with payload: ${response.payload}');
 
+    // Handle app update notification
+    if (response.payload == 'app_update') {
+      print('🔄 Opening app store for update');
+      _openAppStoreForUpdate();
+      return;
+    }
+
     // Use the navigator key to navigate to the Quote of the Day page
     if (_navigatorKey?.currentContext != null) {
       final context = _navigatorKey!.currentContext!;
@@ -820,6 +985,74 @@ class NotificationService {
       print('✓ Navigated to Quote of the Day page');
     } else {
       print('⚠️ Navigator context not available');
+    }
+  }
+
+  /// Open app store for update - called when update notification is tapped
+  static Future<void> _openAppStoreForUpdate() async {
+    try {
+      // App store URLs
+      const String androidUrl = 'https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints';
+      const String iosUrl = 'https://apps.apple.com/app/id6757002070';
+
+      final String storeUrl;
+
+      if (Platform.isIOS) {
+        storeUrl = iosUrl;
+      } else if (Platform.isAndroid) {
+        storeUrl = androidUrl;
+      } else {
+        print('[NotificationService] Unsupported platform for app store');
+        return;
+      }
+
+      final Uri url = Uri.parse(storeUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+        print('[NotificationService] ✓ Opened app store: $storeUrl');
+      } else {
+        print('[NotificationService] Cannot launch URL: $url');
+      }
+    } catch (e) {
+      print('[NotificationService] Error opening app store: $e');
+    }
+  }
+
+  /// Show app update notification
+  static Future<void> showUpdateNotification(String latestVersion) async {
+    try {
+      await _notificationsPlugin.show(
+        APP_UPDATE_NOTIFICATION_ID,
+        '🎉 New Version Available!',
+        'Version $latestVersion is now available with new saints and features. Tap to update now!',
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            'app_update_notifications',
+            'App Updates',
+            channelDescription: 'Notifications about new app versions with new saints and features',
+            importance: Importance.high,
+            priority: Priority.high,
+            showWhen: true,
+            icon: '@mipmap/ic_launcher',
+            enableVibration: true,
+            playSound: true,
+            autoCancel: true,
+            styleInformation: BigTextStyleInformation(''),
+            ticker: 'App Update Available',
+            visibility: NotificationVisibility.public,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+            sound: 'default',
+          ),
+        ),
+        payload: 'app_update',
+      );
+      print('✓ App update notification sent');
+    } catch (e) {
+      print('✗ Error showing app update notification: $e');
     }
   }
 }

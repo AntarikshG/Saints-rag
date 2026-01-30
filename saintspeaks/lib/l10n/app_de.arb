@@ -37,6 +37,8 @@
   "english": "Englisch",
   "hindi": "Hindi",
   "german": "Deutsch",
+  "kannada": "Kannada",
+  "bengali": "Bengalisch",
   "supportTextHi": "स्वाध्याय के मार्ग में विज्ञापन नहीं आना चाहिए, इसलिए यहाँ कोई विज्ञापन नहीं है। यदि आप चाहते हैं कि हमारा सर्वर 24x7 चले और अधिक लोगों तक पहुँचे, तो कृपया इस पहल का समर्थन करें: buymeacoffee.com/Antarikshverse",
   "supportTextEn": "Werbung sollte nicht dem Swadhaya im Wege stehen, daher gibt es hier keine Werbung. Wenn Sie möchten, dass unser Server 24/7 läuft und mehr Menschen erreicht, unterstützen Sie bitte diese Initiative: buymeacoffee.com/Antarikshverse",
   "talkToSpiritualAIFriend": "Sprechen Sie mit einem spirituellen KI-Freund",
@@ -82,5 +84,15 @@
   "thankYouForSharing": "Vielen Dank, dass Sie die spirituelle Reise teilen! 🌟",
   "unableToShare": "Teilen momentan nicht möglich. Bitte versuchen Sie es erneut.",
   "shareMessageAndroid": "🙏Talk with Saints auf Android & iOS:\n\n Mir gefällt die App und ich empfehle sie, um mit der Weisheit der Heiligen positiv zu bleiben, deshalb teile ich diese göttliche Erfahrung! 🕉️\n\nEntdecken Sie Weisheit von großen Heiligen und verwandeln Sie Ihre spirituelle Reise mit Talk with Saints.\n\nJetzt herunterladen\n Android: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints \n iOS: https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070",
-  "shareSubject": "Entdecken Sie Saints Speak - Spirituelle Weisheits-App 🙏"
+  "shareSubject": "Entdecken Sie Saints Speak - Spirituelle Weisheits-App 🙏",
+  "notificationPermissionTitle": "Tägliche spirituelle Weisheit",
+  "notificationPermissionMessage": "Erhalten Sie zweimal täglich inspirierende Zitate von Heiligen - einmal morgens, um Ihren Tag mit Weisheit zu beginnen, und einmal abends zur Reflexion.\n\n🌅 Morgenweisheit zur Leitung Ihres Tages\n🌙 Abendreflexion für inneren Frieden\n\nDiese Funktion bereichert Ihre spirituelle Reise und wird sehr empfohlen!",
+  "enableNotifications": "Benachrichtigungen aktivieren",
+  "maybeLater": "Vielleicht später",
+  "wisdomSharingTitle": "📖 Teilen Sie die Weisheit",
+  "wisdomSharingVivekanandaQuote": "Die größte Religion ist, seiner eigenen Natur treu zu bleiben. Haben Sie Vertrauen in sich selbst!",
+  "wisdomSharingMessage": "Sie haben tiefe spirituelle Weisheit erforscht. Möchten Sie diese transformative Erfahrung mit anderen teilen?",
+  "wisdomSharingGyaanaDana": "Wissen zu teilen ist eine der höchsten Formen des Dienstes (Gyaana Dana 📚)",
+  "wisdomSharingCallToAction": "Helfen Sie anderen, diese zeitlosen Lehren zu entdecken",
+  "wisdomSharingGotIt": "Verstanden!"
 }

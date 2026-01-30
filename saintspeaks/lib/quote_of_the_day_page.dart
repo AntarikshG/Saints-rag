@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
+import 'articlesquotes_bn.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
 import 'notification_service.dart';
@@ -84,6 +85,9 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
       switch (languageCode) {
         case 'hi':
           saintsList = saintsHi;
+          break;
+        case 'bn':
+          saintsList = saintsBn;
           break;
         case 'de':
           saintsList = saintsDe;

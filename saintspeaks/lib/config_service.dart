@@ -5,11 +5,13 @@ class AppConfig {
   final bool gradioServerRunning;
   final String gradioServerLink;
   final Map<String, String> ekadashiData;
+  final String latestAppVersion;
 
   AppConfig({
     required this.gradioServerRunning,
     required this.gradioServerLink,
     required this.ekadashiData,
+    required this.latestAppVersion,
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class AppConfig {
       gradioServerRunning: json['gradio_server_running'] ?? false,
       gradioServerLink: json['gradio_server_link'] ?? '',
       ekadashiData: ekadashiData,
+      latestAppVersion: json['latest_app_version'] ?? '2.2.0',
     );
   }
 

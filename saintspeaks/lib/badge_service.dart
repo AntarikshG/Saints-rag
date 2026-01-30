@@ -11,10 +11,10 @@ class BadgeService {
 
   // Badge thresholds
   static const int BRONZE_THRESHOLD = 0;
-  static const int SILVER_THRESHOLD = 100;
-  static const int GOLD_THRESHOLD = 300;
-  static const int PLATINUM_THRESHOLD = 600;
-  static const int DIAMOND_THRESHOLD = 1000;
+  static const int SILVER_THRESHOLD = 500;
+  static const int GOLD_THRESHOLD = 1500;
+  static const int PLATINUM_THRESHOLD = 2500;
+  static const int DIAMOND_THRESHOLD = 5000;
 
   /// Get current points
   static Future<int> getPoints() async {

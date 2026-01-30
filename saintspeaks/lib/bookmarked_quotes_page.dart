@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
+import 'articlesquotes_bn.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
 import 'notification_service.dart';
@@ -34,6 +35,9 @@ class _BookmarkedQuotesPageState extends State<BookmarkedQuotesPage> {
     switch (languageCode) {
       case 'hi':
         saintsList = saintsHi;
+        break;
+      case 'bn':
+        saintsList = saintsBn;
         break;
       case 'de':
         saintsList = saintsDe;

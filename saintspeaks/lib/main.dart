@@ -7,6 +7,9 @@ import 'dart:async';
 import 'articlesquotes.dart';
 import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
+import 'articlesquotes_bn.dart';
+import 'articlesquotes_de.dart';
+import 'articlesquotes_kn.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -29,20 +32,23 @@ import 'rating_share_service.dart';
 import 'ekadashi_service.dart';
 import 'ask_ai_page.dart';
 import 'user_profile_service.dart';
-import 'articlesquotes_de.dart';
-import 'articlesquotes_kn.dart';
 import 'bookmarked_quotes_page.dart';
 import 'quote_of_the_day_page.dart';
 import 'spiritual_diary_page.dart';
 import 'notification_settings_page.dart';
 import 'badge_service.dart';
 import 'badge_widget.dart';
+import 'wisdom_sharing_service.dart';
+import 'app_version_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Track app usage for rating/share service
   await RatingShareService.trackAppUsage();
+
+  // Initialize wisdom sharing service to track first use date
+  await WisdomSharingService.initializeFirstUseDate();
 
   // Configure system UI overlay style for edge-to-edge display
   SystemChrome.setSystemUIOverlayStyle(
@@ -979,20 +985,18 @@ class _MyAppState extends State<MyApp> {
       try {
         print('🚀 Initializing app notifications...');
         // Pass the navigator key for notification tap handling
+        // Just initialize, don't request permissions or schedule yet
         await NotificationService.initialize(context, navigatorKey: MyApp.navigatorKey);
 
-        // Check and auto-reschedule if needed instead of always scheduling
-        await NotificationService.checkAndRescheduleIfNeeded(_locale);
+        // Don't auto-reschedule here - let HomePage handle permission flow first
+        // If user has already granted permissions previously, HomePage will handle rescheduling
+
+        // Check for app updates (once per week)
+        await AppVersionService.checkAndNotifyUpdate();
 
         print('✅ App notification setup complete');
       } catch (e) {
         print('❌ Error setting up notifications: $e');
-        // Still try to schedule notifications as fallback
-        try {
-          await NotificationService.scheduleDailyQuoteNotifications(_locale);
-        } catch (e2) {
-          print('❌ Fallback notification scheduling failed: $e2');
-        }
       }
     });
   }
@@ -1194,7 +1198,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       locale: _locale,
-      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn')],
+      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -1246,6 +1250,8 @@ class _HomePageState extends State<HomePage> {
         return saintsDe;
       case 'kn':
         return saintsKn;
+      case 'bn':
+        return saintsBn;
       default:
         return saintsEn;
     }
@@ -1259,10 +1265,55 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     // Show first-time name dialog after the UI is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      UserProfileService.showFirstTimeNameDialog(context, widget.onSetUserName);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // First show the name dialog
+      await UserProfileService.showFirstTimeNameDialog(context, widget.onSetUserName);
+
+      // Then check for notification permission
+      if (context.mounted) {
+        print('🔔 Checking if notification permission dialog was shown before...');
+        final hasAsked = await NotificationService.hasAskedForNotificationPermission();
+        print('🔔 Has asked before: $hasAsked');
+
+        if (!hasAsked) {
+          // First time user - show our custom dialog
+          // Add a small delay so dialogs don't overlap
+          await Future.delayed(Duration(milliseconds: 500));
+
+          if (context.mounted) {
+            print('🔔 Showing notification permission dialog...');
+            // Show the pre-permission dialog explaining the benefits
+            final userAccepted = await NotificationService.showNotificationPermissionDialog(context);
+
+            // Mark as asked regardless of user's choice
+            await NotificationService.markNotificationPermissionAsAsked();
+            print('🔔 Marked as asked');
+
+            if (userAccepted) {
+              print('✅ User accepted notification permissions, requesting system permissions...');
+
+              // Add a small delay so our dialog fully closes before system dialog appears
+              await Future.delayed(Duration(milliseconds: 300));
+
+              // User accepted, now request permissions and schedule notifications
+              await NotificationService.scheduleDailyQuoteNotifications(widget.locale);
+              print('✅ Notification scheduling complete');
+            } else {
+              print('ℹ️ User declined notification permissions for now');
+            }
+          }
+        } else {
+          // User was asked before - check if permissions are granted and reschedule if needed
+          print('🔔 Dialog was already shown before, checking existing permissions...');
+          await NotificationService.checkAndRescheduleIfNeeded(widget.locale);
+        }
+      }
+
       // Check and show rating prompt if conditions are met
       RatingShareService.checkAndShowRatingPrompt(context);
+
+      // Check and show wisdom sharing prompt if conditions are met (weekly, after 7 days of usage)
+      WisdomSharingService.checkAndShowWisdomPrompt(context);
     });
   }
 
@@ -1920,6 +1971,7 @@ class _HomePageState extends State<HomePage> {
             _buildLanguageOption(loc.hindi, Locale('hi'), context),
             _buildLanguageOption(loc.german, Locale('de'), context),
             _buildLanguageOption(loc.kannada, Locale('kn'), context),
+            _buildLanguageOption(loc.bengali, Locale('bn'), context),
           ],
         ),
       ),
@@ -3668,9 +3720,9 @@ class ContactPage extends StatelessWidget {
                     content: Text('Could not open email app. Email: $email'),
                     backgroundColor: Colors.red.shade400,
                     action: SnackBarAction(
-                      label: 'Copy',
-                      textColor: Colors.white,
+                      label: 'Copy URL',
                       onPressed: () {
+                        // Copy to clipboard
                         Clipboard.setData(ClipboardData(text: email));
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

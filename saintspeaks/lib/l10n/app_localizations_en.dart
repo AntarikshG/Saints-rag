@@ -129,6 +129,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get kannada => 'Kannada';
 
   @override
+  String get bengali => 'Bengali';
+
+  @override
   String get supportTextHi =>
       'स्वाध्याय के मार्ग में विज्ञापन नहीं आना चाहिए, इसलिए यहाँ कोई विज्ञापन नहीं है। यदि आप चाहते हैं कि हमारा सर्वर 24x7 चले और अधिक लोगों तक पहुँचे, तो कृपया इस पहल का समर्थन करें: buymeacoffee.com/Antarikshverse';
 
@@ -284,4 +287,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareSubject => 'Discover Saints Speak - Spiritual Wisdom App 🙏';
+
+  @override
+  String get notificationPermissionTitle => 'Daily Spiritual Wisdom';
+
+  @override
+  String get notificationPermissionMessage =>
+      'Receive inspiring quotes from saints twice daily - once in the morning to start your day with wisdom, and once in the evening for reflection.\n\n🌅 Morning wisdom to guide your day\n🌙 Evening reflection for inner peace\n\nThis feature enriches your spiritual journey and is highly recommended!';
+
+  @override
+  String get enableNotifications => 'Enable Notifications';
+
+  @override
+  String get maybeLater => 'Maybe Later';
+
+  @override
+  String get wisdomSharingTitle => '📖 Share the Wisdom';
+
+  @override
+  String get wisdomSharingVivekanandaQuote =>
+      'The greatest religion is to be true to your own nature. Have faith in yourselves!';
+
+  @override
+  String get wisdomSharingMessage =>
+      'You\'ve been exploring profound spiritual wisdom. Would you like to share this transformative experience with others?';
+
+  @override
+  String get wisdomSharingGyaanaDana =>
+      'Sharing knowledge is one of the highest forms of service (Gyaana Dana 📚)';
+
+  @override
+  String get wisdomSharingCallToAction =>
+      'Help others discover these timeless teachings';
+
+  @override
+  String get wisdomSharingGotIt => 'Got it!';
 }

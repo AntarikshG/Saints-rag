@@ -8,27 +8,12 @@ import UserNotifications
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Register for remote notifications
+    // Set up notification center delegate
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self
-
-      let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
-      UNUserNotificationCenter.current().requestAuthorization(
-        options: authOptions,
-        completionHandler: { granted, error in
-          if granted {
-            print("Notification permission granted")
-          } else if let error = error {
-            print("Notification permission error: \(error)")
-          }
-        }
-      )
-    } else {
-      let settings: UIUserNotificationSettings =
-        UIUserNotificationSettings(types: [.alert, .badge, .sound], categories: nil)
-      application.registerUserNotificationSettings(settings)
     }
 
+    // Register for remote notifications (doesn't require permission)
     application.registerForRemoteNotifications()
 
     GeneratedPluginRegistrant.register(with: self)
@@ -54,6 +39,11 @@ import UserNotifications
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
-    completionHandler()
+    // Forward the notification response to Flutter
+    // This allows Flutter's onDidReceiveNotificationResponse to handle the tap
+    // The flutter_local_notifications plugin will automatically process this
+
+    // Call the parent implementation to let Flutter handle it
+    super.userNotificationCenter(center, didReceive: response, withCompletionHandler: completionHandler)
   }
 }
