@@ -41,7 +41,7 @@ import UserNotifications
   ) {
     // Forward the notification response to Flutter
     // This allows Flutter's onDidReceiveNotificationResponse to handle the tap
-    // The flutter_local_notifications plugin will automatically process this
+    print("[iOS] Notification tapped: \(response.notification.request.content.userInfo)")
 
     // Call the parent implementation to let Flutter handle it
     super.userNotificationCenter(center, didReceive: response, withCompletionHandler: completionHandler)

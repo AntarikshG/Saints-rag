@@ -12,6 +12,7 @@ import 'articlesquotes_hi.dart';
 import 'articlesquotes_bn.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
+import 'articlesquotes_sa.dart';
 import 'ekadashi_service.dart';
 import 'quote_of_the_day_page.dart';
 import 'l10n/app_localizations.dart';
@@ -265,6 +266,33 @@ class NotificationService {
 
     // Don't automatically request permissions here
     // We'll show the pre-permission dialog first and request based on user's choice
+  }
+
+  /// Check if app was launched from a notification and handle it
+  static Future<void> handleAppLaunchFromNotification() async {
+    try {
+      final notificationAppLaunchDetails = await _notificationsPlugin.getNotificationAppLaunchDetails();
+
+      if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
+        final payload = notificationAppLaunchDetails!.notificationResponse?.payload;
+        print('🚀 App launched from notification with payload: $payload');
+
+        if (payload != null) {
+          // Give the app more time to fully initialize (especially on Android)
+          // This ensures MaterialApp and navigator are fully built
+          await Future.delayed(const Duration(milliseconds: 1500));
+
+          // Handle the notification response
+          if (notificationAppLaunchDetails.notificationResponse != null) {
+            _handleNotificationTap(notificationAppLaunchDetails.notificationResponse!);
+          }
+        }
+      } else {
+        print('📱 App launched normally (not from notification)');
+      }
+    } catch (e) {
+      print('⚠️ Error checking notification launch: $e');
+    }
   }
 
   static Future<void> _createNotificationChannels() async {
@@ -672,6 +700,12 @@ class NotificationService {
             allQuotes.add({'quote': q, 'saint': s.name});
           }
         }
+      } else if (locale.languageCode == 'sa') {
+        for (final s in saintsSa) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
       } else {
         for (final s in saintsEn) {
           for (final q in s.quotes) {
@@ -952,6 +986,17 @@ class NotificationService {
       return;
     }
 
+    // Handle Ekadashi notification
+    if (response.payload == 'ekadashi_test' || (response.payload?.startsWith('ekadashi') ?? false)) {
+      print('🌙 Ekadashi notification tapped - no specific action needed');
+      return;
+    }
+
+    // Try to navigate, with retry if context not available yet
+    _navigateToQuoteOfDay(response, retryCount: 0);
+  }
+
+  static void _navigateToQuoteOfDay(NotificationResponse response, {int retryCount = 0}) {
     // Use the navigator key to navigate to the Quote of the Day page
     if (_navigatorKey?.currentContext != null) {
       final context = _navigatorKey!.currentContext!;
@@ -984,7 +1029,16 @@ class NotificationService {
       );
       print('✓ Navigated to Quote of the Day page');
     } else {
-      print('⚠️ Navigator context not available');
+      // Context not available yet, retry up to 10 times with longer delays for Android
+      if (retryCount < 10) {
+        final delayMs = (retryCount + 1) * 500; // 500ms, 1000ms, 1500ms, 2000ms, etc.
+        print('⚠️ Navigator context not available yet, retrying in ${delayMs}ms (attempt ${retryCount + 1}/10)');
+        Future.delayed(Duration(milliseconds: delayMs), () {
+          _navigateToQuoteOfDay(response, retryCount: retryCount + 1);
+        });
+      } else {
+        print('❌ Navigator context not available after 10 retries. Cannot navigate.');
+      }
     }
   }
 

@@ -132,6 +132,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bengali => 'Bengali';
 
   @override
+  String get sanskrit => 'Sanskrit';
+
+  @override
   String get supportTextHi =>
       'स्वाध्याय के मार्ग में विज्ञापन नहीं आना चाहिए, इसलिए यहाँ कोई विज्ञापन नहीं है। यदि आप चाहते हैं कि हमारा सर्वर 24x7 चले और अधिक लोगों तक पहुँचे, तो कृपया इस पहल का समर्थन करें: buymeacoffee.com/Antarikshverse';
 

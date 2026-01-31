@@ -10,6 +10,7 @@ import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
 import 'app_localizations_hi.dart';
 import 'app_localizations_kn.dart';
+import 'app_localizations_sa.dart';
 
 // ignore_for_file: type=lint
 
@@ -102,6 +103,7 @@ abstract class AppLocalizations {
     Locale('en'),
     Locale('hi'),
     Locale('kn'),
+    Locale('sa'),
   ];
 
   /// No description provided for @appTitle.
@@ -343,6 +345,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bengali'**
   String get bengali;
+
+  /// No description provided for @sanskrit.
+  ///
+  /// In en, this message translates to:
+  /// **'Sanskrit'**
+  String get sanskrit;
 
   /// No description provided for @supportTextHi.
   ///
@@ -691,8 +699,14 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['bn', 'de', 'en', 'hi', 'kn'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+    'bn',
+    'de',
+    'en',
+    'hi',
+    'kn',
+    'sa',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -711,6 +725,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsHi();
     case 'kn':
       return AppLocalizationsKn();
+    case 'sa':
+      return AppLocalizationsSa();
   }
 
   throw FlutterError(

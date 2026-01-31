@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
@@ -10,6 +11,7 @@ import 'articlesquotes_hi.dart';
 import 'articlesquotes_bn.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
+import 'articlesquotes_sa.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -963,6 +965,52 @@ class SaintImagePlaceholder extends StatelessWidget {
       );
 }
 
+// Fallback Material Localizations Delegate for unsupported locales
+class FallbackMaterialLocalizationsDelegate extends LocalizationsDelegate<MaterialLocalizations> {
+  const FallbackMaterialLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => true;
+
+  @override
+  Future<MaterialLocalizations> load(Locale locale) async {
+    // For unsupported locales (sa, kn, bn), use English
+    if (locale.languageCode == 'sa' ||
+        locale.languageCode == 'kn' ||
+        locale.languageCode == 'bn') {
+      return DefaultMaterialLocalizations();
+    }
+    // For other locales, delegate to the default
+    return DefaultMaterialLocalizations();
+  }
+
+  @override
+  bool shouldReload(FallbackMaterialLocalizationsDelegate old) => false;
+}
+
+// Fallback Cupertino Localizations Delegate for unsupported locales
+class FallbackCupertinoLocalizationsDelegate extends LocalizationsDelegate<CupertinoLocalizations> {
+  const FallbackCupertinoLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => true;
+
+  @override
+  Future<CupertinoLocalizations> load(Locale locale) async {
+    // For unsupported locales (sa, kn, bn), use English
+    if (locale.languageCode == 'sa' ||
+        locale.languageCode == 'kn' ||
+        locale.languageCode == 'bn') {
+      return DefaultCupertinoLocalizations();
+    }
+    // For other locales, delegate to the default
+    return DefaultCupertinoLocalizations();
+  }
+
+  @override
+  bool shouldReload(FallbackCupertinoLocalizationsDelegate old) => false;
+}
+
 class MyApp extends StatefulWidget {
   // Add global navigator key to enable navigation from notifications
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -1000,6 +1048,7 @@ class _MyAppState extends State<MyApp> {
       }
     });
   }
+
 
   Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -1198,11 +1247,13 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       locale: _locale,
-      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn')],
+      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn'), Locale('sa')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
+        FallbackMaterialLocalizationsDelegate(),
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
+        FallbackCupertinoLocalizationsDelegate(),
         GlobalCupertinoLocalizations.delegate,
       ],
       home: HomePage(
@@ -1252,6 +1303,8 @@ class _HomePageState extends State<HomePage> {
         return saintsKn;
       case 'bn':
         return saintsBn;
+      case 'sa':
+        return saintsSa;
       default:
         return saintsEn;
     }
@@ -1266,6 +1319,9 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     // Show first-time name dialog after the UI is built
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Check if app was launched from notification tap - do this FIRST before showing dialogs
+      await NotificationService.handleAppLaunchFromNotification();
+
       // First show the name dialog
       await UserProfileService.showFirstTimeNameDialog(context, widget.onSetUserName);
 
@@ -1972,6 +2028,7 @@ class _HomePageState extends State<HomePage> {
             _buildLanguageOption(loc.german, Locale('de'), context),
             _buildLanguageOption(loc.kannada, Locale('kn'), context),
             _buildLanguageOption(loc.bengali, Locale('bn'), context),
+            _buildLanguageOption(loc.sanskrit, Locale('sa'), context),
           ],
         ),
       ),
@@ -2202,6 +2259,12 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
         break;
       case 'kn':
         saintsList = saintsKn;
+        break;
+      case 'bn':
+        saintsList = saintsBn;
+        break;
+      case 'sa':
+        saintsList = saintsSa;
         break;
       default:
         saintsList = saintsEn;
@@ -3106,6 +3169,12 @@ class _QuotesTabState extends State<QuotesTab> {
         break;
       case 'kn':
         saintsList = saintsKn;
+        break;
+      case 'bn':
+        saintsList = saintsBn;
+        break;
+      case 'sa':
+        saintsList = saintsSa;
         break;
       default:
         saintsList = saintsEn;
