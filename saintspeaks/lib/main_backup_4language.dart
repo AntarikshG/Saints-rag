@@ -78,12 +78,17 @@ class _ArticlePageState extends State<ArticlePage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
-  // Supported TTS languages map for Article
+  // Supported TTS languages map for Article - English, Hindi, Kannada, Sanskrit, and German
   final Map<String, String> _supportedTtsLanguages = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
     'en-IN': 'English (India)',
     'hi-IN': 'Hindi (India)',
+    'kn-IN': 'Kannada (India)',
+    'sa-IN': 'Sanskrit (India)',
+    'de-DE': 'German (Germany)',
+    'de-AT': 'German (Austria)',
+    'de-CH': 'German (Switzerland)',
   };
 
   // Filtered voices based on supported languages

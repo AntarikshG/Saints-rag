@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final sitaramdasSaintSa = Saint(
   'sitaramdas',
-  'Sitaramdas Omkarnath Thakur',
+  'सीतारामदास ओंकारनाथ ठाकुर',
   'assets/images/sitaramdas.jpeg',
   [
     'हरे कृष्ण हरे कृष्ण कृष्ण कृष्ण हरे हरे । हरे राम हरे राम राम राम हरे हरे । एतानि षोडश दिव्यनामानि कलियुगे सर्वपापान् विनाशयन्ति। वेदेषु एतस्मात् परं नोपायः विद्यते। एषा जप-कीर्तन-प्रवृत्तिः जीवस्यावरणरूपान् षोडश कोशान् अपाकरोति, ब्रह्मस्वरूपं प्रकाशयति।',
@@ -34,235 +34,228 @@ final sitaramdasSaintSa = Saint(
     'नाम सर्वचैतन्यम्; नाम स्वयमेव देवः।',
     'नाम अतीव करुणामयम्; पुण्य-पापिभेदं न करोति; सर्वेषां समं प्रसादं ददाति।',
     'हरिनामश्रवण-कीर्तन-स्मरणमात्रेण पापस्य लेशोऽपि न अवशिष्यते।',
-    'शान्तिदिव्यप्राप्तये सुगमातिसुखः पन्थाः—सर्वदा सर्वथा नामैककीर्तनम्।'
+    'शान्तिदिव्यप्राप्तये सुगमातिसुखः पन्थाः—सर्वदा सर्वथा नामैककीर्तनम्।',
+    'श्रीगुरवे नमः, नाम्ने नमः, सत्सङ्गाय नमः। हे हरि, तव लीला शिलास्वपि पद्मान् विकसयति—नाम जप, नाम जप, नाम जप एव।',
+    'दिव्यशान्तिप्राप्तये सुगमतमोऽतिसुखो मार्गः—सर्वदा सर्वथा तस्यैकं नाम कीर्तयितुं।',
+    'नाम दैवं बीजम्—नित्यं निर्विकारं भयहरं च; कदाचित् न नश्यति। तद् जीवेन सह पुनर्जन्मपरम्परायाम् अनुगच्छति, तम् पावयति, स्वाधिकारभूतां परमावस्थां नयति च। अत्र मा कदापि संशयं कुरु।',
+    'यदा भक्ता नाम गायति वा स्मरति वा, तदा भगवान् तद् आत्मकृतकृपां मन्यते।',
+    'नाम नामिन् च अविभाज्यौ। नाम सर्वचैतन्यम्; नाम स्वयमेव देवः।',
+    'यः नाम गृह्णाति, तस्य अन्यत् कर्तव्यं नास्ति। किञ्चित्कालं नाम्नि स्थित्वा नाम भक्तं स्वीयत्वेन गृह्णाति। भक्तेन नामजपे विशेषप्रयत्नो न आवश्यकः; हृदय-वेणौ स्वयमेव नादति।',
+    'नामामृतादपि श्रेष्ठम्। यः परमं प्राणदं दिव्यपानं पीत्वा नाम गृह्णाति, स इह परत्र च न किञ्चिद् बिभेति। स सदैव आनन्दसागरं प्लवते। स सर्वचैतन्यरूपं प्रेमास्वादयति, यत् न तस्य लोकेन सम्बध्यते। तस्य जगत् सर्वचैतन्यरूपे भगवति परिणमति। तस्य केवलं भगवान् एवास्ति। यद् पश्यति, यद् शृणोति, यद् खादति, यद् आस्वादयति, यद् वदति—सर्वं देवः। देवाद् अन्यत् तस्मै न अवशिष्यते।',
+    'नामकीर्तनमात्रेण स्वर्ग्ययानमारोप्य सहजं परमां स्थितिं प्राप्नुयाः। एवं चतुर्विधं पुरुषार्थं लभसे—धर्मम्, अर्थम्, कामम्, मोक्षं च।',
+    'यः भगवतं ध्यायति तस्य नाम कीर्तयति च, तं यदि कश्चित् पश्यति स्पृशति वा नमति वा, स सर्वपापैः प्रमुच्यते। अत एव जनाः साधून् उपसर्पन्ति। ते नाम गायन्ति; पापी अपि तान् दृष्ट्वैव ध्यानाभ्यासं विना पापैः मुक्तो भवति।',
+    'नाम देवस्य साक्षादवतरः—एतद् हृदये पुनःपुनः मुद्रयित्वा तद् ध्याय।',
+    'रामनामकीर्तनं सर्वपापप्रायश्चित्तम् इति श्रूयते। दिवि भूमौ च नामात् पवित्रतरं श्रेष्ठतरं च न किञ्चित्।',
+    'रामनामकीर्तनमात्रेण परमात्मा त्राता च साक्षात्कर्तुं शक्यते। एषा साधना स्वातन्त्या; श्रवण-मनन-निदिध्यासन-जपमालागणना-ध्यान-प्रार्थनादिभिः न अपेक्ष्यते। मनुष्यः नामकीर्तनमात्रेण जीवनलक्ष्यं प्राप्नोति।',
+    'नाम अतीव करुणामयम्; पुण्यवान् पापी वा इति भेदं न करोति; सर्वेषां सममेव प्रसादं वितरति।',
+    'नाम न कदा अपि घोरपापिनं परित्यजति; त्रिजन्मसु तं सर्वपापैः विमोचयति।',
+    'भगवतः प्रीत्यर्थं नाम कीर्तयामः; नाम्नः स्वार्थं च, तस्मिन् प्रेम-प्राप्तये तस्य साक्षात्काराय च।',
+    'यदि नाम्नः शक्तौ विश्वसितुं न शक्नोषि, तद् न चिंत्यम्। नाम जप; तत् स्वशक्तिं स्वयमेव प्रकाशयिष्यति।',
+    'श्रद्धया वा अश्रद्धया वा, लीलया वा गम्भीरतया वा—यथाशक्यं नाम जप; अवश्यं तस्य प्रसादं प्राप्स्यसि।',
+    'नाम भक्तिं श्रद्धां प्रेम च न याचते; स्वयमेव अनन्त-प्रेम-श्रद्धा-भक्ति-निधिः।',
+    'कलियुगस्य विनाशकारीं व्यत्यस्ततां निरोद्धुं नाम एव समर्थं भविष्यति।',
+    'भगवत्स्तुति-कीर्तनात् मनुष्यः परमां स्थितिं प्राप्नोति।',
+    'वैराग्येषु स्थितः यद् यत् इच्छति—धनं मानं भोगं आनन्दं मोक्षं वा—तद् लभते। नाम एव परम आनन्दः, वैराग्यस्य कारणं च।',
+    'साधकः नाम्नः तदेव फलम् आप्नोति यद् इच्छति।',
+    'यदि कश्चित् हरिदृष्टौ पापेन हीनः, तर्हि नामाश्रयं गच्छेत्; तदेव पापात् विमोचयति। किन्तु यदि कश्चित् सर्वमित्रे नाम्नि अपचारं करोति, तदा तेनैव नाम्ना सर्वदा जपेन शरणं गन्तव्यम्। एतदेव सर्वदुष्कृतविमोचनम्।',
+    'यः उत्साहेन जगन्नाथस्य नाम नित्यं कीर्तयति, स सर्वपापैः संसारबन्धनाच्च पूर्णतः मुक्तः सन् परमात्मानं साक्षात्करोति।',
+    'यः “हरि” इति द्व्यक्षरं शृणोति वा कीर्तयति वा, तस्मिन्न् पापस्य लेशोऽपि न अवशिष्यते।',
+    'पापानि सन्तु, दुःखानि सन्तु, क्रोध-कामादयः सन्तु; विघ्ना अपि पुनःपुनः आगच्छन्तु—तथापि नामकीर्तनं मा परित्यज।',
+    'नाम न तावत् सरलम्; सर्वाः शक्तयः तस्मिन् अन्तर्निहिताः।',
+    'यथा सूर्योदयेन तमः प्रशाम्यति, तथा “हरि”नामकीर्तनं परमौषधवत् घोरतमपापानि अपि निर्मूलयति। गायन-श्रवण-स्मरणमात्रेण पापाणि समूलं विनश्यन्ति; लेशोऽपि न शिष्यते।',
+    'नामजपे रुचिः सुखं वा जायते न वा—तदपेक्षां विना निरन्तरं नाम जप।',
+    'ज्ञानं पूजां ध्यानं एकाग्रतां शीलनियमं इन्द्रियनिग्रहं समाधिं च—एतानि हरिनाम्नः समं न भवन्ति।',
+    'देवपूजा वा अष्टाङ्गयोगमार्गो वा हरिनाम्नः तुल्यः नास्ति। केवलं हरिनामकीर्तनात् तपस्यादीनां सर्वेषां पूर्णता भवति।',
+    'यः भगवतो नाम गायति, स निःसंशयम् एव तं प्राप्नोति।',
+    'नामकीर्तनात् घोरपापीऽपि परमां स्थितिं प्राप्नोति—नूनं प्राप्नोति।',
+    'हरिनाम हरिश्चैव एक एव पदार्थः।',
+    'हरिनामकीर्तनं पूर्णं सङ्गीतम्, यत्र वैखरी-मध्यमा-पश्यन्ती-परा इति चत्वारः स्वराः समरसभावेन गायन्ति।',
+    'नारायणनाम एकवारोच्चारणेनापि गङ्गादिषु सर्वतीर्थेषु शतशः सहस्रकालेषु स्नानफलम् लभ्यते।',
+    'यः नाम गृह्णाति, तस्मिन्न् ईश्वरस्य भावो भवति—“अयं मम; सर्वथा अस्य रक्षणं करिष्यामि।”',
+    'यः पापोन्मूलनं इच्छति, तस्य हरिनामकीर्तनं श्रेष्ठं प्रायश्चित्तम्।',
+    'सङ्कल्पेन वा असङ्कल्पेन वा, यथा कथञ्चित् भगवन्नामकीर्तनं पापान् भस्मसात् करोति।',
+    'श्रद्धा चेन्नास्ति, न दोषः। वद नारायण, वद नारायण, नारायण, नारायण।',
+    '“अहं नाम कीर्तयिष्यामि” इति संकल्पमात्रेणापि पापक्षयः भवति।',
+    'नारायणनाम्ना वेदाः यत्र विफलाः, तत्रापि तत् प्रभावेण सिद्धिं करोति।',
+    'नारायणनाम जपन् सर्वेन्द्रियैः सत्य-चित्-आनन्दरूपं परमात्मानं प्रत्यक्षं अनुभवितुं शक्नोषि।',
+    'नारायणम उच्यताम्, तस्य नाम श्रूयताम्; एवं परमां स्थितिं प्राप्स्यसि—या योगिभिः ज्ञानिनां मुनिभिश्च बहुजन्मतपसां कष्टेन दुर्लभा।',
+    'यदि नामैकं धारयितुं शक्नोषि, अन्ये साधनफलाः स्वयमेव अनुगच्छन्ति। प्रेम मोक्षश्च देवश्च नामगायकं नृत्यन्तीव परितो वर्तते।',
+    'यदि आनन्दं कामयसि, अग्रे गत्वा नाम गा। यावत्तरोषि भगवतो हर्षकरं नाम, तावत् अधिकतरं सुखं लभसे।',
+    'नारायणनाम निरन्तरं जपतः सर्वं ते नारायणमयं भवति। घ्राणं नारायणं गन्धयति, रसना नारायणम् आस्वादयति, वाणी नारायणं वदति, मनो नारायणं चिन्तयति। यत् स्पृशसि तत् नारायणः; नारायण एव तव सर्ववेद्यः।',
+    'नारायणनाम पुनःपुनरुच्चारणेन तव प्राणस्पन्दनं शान्तं विश्रान्तं च भवति।',
+    'प्रेमोच्छ्वासेन हरिनाम कीर्तय। प्रेममत्तः तस्य स्तुतिसङ्गीतस्य लीलालये आत्मानं क्षिप, हर्षेण नृत्य च। निःसन्देहं त्वां मोचयिष्यति, संसारप्रवाहात् पारं नयिष्यति च। अनेन विना अन्यो मार्गो नास्ति। नाम गृह्ण, नाम गा।',
+    'यः आत्मानं तस्मै समर्प्य, तदीयइच्छायै नमन्, नाम कीर्तयति, स इह परत्र च सर्वभयात् मुक्तो भवति।',
+    'नामकीर्तनस्य शक्तिरनन्ता; नामगानेन अलभ्यं न किञ्चित्।',
+    'येन केनापि उपायेन मनसः एकाग्रता मानवजीवनस्य लक्ष्यः। तस्य श्रेष्ठो उपायः भगवन्नामकीर्तनम्; तत्र नियमबन्धो नास्ति। नामोच्चारणमात्रेणापि सहजं स्वात्मतत्त्वस्य मध्यं प्राप्नोषि।',
+    'अस्मिन् युगे नामकीर्तनं सरलः सरलो राजमार्गः—क्लेशरहितः, सुप्रदीप्तः, सुरक्षितश्च। नामगानेन अन्यानि आध्यात्मिकफलानि स्वयमेव अनुगच्छन्ति।',
+    'भगवन्नाम उच्चारय, तस्मै नम। नाम जप, तस्मै आत्मानं समर्पय। नाम गा, आत्मानं तस्मै दत्तव्यम्।',
+    'नामग्रहणमात्रेण कालातीतं भवितुं शक्यते, परिवर्तनशीलकालं तीर्त्वा तदीयं सान्निध्यं प्राप्नोति।',
+    'सर्वेषां पूजारूपाणां सारः नामकीर्तनम्।',
+    'हे ओष्ठौ—केवलं तस्य नाम उच्चारयतं; तेन सर्वदुःखानि नश्यन्ति।',
+    'नाम एव नौका या त्वां संसारसागरात् पारं नयति। नामकीर्तनात् परं मोक्षमार्गो नास्ति।',
+    'नाम गृह्ण; नामेन नामं प्रबोधय; नामप्रसादेन तव सर्वचिन्ता निवर्तिष्यते।',
+    'भक्तैः नामगानं भगवान् अतिशयेन प्रीयते।',
+    'भगवन्नामकीर्तनं वैद्यैः असाध्यरोगान् अपि निराकरोति।',
+    'स नाम च सः च अविभाज्यौ।',
+    'यावत् ते वाचकौ ओष्ठौ, श्रोतृकरणौ कर्णौ, कर्मसमर्थौ च हस्तौ सन्ति—नाम उच्चारय, नाम शृणु, नाम पश्य, नाम लिख, नामालङ्कुरु।',
+    'नाम गृह्णन् तं सेवस्व; सेवमानोऽपि नाम गा; सततं नाम गा—स शीघ्रं त्वया सह भविष्यति।',
+    'नाम श्रद्धां नापेक्षते। स प्रेम्णा त्वां स्वस्तने धारयित्वा संसारसागरात् पारं नेष्यति।',
+    'केवलज्ञानवान् तीव्रं तदन्वेषणवेगं न लभते; भगवन्नामकीर्तनमेव तं परिपूरयति। ज्ञानं वैराग्यं च स्वयमेव तं शीघ्रं प्राप्स्यतः।',
+    'नामकीर्तनं सर्वाध्यात्मिकप्रयत्नानां सारः। श्रद्धया वा अश्रद्धया वा नित्यं तत्र प्रवर्तस्व।',
+    'कलियुगं नम—यतोऽस्मिन्नेव युगे हरिनामकीर्तनं मानवजातिं त्राति।',
+    'कलियुगे नामकीर्तनमात्रेण मनुष्यः परमां स्थितिं प्राप्नोति। कलियुगस्य तुल्यो न कश्चिद् युगो, यत्र नामगानात् मनुष्यः देवत्वं प्राप्नोति।',
+    'नित्यं नाम गृह्ण; कालः स्रवति। प्रबुध्यस्वोत्थाय, मा पुनः शयस्व।',
+    'नामस्य पुनःपुनरुच्चारणेन तत् प्रत्यक्षं ज्ञायते। यः निरन्तरं नाम जपति, तस्य समीपं तत् शीघ्रमेव उत्सुकवत् आगच्छति।',
+    'नामोच्चारणमात्रेण नृत्यन् तालानुगतः भव; ततः तव दृष्ट्यावरणं नश्यति; त्वं पश्यसि—“जगत्” इति किञ्चिद् नास्ति, केवलं भगवान् जगद्वेषेण लीलते। अहो कियान् आनन्दः! केवलं हर्षः, केवलं हर्षः।',
+    'प्रेम भक्तिः ध्यानं वा—न किञ्चिद् अपेक्षितम्। केवलं हरिनाम उच्चारय; सर्वपापाः नश्यन्ति।',
+    'ओष्ठ-जिह्वाभ्यां “हरि”नाम जप, यद्यपि मनः तत्र न लग्नम्; एतेन पापक्षयो भवति।',
+    'यदि प्रमादेनापि, श्रद्धाभक्तिवर्जितं तव मुखात् नाम निर्गच्छति, तदा सर्वदानशीलं नाम त्वां आलिङ्ग्य श्रद्धां भक्तिं च त्वयि आरोपयिष्यति। कलियुगोऽयं, अत्र मनुष्यः सुलभतया देवत्वं प्राप्नोति।',
+    'शास्त्रे ब्रह्मा नारदं प्रति वदति—“कलियुगे भगवन्नामकीर्तनात् परं मोक्षोपायो वेदेषु न दृश्यते; एषा मानवानां श्रेष्ठा गतिḥ।”',
+    'नारायणस्य श्रीहरिणः सर्वकारणस्य परमात्मनः नामकीर्तनमात्रेण “कलि” इति पापात्मा जय्यते। यत्र नाम गीयते, ततः कलिः पलायते; श्रीहरिनामशब्दं सोढुं न शक्नोति, दूरं दूरं धावति।',
+    'ये नित्यं नाम गायन्ति, तेषां “मातुः” दर्शनार्थं दिव्याक्षिणी, तद्वाक्श्रवणार्थं दिव्यकर्णौ च लभ्येते। व्याधि-शोक-अपमान-अभाव-मरणचिन्ताभ्यः ते मुक्ताः भवन्ति।',
+    'यः नित्यं हरिनाम गायति, तस्मै पापस्य लेशोऽपि न अवशिष्यते; तीर्थयात्रा तस्मै न आवश्यकाः।',
+    'नाम गृह्ण; नामैव गा; एतदेव तव सर्वार्थसाधनम्।',
+    'यदि “हरि”शब्दः पुनःपुनरुच्यते, तदा नाम्नि “ओंकारः” दिव्यप्रकाशः प्रादुर्भवति।',
+    'यः हरिनाम गायति, स परमस्थितौ लीनः तिष्ठति।',
+    'यदि ओष्ठैः हरिनाम उच्चारयसि, तव जीवनं आनन्देन पूर्यते।',
+    'नित्यं भगवन्नाम गायतः, तस्मिन्नेव नाम्नि त्वं विश्रामं प्राप्स्यसि।',
+    'तं ज्ञातुं तस्य दर्शनं च प्राप्तुं, नित्यं नाम कीर्तय।',
+    'प्रत्यहं निशि च श्वासश्वासानुगतं नाम गायन्, नाम पृथिव्यां सुखस्य स्रोतः।',
+    'हरिनामकीर्तनं श्रेष्ठतमं आध्यात्मिक-शिक्षणम्।',
+    'भगवन्नामकीर्तनं परमआनन्दस्य प्राप्तिः।',
+    'अहं दृढतया वदामि—हरिनामकीर्तनमात्रेण त्वं प्रेम प्राप्स्यसि, सर्वप्रेमरूपं तं प्रत्यक्षं द्रक्ष्यसि, अन्ते च प्रेमस्वरूपे परमात्मनि सदा सह वत्स्यसि। एतदहं प्रतिजाने, एतदहं निश्चयेन वदामि।',
+    'नामकीर्तनात् समाधिस्थितिः जायते। नित्यं नाम गा।',
+    'यज्ञ-तप-ज्ञान-तीर्थस्नान-दान-मानवसेवादिषु यत् मुख्यं प्रयोजनं, तत् हरिनामकीर्तनमेव।',
+    'अन्यस्य धर्माचारस्य आवश्यकता नास्ति; नामकीर्तनमात्रेण असाध्यं साध्यते। अनन्तजगत्स्वामी स प्रेम्णा तं पालयति।',
+    'यथानन्तो मम प्रियः प्रभुः, तथानन्तानि तस्य नामानि; अनन्ता महिमा, अनन्ता लीला। यः कुत्रचित् कदाचित् कथञ्चित् तस्य कस्यचन नाम कीर्तयति, स तस्मात् करुणाम् आप्नोति।',
+    'नामात् श्रेष्ठतरं पापनाशकं मन्त्रो नास्ति।',
+    'भगवन्नामजप-चिन्तनयोर्माहात्म्यं वर्णयितुं मम शक्तिः न पर्याप्ता। मम प्रभुः सर्वशक्तिमान्; तस्य नाममहिमा अपि अनन्तः विश्वव्यापी च।',
+    'भूतले नामसदृशं नास्ति; नाम मनसि स्वगुणान् जनयति। हरिनामजपः अन्ते तस्मिन् लीयते तेनैक्यं च गच्छति।',
+    'प्रियस्य नाम नित्यं गा; त्वं चिरकालं हर्षे निर्भयत्वे च निमग्नो भविष्यसि।',
+    'कलियुगे भगवन्नामकीर्तनं परमः धर्मः। नामयज्ञेन परमात्मानं यः पूजयति, स इह परत्र च परमं सुखं प्राप्नोति।',
+    'भगवन्नामकीर्तनं आनन्दजनकं इति न केवलं अनुमानम्; प्रत्यक्षतया अनुभूतं तथ्यं।',
+    'प्रभोर्नामगानात् मनुष्यः तस्य दर्शनं प्राप्नोति। स भगवान् अद्यापि सन्निविष्टः; प्रसन्नः सन् अद्यैव पुरतः प्रादुर्भवति—एतत् सर्वथा सत्यम्।',
+    'नाम गृह्णन् तस्मै नमन्, आत्मनिवेदनं कृत्वा तस्य नाम कीर्तयन्—एष एव एको मार्गः ग्राह्यः अनुष्ठेयश्च।',
+    'हस्ताभ्यां कर्म कुरु, ओष्ठैः नाम जप; क्षणमपि नामकीर्तनं विना मा त्यज।',
+    'हस्ताभ्यां कार्यं कुर्वन्, ओष्ठैः गुरोर्रामस्य वा, शक्तिमद् हरिनाम वा सदैव उच्चारय।',
+    'हे मनः—नित्यं नाम जप; मृत्युं जय, परमशान्तिं लभस्व।',
+    'भूत्वा भूत्वा त्वं पृथिवीं नामस्तुत्यर्थं आगतः। प्रबुध्यस्वोत्थाय शीघ्रं, मा पुनः शयस्व।',
+    'श्रद्धाहानिः स्यात् वा न स्यात्—चिन्ता न। यथेष्टं यथा शक्यं च भगवन्नाम सदैव जप।',
+    'शास्त्रानुसारं नाम नामिन् च एक एव। नित्यं नाम जप, नाम्नि नामी नूनं सन्निहितो भवति।',
+    'नामजपेन त्वं पश्यन्तीस्थितिं प्राप्स्यसि; तत्र प्रियस्य दर्शनात् परमं तुष्टिं लप्स्यसे।',
+    'नाम जप, नाम गा; नामैव तव सर्वेच्छितम् अस्तु। ततः केवलं हर्षः, केवलं हर्षः—परमानन्दः।',
+    'प्रत्येकश्वासेन भगवन्नामजपव्रतं कुरु। अस्मिन् क्षणभङ्गुरे संसारे नित्यं धनं लभसे।',
+    'हे मार्गभ्रष्ट—ज्ञातव्यं यत् नामकीर्तनं सुरक्षिततमः सुखतमश्च मार्गः। नामधनेन धनवान् भव; नामसदृशं धनं भूतले नास्ति। हे सीतारामदास, नित्यं नाम गा।',
+    'भगवन्नामकीर्तनं सर्वपापान् शोषयति। नित्यं नाम जप; ततस्त्वं तेनैक्यं गच्छसि।',
+    'मनसि वीणां नामसङ्गीते सम्यक् संयोज्य, प्रियतमं नाम अनुगानन् अग्रे गच्छ। निरन्तरं नाम जप, नाम गा, नामं लक्ष्यम् एकं कुरु। अद्यापि यः नाम गायति, तस्य पुरतः स प्रादुर्भवति।',
+    'नामकीर्तनं लोकं सर्वं पावयति। श्रद्धया वा उदासीनतया वा अहोरात्रं नाम गा।',
+    'भगवन्नामकीर्तनवत् धन्यतमो मार्गो नास्ति। हे सीताराम, प्रभुदास—स्वामिनः नाम जीवनस्य सारं कुरु।',
+    'सत्सङ्गे मनुष्यः परमं रत्नं प्राप्नोति—नाम। नामजपेन हृदये यद् इच्छति, तत् साध्यते।',
+    'यत् यत् सुन्दरं नाम जपन् याचसे, तत् शीघ्रं दास्यते। कामिनां कामाः नामजपेन पूर्णाः; निःस्पृहः पुनः नामेन प्रेम प्राप्नोति।',
+    'हे विस्मृतचित्त—भगवन्नाम जप; देहात्मबुद्धिः त्वां जडं करोति।',
+    'नामकीर्तनस्य साधनां दृढं धारय; मा शोच—त्वं नूनं त्रास्यसे।',
+    'संसारजीवनं परमं दुःखरोगः; तस्य पूर्णं औषधं भगवन्नामकीर्तनमेव इति स्मर।',
+    'यदा यथा शक्नोषि भगवन्नाम जप; हे सीताराम, भगवद्दास—एतत् तव नित्यशान्तिं दास्यति।',
+    'यदि ते भक्तिर्नास्ति, न दोषः। शृणु भ्रातः—नाम त्वां भक्तिसम्पन्नं करिष्यति। यो नित्यं नाम जपति, तं भक्तिरालिङ्गति। श्रद्धाभक्तिलाभचिन्तां मा कुरु; केवलं नामजपव्रतं कुरु।',
+    'ज्ञात्वा यत् सर्वं परमात्मनः नाम्नः लीला, भगवन्नाम जप। सोऽद्वितीयः बहुरूपवेषेण हर्षेण क्रीडति।',
+    'दीनो भव; अहोरात्रं नाम जप। आत्मसमर्पितस्य मित्रं सः, यः तदीयइच्छायै शिरसा नमति, तस्य पुरतः प्रादुर्भवति।',
+    'सर्वसाधनानां सारः नामकीर्तनम्; नामगायकं सः शीघ्रं स्वयमेव साक्षात्करोति।',
+    'भगवन्नामकीर्तनं परमात्मज्ञानं, सर्वज्ञानसारश्च। अहोरात्रं नाम गा; तत्र अमृतसदृशं अमरताप्रदम् रसः।',
+    'यदि निरन्तरं रामनाम जपसि, तदा योगाभ्यासस्य रूपस्य कस्यचिद् आवश्यकता नास्ति।',
+    'यदि शान्तिं कामयसि, सर्वदा भगवन्नाम जप; शान्तिः सदा तव सहचरी भविष्यति।',
+    'समत्वं सर्वाध्यात्मिकव्यायामस्य सारः; नामकीर्तनशीलस्य तद् अयासेन एव सिद्ध्यति।',
+    'नामकीर्तनयज्ञः सर्वयज्ञानां सारः, श्रेष्ठश्च; कलियुगस्य विशेषाधिकारत्वेन प्रसृतः।',
+    'यावत् प्राणाः सन्ति, तावत् नाम जप। नित्यं नामजपेन दिव्यजीवनं लभ्यते।',
+    'यत् पश्यसि तत् रामः ससीता इति पश्य; हे सीताराम, तयोर्दास, एतत् पुनःपुनः पश्य, तयोर्नाम गा।',
+    'तं चिन्तय, तस्मै कर्म कुरु, तस्य स्तुतिं गा। हे सीतारामदास, सर्वदा नाम जप।',
+    'अहं केवलं तस्य नामैव जानामि। नाम्नः शक्ति अतीव आश्चर्यरूपा—नामगानेन मनुष्यभावो निवर्तते; नामस्वरूपो भवति। स्थित्वा गच्छन् च नाम गा। उदासीनोऽपि गा; श्रद्धया गा। मनः चञ्चलं चेत् नाम गा। कामान् जेतुं न शक्नोषि चेत् नाम गा। देहो व्याधिग्रस्तः चेत् नाम गा। मित्रबान्धवाः अप्रियाः चेत् नाम गा। परैः अनुगृह्यसे चेत् नाम गा; उपेक्ष्यसे चेत् नाम जप। सततं नाम गा। नाम एव शान्तिं तृप्तिं च सर्वं च चिन्त्यम् आनयति।',
+    'भगवतः प्रीत्यर्थं, नाम्नः स्वार्थं च, तस्मिन् प्रेम-प्राप्तये तस्य साक्षात्काराय च नाम जप्तव्यम्। सर्वकामान् हृदयात् निष्कास्य, यः केवलं गायनानन्दार्थं स्तौतिः गीयते, स भक्तेषु श्रेष्ठः, सर्वैः सदा पूज्यश्च।',
+    'विघ्नाः आगच्छन्तु, पर्वतवत् संचिता अपि मार्गं रुन्धन्तु—तथापि नामकीर्तनं मा विरम। यथा वातैः शुष्कपर्णानि अपसरन्ति, तथा विन्ध्यपर्वतसमाः विघ्नाः सदैव नश्यन्ति। नाम न एकं वस्तु; जगतः सर्वाः शक्तयः अस्मिन् नाम्नि गूढाः।',
+    'यदि स्वर्गोऽपि अवतरति, समुद्रा अपि उद्वेलन्ते, त्वं न किञ्चिद् हिंसां प्राप्स्यसि। मा बिभेः—उत्सर्पणविघ्नेषु; नाम्नि दृढं निमज्ज। रामः सर्वविघ्नान् अपास्य, त्वां प्रसारितबाहुभ्याम् आलिङ्गिष्यति।',
+    'यदा मनोऽस्थिरं, तदा नाम मन्त्रं दृढं धारय; उच्चैः नाम जप। यदा मनः शान्तं, तदा मन्दं मौनं च नाम जप। ततः तस्य लीलां चिन्तय। नामग्रहणं लीलास्मरणं च तं प्रति सुगमतमो मार्गः।',
+    'यावत् त्वं शान्तो विश्रान्तो च न भवसि, तावत् पुनःपुनः निरन्तरं सर्वदा नाम गृह्ण।',
+    'तव जीवितरुधिरे नामसङ्गीतं प्रवहतु; रामनाम महत् तव अस्थिष्वपि अङ्कितं भवतु।',
+    'शृण्वन्तु सर्वे—कलियुगे अहं नामरूपेण अवतीर्णः। मम नाम नित्यं गृह्णीत। मा बिभीत; निर्भयः भव।',
+    'नाम परमं तीर्थम्, नाम परमं पुण्यरूपम्, नाम परमः देवः। नाम परमं तपः, नाम परमं हविः। नाम परमः धर्मः, नाम परमं धनम्। भक्तस्य नाम कामः, नाम मोक्षः, नाम परा भक्तिः, नाम परमा गतिः। नाम परमा प्रार्थना; नाम सर्वेषां श्रेष्ठतमम्।',
+    'अहं नामरूपेण अत्र स्थितः। निर्भयेन मय्येव शरणं गच्छ; मां विना अन्यं न आश्रय। मा किञ्चित् चिन्तय; अहं तव सर्वं करिष्यामि।',
+    'पुण्यवानां किमु वक्तव्यम्? पापिनोऽपि मम नाम गायतः मोक्षं प्राप्य दिव्यधाम यान्ति।',
+    'नाम अहमेव, अहं च नाम। कलियुगे नामकीर्तनं प्रेमदिव्यप्राप्तये श्रेष्ठतमो मार्गः।',
+    'अहं मम नाम्नः भिन्नो नास्मि। मम नामोच्चारणं मया सह वासः—एकमेव। अविच्छिन्नं नाम गायत।',
+    'नाम ध्यानं तस्य विषयश्च। नाम साधना साध्यं च। नाम साधनं लक्ष्यं च। नाम प्राप्तिः प्राप्तं च। नाम पूजा अर्पणं च।',
+    'पापिनां हितार्थमेव अहं नामरूपं धारयामि।',
+    'रूपान्तरधारी अहं जगद्वेषेण क्रीडामि। मम नामजपेन मां गृह्णात। मम नामकीर्तनं परमा सिद्धिः।',
+    'यथा यथा मम नामाभ्यासं करोषि, तथा तथा सर्वान् कामान् पूरयिष्यसि, दिव्यानन्दं च प्राप्स्यसि।',
+    'अहं सर्वशक्तिमान्। यो मम नाम गायति, स मां पश्यति, भक्तं च मयि विलीनं करोति। नामजपेन स्वस्वरूपं प्रत्यावर्तस्व—यत् चित्-आनन्दस्वरूपम्।',
+    'ब्रह्म सङ्गीतस्य समता। तस्य सहायेन साधकः शीघ्रं परमां दिव्यां नादधारां (नादं ब्रह्म) प्राप्नोति। तस्मात् नामकीर्तनद्वारा मनुष्यः स्वस्वरूपे आकृष्यते; यावदधिकं आकृष्यते, तावदधिकं तस्य हर्षः प्रकाशते।',
+    'स्वात्मानं तस्मै समर्प्य तस्य नाम्नि वासः तं ज्ञातुं श्रेष्ठो मार्गः। सर्वदा नाम गृह्ण; मा किञ्चिद् चिन्तय। श्रद्धया वा अश्रद्धया वा रामनाम उच्चारय, तद् चिन्तय। वद—राम, राम, राम।',
+    'शोकः पवित्रः, प्रेममयश्च। यथा शोकः, तथा अन्यत् किञ्चिद् नास्ति यत् मनुष्यं देवमार्गे नयेत्।',
+    'दृढं मन्यस्व—भगवान् सर्वत्रास्ति। यदि त्वं तं क्रन्दसि, तस्मिन् शरणं गच्छसि च, स नूनं तव पुरतः प्रादुर्भविष्यति। एषा सत्यः—एकमेव सत्यं, परं सत्यं।',
+    'यः बलार्थं प्रार्थयितुं न शक्नोति, स रामनाममात्रं गृह्णीत; तत् तस्मै सर्वसिद्धिं दास्यति।',
+    'मा बिभेः; नाम क्रन्दय; अविच्छिन्नं रामनाम उच्चारय। स पूर्णतया तव भारं वहिष्यति।',
+    'शृणु—त्वं कस्यचिद् अर्थस्य चिन्तां न करिष्यसि; केवलं नाम नित्यं जप। कलियुगे भगवतः प्रीतिकरतमं नामकीर्तनमेव।',
+    'निःसंशयं शृण्वन् नाम कर्णाभ्यां, स्तौति वाणीभिः, ध्यायन् मनसा—एते सर्वे साधनेषु श्रेष्ठाः। शृणुत—कलियुगे मनुष्यः सर्वान् कामान् पूर्णान् करिष्यति, यदि स पुनःपुनः राम-कृष्ण-हरिनामानि जपति।',
+    'अस्मिन् युगे उपायचिन्ता न कर्तव्या। सुगमः सरलश्च उपायः—सर्वदा नाम ग्रहणम्। यः पुनःपुनः नाम उच्चारयति, स अन्यत् किञ्चित् न चिन्तयति; भगवान् तस्य सर्वभारं गृह्णाति।',
+    'प्रकृतितत्त्वविदो आर्याः सारमेव गृह्णन्ति। ते अवदन्—कलियुगः हरिनामकीर्तनमात्रेण सहजं निष्प्रभावः कर्तुं शक्यते। नाम नित्यं गीयमानं सर्वेच्छितं ददाति।',
   ],
   [
     Article(
-        heading: 'Divine Prophecy and Appearance',
-        body: '''In the month of April 1943, in Jagannath Puri, Orissa, a saint was going round the temple of Jagannath Dev with a fairly big party of Naam *1 Kirtan. He was lean; a crown of matted hair adorned his head, he sported a beard and he had a godly appearance. Upon his chest was the wooden sandal of his Gurudeva. Suddenly, some local inhabitants joined his party while distributing some leaflets. The sadhu *2 did not know what was written in the leaflet – the local crowd was also unknown to him. On enquiring, he came to know that they were announcing, through that printed-leaflet, his own presence at Ankara Math in Cuttack town at a round-the-clock Kirtan. He was surprised but he found out from further enquiry, that they had come to know of his arrival to Orissa, at this precise juncture, from a 400-year-old book maintained in the Ashram. One of the five sakhas (companions) of Sriman Mahaprabhu Chaitanya Dev, Achyutananda, had predicted that a preacher of the Mahamantra *3, with Gurudeva’s sandals tied to his chest, would come to Jagannath Puri at the appointed (predicted) time for preaching and spreading Naam. As soon as he heard this, the sadhu went into samadhi. Later, the detailed descriptions of his family name, the story of his life, as well as his sect etc., were known from that book.
-
-In addition to this description, the divine prophecy was made in which there were indications not only of this sadhu, but also of many great men, his predecessors and contemporaries and their lives. It said – “God Himself will assume the body of a man and appear as an incarnation through him. You should wait for his arrival.”
-
-The sadhu who appeared before the eyes of the omniscient saint four hundred years ago, is the world-revered emblem of all righteousness, the loving God of lakhs and lakhs of devotees – Sri Sri Sitaramdas Omkarnath Dev.'''
+        heading: 'दिव्यवाणी च प्रादुर्भावः',
+        body: '''वर्षे १९४३, एप्रिलमासे, ओरिस्सादेशस्य जगन्नाथपुरीक्षेत्रे, कश्चन साधुः नामकीर्तनसमूहसमेतः जगन्नाथदेवस्य मन्दिरं परितः प्रदक्षिणां चकार। स कृशः; जटाजूटमण्डितशिराः, श्मश्रुधरश्च, देवप्रायदर्शनः आसीत्। तस्य वक्षसि गुरुदेवस्य पादुकाः काष्ठमयाः बद्धाः आसन्।\n\nअकस्मात् केचन स्थानीयाः पर्णकागदानि (पत्रकानि) वितरन्तः तस्य कीर्तनमण्डले समाययुः। स साधुः तेषु किं लिखितम् इति न जानाति स्म; जनसमूहोऽपि तस्मै अपरिचितः आसीत्। पृष्टे सति स ज्ञातवान्—ते तेन मुद्रितपत्रकेन कटकनगरस्य अंकुरामठे अहोरात्रिकीर्तने तस्य आगमनं घोषयन्ति स्म।\n\nस विस्मितः अभवत्; परन्तु पुनः पृष्ट्वा ज्ञातवान् यत् आश्रमस्थेन चतुर्शतवर्षप्राचीनग्रन्थेन अस्य एव समये तस्य ओरिस्सागमनस्य सूचना लब्धा। श्रीचैतन्यमहाप्रभोः पञ्चसखेषु एकः अच्युतानन्दः पूर्वमेव भविष्यवाणीं कृतवान्—गुरुदेवपादुकाभ्यां वक्षसि बद्धाभ्यां सह मह मन्त्रप्रचारकः नियतकाले जगन्नाथपुरीं प्राप्य नामप्रचारं करिष्यति इति। एतां वार्तां श्रुत्वा स साधुः समाधिं गतोऽभवत्। पश्चात् तस्मात् ग्रन्थात् तस्य कुलनाम-जीवनवृत्तान्त-सम्प्रदायादीनां विस्तीर्णवर्णनम् अपि ज्ञातम्।\n\nएतस्यैव वर्णनस्य अनन्तरं दिव्यभविष्यवाणी अपि प्रकाशिताऽभवत्—यत्र न केवलं अस्य साधोः चिन्हानि, किन्तु तस्य पूर्वजानां समकालीनानां च महात्मनां जीवनकथाः अपि सूचिताः। तत्रोक्तम्—“भगवान् स्वयमेव मानुषदेहं धृत्वा अस्मिन्ऽऽवस्थायां प्रकटिष्यति; तस्य आगमनं प्रतीक्षध्वम्।”\n\nस एव साधुः, यः चतुर्शतवर्षपूर्वं सर्वज्ञमहात्मना साक्षात्कृतः आसीत्, अद्य कोटिकोटिभक्तानां प्रियः, धर्मस्य परमार्थप्रतिमा, प्रेमस्वरूपो देवः—श्रीश्री सीतारामदास ओंकारनाथदेवः॥'''
     ),
     Article(
-        heading: 'Birth and Early Life',
-        body: '''A holy child was born on 17 th February 1892, (5th Phalguna 1298 of Bengali calendar) on the 5th day of dark moon in the village Keota on the bank of the holy Ganga, in Hooghly district, at one minute past eight in the morning. At the time of birth, the child’s astrologer and maternal great grandfather Prankrishna Bandopadhyaya said after casting the horoscope, “Look here, a great man (Mahapurush) has come. Blow the conch shell; wherever this child will go, anna daan (distribution of food) on a vast scale will follow him.” His was an orthodox Brahmin family. His father, Pranhari Chattopadhayaya, was every inch a great man: a physician of repute, an inspired playwright, a gentleman of high character, and a born leader, he was a saint in disguise. His mother, Malyavati Devi, was the type of the traditional Hindu wife: pious, devout and chaste, unassuming, self-effacing— a very goddess in human form!
-
-True to the prediction at his birth, wherever he went there was charitable distribution of food, anna daan constantly followed like a companion and it was impossible to believe that such a person, who fed multitudes, could sustain himself with extremely meager quantity of food. He, whose store constantly distributed thousands of precious silk and woolen garments, had on his waist a yard of cloth to somehow clothe himself. His two feet; come winter, rain or summer, be it in woods, gardens, plain grounds or mountains, had never known shoes. In one word, all the objects of enjoyment in this world stood ashamed at a distance from him, and even without touching his feet; they came tumbling down at his feet. On the face of it he appeared a wooden Brahma, in his own words, ‘Only bones– a lame, toothless, and dried-up sadhu.’ Nevertheless, no one knows what attraction drew lakhs and lakhs of people, all opposed to his strict shackles of rules and regulations, run to him madly for nectar! Just as the men and women of Braja (Vrindavan), tolerating all the mischief of that dark butter-thief Krishna, were attracted and ran like mad after him; and even when He was away, were flooded with tears due to his separation, similarly the constantly wandering Sitaram, wherever he went, people over there– the faithful, and the unfaithful, highly placed and lowly ones, wise and foolish, rich and the poor –he bound them all in a such an intimate bond of love that they were bathed in tears when the moment of his departure came.
-
-Standing in the midst of flood of love and an unmoved witness of it, Sitaram had always described himself as, ‘The instrument of Gurudeva for preaching Naam, a worthless singer of Naam obeying the commands of his Master (Gurudeva).’ Or a ‘lame, sickly, thin creature worse than a worm.’ At the age of twenty-five a proposal had come to Sitaram to be installed as an ‘avatara’ (Incarnation of God). He was well-versed in all Shastras, had renounced the world, was a good orator, and a good writer, but he refused that proposal with due humility. Having become ‘humbler than a blade of grass’, an ideal Vaishnava Sitaram wrote in 1952, “Now at this age of 61, at the dusk of my life, I have no desire to become an Avatar. I would like to mix myself as dust in the dust of the feet of my Lord in the form of this universe.”'''
+        heading: 'जन्म प्रारम्भिकजीवनं च',
+        body: '''१८९२ तमे वर्षे फेब्रुवरी १७ तमे दिने (बङ्गसम्वत्सरस्य १२९८ फाल्गुनस्य ५ तमे दिने, कृष्णपक्षस्य ५ तिथौ) पवित्रगङ्गातटे हुग्लीमण्डले केओटाग्रामे प्रातः अष्टवादनात् एकनिमेषोत्तरं काले कश्चन पावनबालकः अजायत। जन्मकाले तस्य ज्योतिषी, मातामहस्य पिता प्राणकृष्णबन्द्योपाध्यायः कुण्डलीं दृष्ट्वा अवदत्—“पश्यत! अत्र महापुरुषः आगतः। शङ्खं ध्मापयत; यत्र यत्र एष बालकः गमिष्यति, तत्र तत्र बहुजनभोजनदानं (अन्नदानम्) अनुगमिष्यति।”\n\nस जातः परम्परागतब्राह्मणकुले। तस्य पिता प्राणहरिचट्टोपाध्यायः—वैद्यः प्रथितः, नाट्यकारः प्रेरितः, सदाचारसम्पन्नः सज्जनश्च, जन्मजातनेता—गूढसन्तः इव आसीत्। माता माल्यवतीदेवी परम्परागतहिन्दुपत्नीस्वरूपा—धर्मनिष्ठा, भक्तिमती, पतिव्रता, अनात्मश्लाघिनी, स्वात्मत्यागशीला—मानुषरूपिणी देवी इव।\n\nजन्मकालभविष्यवाणी यथार्था अभवत्। यत्र यत्र स गतः, तत्र तत्र अन्नदानं स्वयमेव अनुगच्छत् इव। सहस्रशः जनान् भोजयन् स अल्पाहारेण स्वं देहं धारयितुं शक्नोतीति विश्वासोऽपि कठिनः। बहूनि रेश्म-उर्णवस्त्राणि ददन्, स्वयम् तु कपालमात्रवस्त्रेण वपुः आच्छादयति स्म। शीत-वर्षा-ग्रीष्मेषु, वन-उद्यान-समतल-गिरिषु च, तस्य चरणौ कदापि पादत्राणं न ज्ञातवन्तौ।\n\nएकेन वाक्येन—लोके भोगवस्तूनि तेन लज्जितानि दूरे स्थितानि; तथापि तानि अनाहूतानि इव तस्य पादयोः पतन्ति स्म। बाह्यदृष्ट्या स काष्ठब्रह्मवत्; स्ववाक्येन—“अस्थिमात्रः… खञ्जः, दन्तहीनः, शुष्कः साधुः” इति। तथापि कोटिकोटिजना: ये तस्य कठोरनियमपाशान् अपि न रुचयन्ति, केन आकर्षेण तस्मै धावन्ति स्म? यथा वृन्दावनवासिनः कृष्णस्य श्यामस्य नवनीतचोरस्य बाललीलाः सहन्तः अपि तं प्रति उन्मत्तवत् धावन्ति, विरहे च अश्रुपूरिताः भवन्ति—तथा एव निरन्तरपरिभ्रमन् सीतारामः यत्र यत्र गच्छति, तत्र तत्र श्रद्धावान् अश्रद्धावान्, उच्चः नीचः, पण्डितः मूढः, धनवान् दरिद्रश्च—सर्वान् प्रेमबन्धनेन बद्ध्वा, तस्य प्रस्थानकाले अश्रुप्लुतान् करोति स्म।\n\nतथापि स सर्वदा आत्मानं वर्णयति स्म—“अहं गुरुदेवस्य नामप्रचाराय यन्त्रलक्षणः; आज्ञापालनपरः नामगायकः; कीटकात् अपि अधमः खञ्जः कृशः” इति।\n\nपञ्चविंशतितमे वर्षे केचन जनाः तं “अवतारः” इति स्थापयितुम् अयाचन्त; स शास्त्रेषु निष्णातः, विरक्तः, वक्ता लेखकश्च आसीत्; तथापि स विनयेन तद् नाङ्गीकृतवान्। १९५२ तमे वर्षे स लिखितवान्—“इदानीं एकषष्टिवर्षीयः सन्, जीवनसायाह्ने, नाहम् अवतारत्वं इच्छामि। अहं विश्वरूपेण प्रभोः पादधूलिषु धूलिरिव मिलितुम् इच्छामि।”'''
     ),
     Article(
-        heading: 'Childhood Vision of Shiva',
-        body: '''The western bank of the Ganga is like Varanasi. Particularly in the village Dumurdaha, an ancient seat of meditation strewn with temples of Shiva-Durga, Kali-Krishna, and Ram-Mahavir– there is a likeness of Varanasi– all over.
-
-A room in a house in that village! Year 1897. A six-year child Prabodh Chandra was lying in the same bed with his father Pranhari. Pointing his finger towards a big window in the south the child said, “Father, see, Shiva is standing over there!”
-
-The startled father questioned, “Where is Shiva? Where is He, my son?”
-
-“There He is standing in front of me!”
-
-“Where?”
-
-“There He is!”
-
-“Tell me how does Shiva look like?”
-
-“Fair complexion, wearing tiger skin, matted hair on head, three eyes, in the left hand a trident and in the right a damaru (tabour).”
-
-“ Where, pray?” (The boy described what he saw).
-
-Shiva vanished.'''
+        heading: 'बाल्ये शिवदर्शनम्',
+        body: '''गङ्गायाः पश्चिमतीरः वाराणसीवत् इव। विशेषतः डुमुरदहाग्रामे—पुरातनध्यानपीठे—शिवदुर्गा, कालीकृष्ण, राममहावीरादिदेवालयैः व्याप्ते, सर्वत्र काशीं प्रति सादृश्यं दृश्यते।\n\nतत्रैकस्मिन् गृहे एकः कक्षः। वर्षे १८९७। षड्वर्षीयः प्रबोधचन्द्रः पितृसमीपे शयितः। दक्षिणदिशि महतीं वातायनां प्रति अङ्गुल्या निर्दिशन् स अवदत्—“तात, पश्य! शिवः तत्र तिष्ठति।”\n\nआश्चर्यचकितः पिता पप्रच्छ—“कुत्र शिवः? कुत्र सः, वत्स?”\n\nबालः—“साक्षान्मम पुरतः तिष्ठति।”\n\n“कुत्र?”\n\n“तत्रैव।”\n\n“कथय, शिवः कीदृशः?”\n\nबालः—“गौरवर्णः, व्याघ्रचर्मवस्त्रधारी, जटाधरः, त्रिनेत्रः; वामहस्ते त्रिशूलं, दक्षिणहस्ते डमरुकं च।”\n\nपुनः पिता—“कुत्र? कृपया पुनः दर्शय।”\n\nएवं वदतः शिवः अन्तर्धानं गतः॥'''
     ),
     Article(
-        heading: 'Transformation into Sitaram',
-        body: '''That Prabodh Chandra Chattopadhyaya turned into Sitaram later in his life. And his mission since then– from the age of six– was to awaken the sleeping man and show him pointing his finger– “Look, there is Shiva!”
-
-That work went on till the last day of his existence as a human being. Thousands of men, who took refuge in Him were intoxicated with supernatural sound, touch, smell, beauty and nectar– some of them spent their days in ashram and some in the din of family life. There’s no telling how many gods and goddesses he had shown to his disciples, or how many devotees swam in the effulgent light through his magical touch! Even so he was never tired – everyday he made hundreds of men and women listen to his own voice, got them to read his own books and wrote to them in his own handwriting the very same message– “You are sitting on the branch of a tree and doing caw, caw— do you think I haven’t recognized you? You are my Beloved God! I bow down to you!” “Mother, I am without meal for three days, give me alms please- please. With this you have stretched your hands— You think I have not recognized your disguise? —You are That, I bow down to you.” Few years ago, at Puri, an unwanted rickshaw-puller in dirty clothes had entered into his solitary meditation chamber. The devotees came running to debar him but loving Sitaram stopped them and asked, “He is my God. Find out what my God wants.”
-
-Sitaram got down at Lucknow station – the whole station was decorated with flowers. On the platform, the highest railway officials were waiting to do pranam to Thakur. *4 After getting down, Thakur avoided looking at anybody, but fixed his gaze on a sweeper standing diffidently at a distance with broomstick in hand. He called him, but the scavenger did not respond out of fear nor did he come near. At last Thakur sent a person to call him. He came forward hesitatingly and said, “I am a bhangi (low caste), a lowly scavenger.” Thakur declared aloud, “You are not a bhangi, you are my God.” He gave him new clothes, initiated him with Naam in his car and took him in his fold.
-
-He wanted to reveal God to everyone, and to find God in everybody – these were the only two things he did– that was why everyone called him ‘My God!’'''
+        heading: 'सीतारामरूपेण परिवर्तनम्',
+        body: '''प्रबोधचन्द्रचट्टोपाध्यायः कालान्तरं सीतारामः अभवत्। षड्वर्षादारभ्य तस्य जीवनयात्रायाः प्रमुखं कार्यं—सुप्तं मानवमनः जागरयितुं, अङ्गुल्या निर्दिश्य वदितुं च—“पश्य! अत्र शिवः।”\n\nएतद् कार्यं तस्य मानुषदेहस्थित्याः अन्तिमदिनं यावत् अविच्छिन्नम् आसीत्। सहस्रशः जनान् भोजयन् स अल्पाहारेण स्वं देहं धारयितुं शक्नोतीति विश्वासोऽपि कठिनः। बहूनि रेश्म-उर्णवस्त्राणि ददन्, स्वयम् तु कपालमात्रवस्त्रेण वपुः आच्छादयति स्म। शीत-वर्षा-ग्रीष्मेषु, वन-उद्यान-समतल-गिरिषु च, तस्य चरणौ कदापि पादत्राणं न ज्ञातवन्तौ।\n\nएकेन वाक्येन—लोके भोगवस्तूनि तेन लज्जितानि दूरे स्थितानि; तथापि तानि अनाहूतानि इव तस्य पादयोः पतन्ति स्म। बाह्यदृष्ट्या स काष्ठब्रह्मवत्; स्ववाक्येन—“अस्थिमात्रः… खञ्जः, दन्तहीनः, शुष्कः साधुः” इति। तथापि कोटिकोटिजना: ये तस्य कठोरनियमपाशान् अपि न रुचयन्ति, केन आकर्षेण तस्मै धावन्ति स्म? यथा वृन्दावनवासिनः कृष्णस्य श्यामस्य नवनीतचोरस्य बाललीलाः सहन्तः अपि तं प्रति उन्मत्तवत् धावन्ति, विरहे च अश्रुपूरिताः भवन्ति—तथा एव निरन्तरपरिभ्रमन् सीतारामः यत्र यत्र गच्छति, तत्र तत्र श्रद्धावान् अश्रद्धावान्, उच्चः नीचः, पण्डितः मूढः, धनवान् दरिद्रश्च—सर्वान् प्रेमबन्धनेन बद्ध्वा, तस्य प्रस्थानकाले अश्रुप्लुतान् करोति स्म।\n\nतथापि स सर्वदा आत्मानं वर्णयति स्म—“अहं गुरुदेवस्य नामप्रचाराय यन्त्रलक्षणः; आज्ञापालनपरः नामगायकः; कीटकात् अपि अधमः खञ्जः कृशः” इति।\n\nपञ्चविंशतितमे वर्षे केचन जनाः तं “अवतारः” इति स्थापयितुम् अयाचन्त; स शास्त्रेषु निष्णातः, विरक्तः, वक्ता लेखकश्च आसीत्; तथापि स विनयेन तद् नाङ्गीकृतवान्। १९५२ तमे वर्षे स लिखितवान्—“इदानीं एकषष्टिवर्षीयः सन्, जीवनसायाह्ने, नाहम् अवतारत्वं इच्छामि। अहं विश्वरूपेण प्रभोः पादधूलिषु धूलिरिव मिलितुम् इच्छामि।”'''
     ),
     Article(
-        heading: 'Childhood Virtues',
-        body: '''Sitaram spent his childhood days in his maternal uncle’s house in Keota and in his paternal house at Dumurdaha. In his childhood plays, there were three remarkable facets– adherence to the religious discipline, strong liking for Naam and mastery over the kingdom of Yoga – these three were the signs of Sitaram’s greatness in future years.
+        heading: 'प्रारम्भिकप्रचारः दर्शनानि च',
+        body: '''ते विचित्राः, अद्भुताः, पागलाः च मन्यन्ते। किन्तु यः कश्चन साधुः, स तेषां परवाहं न करोति। एकः युवा, विहितगीतः, स्वसुखे मत्तः, निर्लज्जः, अशङ्कितः च। लज्जा वा अपमानः तस्य नास्ति। संगीतं तस्य ज्ञातं नास्ति; किन्तु गीतानि तस्य मुखात् निर्गच्छन्ति। यद् यद् पश्यति, तत् तत् प्रकाशते। सर्वे तस्य निमन्त्रणं स्वीकृतवन्तः, किन्तु केवलः कश्चित्। ते भाग्यशाली, यः पागलस्य दृष्टिं गृहीत्वा, साक्षात् देवदर्शनं प्राप्नुवन्ति। सः तान् हस्तेन कृतकर्माणः पादेन च स्पृशन्, “तत्र पश्य” इति वदन्, तेषां दृष्टिं प्रापयति। एषः साधकः।
 
-The first was his adherence to discipline. In younger days, if he was asked to eat early, he used to say, “First let the Thakur have it, I shall eat only afterwards.” His refusal to take food without it being offered (to God) began from those early years. His second virtue consisted in his joy at Kirtan (singing) of Naam. Right from his childhood, whenever he heard the sound of Kirtan at a distance, he would run naked saying, “Lo! There is the bang of the drum of Hari Naam singers, let us rush there.” Thirdly, his refuge in samadhi *5: since very early childhood, while lying in the mother’s lap and listening to the recitation from the Shastras, he would lose all sense of the external world. People thought that it was a fainting fit, when a spiritually experienced reader corrected, “This is but samadhi.” He came out of his trance by the sound of Naam.
-
-After completing primary education in a village-school in his childhood, he started English education in Bandel Church School– but a life of adherence to Scriptures and renunciation had been ordained for him, so he did not have to continue in this alien culture for long. Furthermore, his elder brother, Bankim Chandra, an extraordinary genius, was already well-advanced in English education, so his father Pranhari thought it wise to put Prabodh Chandra (Sitaram in the future) in the Sanskritic line to ensure the worship of the family deity Brajanathji in the right manner. So Sitaram’s Sanskrit education started from early boyhood in a Chatuspathi. *6 In the first Chatuspathi he was acquainted with a senior colleague Dasharathi Dev who, in future, became his Preceptor. He was formally initiated on January 13, 1913. Dasharathi Dev Yogeshwara thus proved to be both Shiksha Guru and Diksha Guru to him.
-
-Later on, his studies were interrupted due to many circumstances. When he heard that Sri Sri Dasharathi Smritibhushan had opened a school for Sanskrit education, he went to study there in 1906. From the next year, he started residing as a family member in the house of Dasharathi Dev, who was an imaginative poet, learned devotee and well-versed in the Shastras. Within three years, living a tough life in his Guru’s house, he was able to pass the Adya (first) examination in Grammar in the first division.'''
+एवं च, तस्य अद्भुतं विद्या, तस्य अद्भुतं ज्ञानं च। छात्रजीवनस्य सर्वविघ्नानां परिश्रमेण, स सर्वज्ञानेन, वेदाङ्गेषु च पारङ्गतः अभवत्। सः परीक्षा ददाति, किन्तु केवलं विद्या वा डिग्री न, किन्तु आत्मज्ञानं च। सः लिखति, “सर्वज्ञः परीक्षकः अस्ति; तस्मिन् न तुं चोरयितुं शक्नोति, न तुं अनुलेखयितुं।”'''
     ),
     Article(
-        heading: 'Marriage and Renunciation',
-        body: '''When negotiations about his marriage began, he left his house in the spirit of intense renunciation, resolving to remain a bachelor. But Dasharathi Dev, who, in the meantime, was established as his Guru through initiation, was himself against the disciple’s bachelorship. Although he escaped to Puri Dham, he had to come back due to the intention of Shri Guru Dev.
+        heading: 'सन्तत्वप्राप्तिः',
+        body: '''ब्रजनाथनिकेतने किञ्चित्कालं “अनासक्तसेवक” इव स्थित्वा, स बाह्यलोकदृष्ट्या अपि यथार्थसन्तः अभवत्। गुरुदेवः पूर्वमेव तस्मै “सीताराम” इति नाम दत्तवान्; “दास” इति तु स स्वयमेव स्वपरिचयार्थं गृहीतवान्—यत् “अहं गुरोर्दासः” इति बोधयितुं। ध्यानकाले “ओंकारनाथ” इति नामोपरि यथा नभसः अवतीर्णं, तथा तस्य हृदये अवभास्य स्वीकृतिं याचितवत्। १९३७ तमे वर्षे जनवरी १३ तमे दिने स विधिवत् कौपीनं धारयामास, “सीतारामदास ओंकारनाथ” इति नाम च अवलम्बितवान्।
 
-He married in December 1916 with a heavy heart. But eventually he came to know from his girl-bride (Kamala), that she had accepted Prabodh Chandra from the very childhood as her husband; that even she would have died if he had not married her. Finally, coming to know that Sitaram’s health was not too well, the girl declared in a firm voice: “You will not die by the grace of Mother Siddheswari, I would worship the Deity for you."
+ततः परं काश्यपगोत्रीयः प्रबोधचन्द्रः इव नामरूपेण न दृश्यत; अच्युतगोत्रीयः श्रीवैष्णवः सीतारामदास ओंकारनाथः सन्तजीवनं निर्वहन् दृश्यते स्म।
 
-Now, discovering in her a strong religious faith in the deity with an undaunted unparallelled love for him simultaneously— the heavy gloom in Sitaram’s heart gave way.
+एतत्पूर्वं अश्रुपूर्णभावसमाधिसंपर्कप्रभावात् सामान्यशिक्षण-प्रवचनकार्यं प्रायः विरतं जातम्। श्रीगुरुदेवः दाशरथिदेवः लीलां समाप्तवान् (देहं त्यक्तवान्)। देहत्यागात् पूर्वं, त्रिदिनमिव मूर्छास्थितौ, स दिव्यस्वप्ने दिव्यलोकसंकेतं प्राप्तवान्—कलियुगे सर्वजनानां (भारतीयानां विदेशीयानां च), सर्ववर्णानां (हरिजनानाम् अपि) दुःखशमनाय षोडशनाम-द्वात्रिंशदक्षरयोगयुक्तः “हरेकृष्ण” महामन्त्रः एव एकः उपाय इति।
 
-Thereafter Kamala began to secretly learn the discipline of family life and dedicated her life to idealistic husband unattached to worldliness. But like Vishnupriya (wife of Sri Sri Sri Gauranga Maha Prabhu), here too, mother Kamala revealed herself like a bashful wife behind the veil. After a continuous service to her renunciate husband, she passed away in her youth in 1930.
+एषा गुरोः दिव्यस्वप्नाज्ञा—“जगति सर्वत्र नामप्रचारः”—शिष्ये सीतारामे बीजरूपेण न्यस्ताऽभवत्। शनैः शनैः अन्तरतः “जयगुरु, जयगुरु” इति नादः अश्रुतपूर्वध्वनिरूपेण उदितः। अतः स पश्चात् अस्य सम्प्रदायस्य नाम “अखिलभारत-जयगुरु-सम्प्रदायः” इति स्थापयामास।
 
-Prabodh Chandra curiously remained a family man even after the attainment of fulfillment. He did it to hold out the example of an ideal householder, to show by his own example how a householder living according to the Shastras can even now attain fulfillment and be a Saint of Saints.
+गुरुदेवस्य देहत्यागानन्तरं, स स्वप्ने प्रादुर्भूय अवदत्—श्राद्ध-कर्मभिः अर्पणैश्च अपि अहं तृप्तो नास्मि; अद्यापि “क्षुधा” अस्ति। शिष्यः अवगच्छत्—एषा क्षुधा “नामस्य” क्षुधा; नामप्रचारस्य भूखः इति।
 
-He had therefore to start Sadhana anew, from the scratch, to which end he reduced himself to absolute destitution and began from the very beginning. His career is unique in this, that with all else Sadhana comes first and Siddhi follows, while with him Siddhi preceded Sadhana. Part of the purpose behind this mystery is that he would show by his own example how by merely repeating the Naam one could fulfill oneself. The way par excellence to spiritual and material fulfillment in our times is to chant the Naam constantly, but to say this is not enough; it has to be shown before it could be taught. He undertook this task so that we infirm creatures might be convinced of the efficacy of Naam *1; he did it to make it possible for us lame ducks to cross the stream.'''
+तथापि सीतारामः देवात् प्रत्यक्षं दृश्यमानं आदेशं विना प्रचारकत्वं गृह्णातुं न सज्जः आसीत्। अतः स १९३७ तमे वर्षे मार्च ३ तमे दिने जगन्नाथपुरीक्षेत्रे तीव्रां साधनां प्रारब्धवान्। तेन व्रतं कृतम्—“अहं भगवन्तं साक्षात् पश्यामि, अथवा निर्विकल्पसमाधिना देहं त्यजामि” इति।
+
+१९३७ तमे वर्षे एप्रिल २४ तमे दिने रात्रौ, समाधिस्थे तस्मिन्, जगन्नाथदेवः वेणुधरः, दिव्यज्योतिः-परिवेष्टितः, मधुरघण्टानादसमन्वितश्च, प्रादुर्भूतः। “गच्छ, गच्छ, गच्छ—नाम देहि” इति वदन् स अन्तर्धानं गतः। ततः आरभ्य स स्वजीवनं नामदान-नामप्रचार-नामप्रसार-नामवितरणार्थं समर्पितवान्, जगतं नामानन्देन पूरयितुम् इच्छन्। जगन्नाथदेवेन “आचार्यः” लोकाय उपलब्धः कृतः; तेन नियुक्तः स नामस्य दूतः (नामप्रेरकः) अभवत्। जाति-मतभेदं विहाय, स सर्वान् साधकान् सिद्धयोगेन अनुगृहीतवान्।
+
+तत्पश्चात् अपरदिनात् एव जगन्नाथपुरीक्षेत्रे नामप्रचारः आरब्धः। अनन्तरं चातुर्मास्यं, अखण्डनामकीर्तनं, अन्नदानं च—भवानिपुरे (कलिकातायाम्), पुरीक्षेत्रे, डुमुरदहायां, डिग्सुई, कटक, बङ्कुरा, बर्धमान इत्यादिषु—प्रत्यवर्षं क्रमशः प्रवर्तितम्। गुंतूरजनाः (आन्ध्रप्रदेशे) किञ्चित्कालं नामप्रवाहेन प्लाविताः। “रामनामक्षेत्र” इति विशालः आश्रमविस्तारः आसीत्; तत्र साधकाः सीतारामस्य प्रेमवेगेन आकर्षिताः शरणं गतवन्तः।
+
+नामप्रचारस्य अद्भुतः कोलाहलः क्वचिद् मध्यप्रदेशे, क्वचिद् उत्तराखण्डे, क्वचिद् राजस्थाने, क्वचिद् पूर्वबङ्गे, द्वारकायां, दक्षिणभारतदेशे, अन्येषु च स्थानेषु, प्रवहन् आसीत्। कदाचित् कलिकातायाः गृहेषु, कदाचित् उद्यानेषु, कदाचित् वीथिषु।
+
+ततः परं पञ्चचत्वारिंशद्विवर्षपर्यन्तं—मन्दिरस्थापनं, जर्जरदेवालयानां जीर्णोद्धारः, दरिद्राणां भोजनदानं, वस्त्रवितरणं, विवाहार्हकन्यानां पितॄणां साहाय्यं, शतशः दरिद्रकुटुम्बानां आजीवनपालनभारग्रहणं, दरिद्रविद्यार्थिनां कृते निःशुल्कविद्यालयस्थापनं, भारतदेशे नवविंशतिः अखण्डनामकीर्तनकेन्द्रस्थापनं, लिखितरामनामेन (१२५ कोटि) समन्वितदेवालयस्थापनं—इत्यादीनि सततं प्रवृत्तानि।
+
+एतैः बहुभिः सेवाकार्यैः सह, मौनध्यानतपस्या अपि सहचर्या आसीत्। मौने कदाचित् सहचराः; कदाचित् पूर्णैकान्तं; कदाचित् अल्पकालः; कदाचित् द्वाविंशतिमासपर्यन्तं दीर्घकालः। द्वारकायां, पुरीक्षेत्रे, ओंकारेश्वरे च स पुनःपुनः मौनव्रतम् अकरोत्। तत्र मौनावधिषु पञ्चाशतोऽधिकं (१५०) अमूल्यग्रन्थाः लिखिताः; तेषाम् प्रत्येकपृष्ठे तस्य अद्वितीया शास्त्रप्रज्ञा तथा प्रत्यक्षानुभवः समन्वितौ, येन तस्य साहित्यं अधिकं विश्वसनीयं प्रकाशकं च जातम्।
+
+सम्प्रदायपरम्परया, रामानन्दमतस्य श्रीवैष्णवादर्शं स्थापयितुं, “श्रीवैष्णवमताब्जभास्कर” इत्यस्य बङ्गानुवादं स्वव्याख्यासहितं स अकरोत्। “जगद्गुरु-रामानन्द” इति नाटके तेन श्रीरामानुजाचार्यस्य पवित्रजीवनं नाट्यरूपेण व्यक्तीकृतम्। दक्षिणदेशस्य द्वादशल्वाराणां जीवनचरितं अपि तेन लिखितम्।
+
+सम्प्रदायपरिचयविषये, तेन अन्ते स्वस्य प्रियतम-उच्चवर्गीयसंन्यासिशिष्याणां त्रिदण्डिस्वामि-लक्ष्मणरामानुज-ज्यूः (श्रीरङ्ग-फलहारीमठात्) इत्यस्मात् संन्यासदीक्षां विधातुं अनुमोदितम्; तदनन्तरं सम्प्रदायस्य नाम “रामानुजीय-रामानन्दीय-अखिलभारत-जयगुरु-सम्प्रदायः” इति व्यवस्थितम्।
+
+अस्य सम्प्रदायस्य आध्यात्मिकदर्शनं प्रधानतः भक्तिमूलकं; गुरौ शरणागतिḥ तथा गुरुनिष्ठा च तस्य मूलव्रतानि। परं तस्य अन्तिमलक्ष्यं—“त्वं” इति परिमितभेदात्मभावात् निष्क्रम्य, “अहं” इति परमानुभवे (अद्वयभावे) लीनता।
+
+ठाकुरेण प्रतिपादितं दर्शनं “प्रणववादः”—ओंकारस्य सिद्धान्तः। अस्य नादयोग-लययोगमूलकस्य पथे शक्त-शैव-वैष्णव-सौर-गाणपत्याः, योगिनः भक्ताः कर्मयोगिनो ज्ञानयोगिनश्च—एते सर्वे एकत्र संगच्छन्ति इति तस्य मतम्।
+
+अस्य विचारस्य फलरूपेण स “सुधारधारा” इति एकचत्वारिंशत् विरलपद्यसमूहं रचितवान्—शास्त्रमन्थनात् निष्पन्नामृतधारारूपम्। “नामामृतलहरी” इति तस्य अमररचना एकादशभागेषु वर्तते; तत्र स समस्तशास्त्रसमुद्रं तरित्वा, भगवन्नामकीर्तनं परमार्गत्वेन प्रतिष्ठापितवान्।
+
+“अभयवाणी” इति लघुग्रन्थः अपि तस्य प्रख्यातेषु ग्रन्थेषु एकः। तस्य प्रत्येकवाक्यं नामगायकस्य कृते भगवदाश्वासनरूपं दीप्तिमत्। अस्मिन् ग्रन्थे ठाकुरः स्वनाम केवलं “संकलयिता” इति लिखति; स स्वयं केवलं साधनम्—वक्ता तु भगवान् एव इति। सा “अभयवाणी” कदाचित् भारतदेशस्य विभिन्नप्रदेशेषु दावाग्निवत् प्रसृता, सीतारामशिष्येषु नामप्रेमाग्निं प्रज्वाल्य च।'''
     ),
-    Article(
-        heading: 'Spiritual Vision at Age 26',
-        body: '''On 7 th January 1918, at 12 in the midnight, a young man of twenty-six, a resident - pupil at Vishwanath Chatuspathi, Chinsura (a school of Oriental learning founded by great intellectual of Bengal Late Bhudev Chandra Mukhopadhyaya), in meditation, was sitting in Baddha Padmasana while everyone else was asleep. He changed his posture, sat normal and began to meditate again with eyes closed and mind fixed on the heart.
-
-Whom should he see now but God Shiva, five-faced, trident in one hand and tabor in another!
-
-He challenged the visitor, “Who are you?”
-
-“I am thy Guru, I came to you once in your childhood; but you couldn’t recognize me. Here I am again.”
-
-“If you are my Guru, pray, show me my Ishta (Favourite Deity).”
-
-Shiva uttered his Ishta-Mantra and went on repeating it, with each of His five mouths.
-
-Then appeared a Goddess from Shiva’s shoulder.
-
-“Who is there, about your shoulder?” he asked Shiva, who did not answer. The Goddess replied: “I am your Mother,” descending from Shiva’s shoulder.
-
-She took his astral body in her arms and whispered his Ishta Mantra into his ears; she kept doing this. Shiva too went on chanting it with His five mouths, dancing and playing all the while on the tabor. In a strange manner, he was able to see his soul and meet his Ishta Dev.
-
-Gradually the mantra faded- ‘Ram, Ram, Ram’ remained.
-
-That faded too… and ‘Om, Om,’ the Omkar appeared. Over his open eyes, rounded effulgent streaks of light appeared. Omkar Sound was transformed into the hissing of a serpent. (A form of Naad or Transcendent sound). The roar rose from within.
-
-The eyes opened only to be glued to the central point between the eyebrows. Round circular Jyoti (Transcendental Light) manifested itself. When his sense of the world returned, it was 4 A.M., as the Jute Mill whistle told.
-
-At that time, to an ordinary eye, his condition was like a lunatic; through his mouth he constantly uttered ‘Jai Guru’. A new type of song came to his voice. Seeing the condition of his disciple, a devotee of Dasharathi Smriti Bhushan said, “I saw the mad behaviour of Prabodh. I pray to God that both of you, the Guru and the disciple become mad like this?”
-
-In the same year, on the night of Saraswati Puja He Had a vision of his previous birth. He was a world-revered saint devoted to the Mother. He could scarcely believe it. The omniscient Guru said after hearing it all, “Go on working, everything is alright.”
-
-Then on the night of Dol Purnima, the truth about who he was and why he had come down dawned on him. A silent voice welled up from within moistened with tears that almost choked his throat. That was total fulfillment: -
-
-Yada Yada Hi Dharmasya Glaanirbhavati Bharat …
-‘Whenever dharma declines and adharma prevails in Bharat, I am sure to incarnate Myself.’
-
-He came to know why he had come back, again, to the dust of this earth. The realization occurred at Dumurdaha (Brajanath Niketan). He started at once for Digsui, another village in Hooghly, to meet his Guru.
-
-His Guru asked him, “What brings you here?”
-
-“Please come with me,” said he.
-
-And he granted a Vision of God to his Guru who was literally overpowered. The Guru remained in a trance for three days. He could only find words to caution his wife against treating his disciple in the usual way. “Don’t ask him to do anything. Don’t offer him prasad from my dish.”
-
-Apprised of his disciple’s Divine identity, the bemused Guru, while in this state of trance, composed a brief Sanskrit hymn in honour of the disciple. The hymn stated:
-
-“Who are you, my Guru or Shishya? I for one can never tell! All I know from my natural feeling is that I am yours and you are mine. If you are my Guru, then I submit as a disciple to your care and take refuge in you, out of bounty of your grace, do enlighten me. If on the other hand, I am your Guru, please tell me who you are, of what substance are you formed?”'''
-    ),
-    Article(
-        heading: 'Early Preaching and Visions',
-        body: '''They called him queer, odd, mad. For many, he was stark, staring mad. But he did not care for what the world thought. A young man of twenty-six, he moved about singing songs unbidden, lost in his own ineffable delight. Of shame or scorn he had no sense. Of music he was innocent. But the songs burst from him. Whatever he saw blossomed at once into blazing light. To people around he sent his warm invitation, “Is there any that would see God? If so, come.” It was a call to all. A very, very few responded, the few that were sane enough to take the supposed lunatic seriously. And these fortunate few had the beatific Vision. He vouchsafed his Vision to them by catching the candidate gently by the wrist, both standing; and said, “There – behold.” And they did see!
-
-With this inner spiritual life, the extra-ordinary academic life went on simultaneously. In spite of many obstacles during student life, he had passed, without preparation, the examination on Vyakaran (Grammar), Upanishad, Purana and Vedanta. He always held an aversion for degrees. He had prepared himself from his early boyhood for a much deeper and far more difficult examination than school examinations. He wrote in his diary, “That Examiner knows everything. One cannot bluff to him, nor can you copy there!”'''
-    ),
-    Article(
-        heading: 'Becoming a Saint',
-        body: '''After spending sometime in Brajanath Niketan in this role of an unattached sevak, he became a real saint to the outside world. Gurudeva had already given him the name 'Sitaram', and 'Das' was the designation he chose for himself to indicate that he was his Guru’s slave. The name ‘Omkarnath’ descended from above during his meditation and solicited the favour of his acceptance. On 13 th January 1937, he ceremoniously put on the koupin and assumed the name “Sitaramdas Omkarnath.”
-
-From this day, Prabodh Chandra of Kashyap Gotra got obliterated and Shri Vaishnava Sitaramdas Omkarnath of Achyuta Gotra began to live a life of a saint.
-
-Before this, through the influence of constant access of tearful state and samadhi, teaching had stopped. Sri Guru Dasharathi Dev had completed his leela (had passed away). Before leaving the mortal coil, he received, while he was in a swoon for three days, an indication through a divine dream set in celestial regions, 'that Hare Krishna Mahamantra' of sixteen Names and thirty-two alphabets was the only means of relieving miseries in this Age of Kali suited to people of all nations, the Indians and foreigners, as also of all castes including the Harijans.
-
-This dream of Guru Dasharathi Dev commissioning the preaching Naam throughout the world was sown as a seed in the disciple Sitaram. Gradually, the Naad ‘Jaiguru, Jaiguru’ intoned from within in the form of unheard sound. Accordingly, He named the Sampradaya as ‘Akhil Bharat Jaiguru Sampradaya’ at a later day. After leaving the body Gurudeva appeared in dream and told him that in spite of all rituals of Shraddha and offerings, he was still hungry. The disciple understood that it was the hunger for Naam that was still not satiated. Even then Sitaram was not prepared to take up the role of a preacher without a commission directly and visibly from God. He thus went into rigorous sadhana on 3 rd March 1937 at Jagannath Puri. He took a vow– “Either I see God face to face or leave the mortal frame in Nirvikalpa Samadhi!”
-
-On the night of 24 th April 1937, while he was in samadhi, Jagannath Deva appeared holding the flute, aureoled in transcendent light, accompanied with sweet sound of the bell. “Go, go, go and give the Naam,” saying this, He disappeared. To that task therefore he dedicated himself. His own untiring mission since then was to bestow the Divine Naam, to preach it, to scatter it, broadcast it and to fill the world with its bliss. Lord Jagannath made the Master available to us all. Commissioned by Him, he set about the mission and emerged as the Apostle of Naam (God’s Name). He administered Siddha Yoga to about every seeker, irrespective of caste or creed.
-
-From next day onwards, the preaching of Naam started in Jagannath Puri. Then began Chaturmasya and Akhanda Naam and Anna Daan at Bhowanipur (Kolkata), Puri, Dumurdaha, Digsui, Cuttack, Bankura, Burdwan, one after another every year. The inhabitants of Guntur, Andhra Pradesh were flooded with the stream of Naam for sometime. Ram Naam Kshetra was a big establishment; the aspirants of that place were flooded with the tide of Sitaram’s love and took refuge in it. An unheard of commotion in preaching Naam went on, sometimes in Madhya Pradesh, sometimes in Uttarakhand, or Rajasthan, East Bengal, Dwaraka, South India and in many other places. It went on sometimes in the houses and sometimes in the parks or streets of Kolkata. After this, for the next forty five years, establishment of temples, renovation of dilapidated temples, feeding of the poor, distribution of clothes, help to the fathers of marriageable daughters, taking on the responsibility of lifetime maintenance of hundreds of poverty-stricken families, establishment of free schools for poor students, setting up twenty-nine Akhanda Naam Kirtan centers across India, establishing temples incorporating 125 crores of handwritten Ram Naam and several other activities of the kind went on continuously.
-
-With all these activities, silent meditation (Tapasya) continued side by side. Sometimes during silence he had companions, sometimes he stayed absolutely alone, sometimes the mauna lasted for a short duration and sometimes it lasted for twenty-two months. He took to a vow of silence time and again at Dwaraka, Puri and Omkareshwar. During these terms of mauna more than 150 priceless books were written. In every page of these books his unparalleled scriptural knowledge joins hand with his direct realization which makes his literature so much more convincing as well as illuminating.
-
-According to the tradition of the Sampradaya, he rendered, in order to establish the ideal of Shri Vaishnava of Ramananda cult, a Bengali edition of ‘Shri Vaishnava Matabja Bhaskara’ with his commentary. In the play ‘Jagat Guru Ramananda’ he also depicted so dramatically the holy life of Sri Sri Ramanujacharya. He also wrote the biography of the twelve alwars, the great saints of the South. As regards the identity of his Sampradaya, he finally approved and arranged for the sannyas diksha of his dearest high-order monk-disciples from Tridandi Swami Lakshman Ramanuja Jeur of Sri Rangam Phalhari Math. And accordingly named his Sampradaya ‘Ramanujiya Ramanandiya Akhil Bharat Jai Guru Sampradaya.’
-
-The spiritual doctrine of this Sampradaya is predominantly based on devotion; surrender and loyalty to the Guru are its basic tenets. But its essential goal is a kind of an ultimate state of non-duality –to get out of the absolute ‘you’ and to merge into absolute ‘I.’
-
-The philosophy that Thakur propounds based on his personal realisation is ‘Pranavavaad’, the doctrine or the theory of Omkar. According to the Naad or the Laya Yoga of this doctrine, in the spiritual path, Shakta, Shaiva, Vaishnava, Saura, Ganapatya; Yogi, Bhakta and Karmayogi and Jnanayogi –there is a great union of all these streams of spirituality. When we read the plays ‘Shiva Vivaha’ or a text like ‘Naamamrita Lahiri’, we feel Thakur is a great Shaivite. When we read ‘Ashrubadal’, ‘Ranchod’ or ‘Brajanath Leela Lahiri’, we become aware that he was singularly devoted to the adept of Vrajaraj- Krishna. His books such as ‘Katha Ramayana’, ‘Vijane Vijya’ and ‘Milan Yajna’ are principal sources of acquainting us of his devotion to Ram. Compositions like ‘Matru Gatha’ and ‘Chokher Jale Maayer Pooja’ (Mother’s worship through tears) make us feel that he is an ardent follower of the Shaktas. After reading ‘Yogarahasya’ and ‘Naad Leelamrita’ one feels he is the traveller of the path of yoga. ‘Pranavapiyush Bhashya’ of Sri Sri Gita, ‘Omkar Bhashya’ of the Brahmasutras, or of Sri Sri Chandi, the deeply philosophical as well as spiritual texts like ‘Sri Sri Brahmanusandhan’ or ‘Sri Sri Omkar Sahastra Giti’ –all these go to prove that he is the proponent of Upanishadic Brahmavada and Shabdabrahmavada.
-
-Like his domestic life even in his philosophy one sees the supreme unity within an ocean of variety. In the non-dual state rooted in ‘Knowledge’, he perhaps transcends even Shankaracharya’s advaitavada. He fords over the little duality in ‘Aham Brahmasmi.’ In the second part of ‘Prapanna Pathik’ he states that at the highest plane of experience, in the ultimate state of Oneness, only ‘Brahma, Brahma, Brahma’ or ‘Asmi, Asmi, Asmi’ remains.
-
-Even at the end of his life he expounded the ultimate kainkarya (path of servitude to God), ‘Sharanaagatoham’ (I surrender to you) and ‘Tavaasmi’ (I am yours) as the principal means of spiritual practice. The course of action he finally advocates is the one of considering that the entire cosmos, the insects and birds, plants and trees, moveable and immoveable objects –are all nothing but the body of my Guru. Considering this one must be devoted to the world in obeisance, be faithful to the Shastras and the directions of varnashram and lead a virtuous life.
-
-He has integrated all these streams of thought in a collection of fourty-one rare poems called ‘Sudhar Dhara (Streams of Nectar).’ This ‘Sudhar Dhara’, the streams of nectar obtained after churning of the Scriptures is the galitam phalam (ripe fruit) of Sitaram’s Sadhan Kalpataru (wish-yielding tree of spiritual practice). These point at an eternal and advanced means of God-realization. Other than that Sitaram’s renowned and undying composition ‘Naamamrita Lahiri’ exists in eleven parts. In this text he crossed over the entire ocean of Shastra and established Naam Kirtan of Sri Sri Bhagwan as the ultimate path.
-
-‘Abhayvani’ (Message of fearlessness) is one among his small but powerful compositions; every sentence of it gives a blazing assurance of God to the Naamkari (singer of Naam). In this book Thakur declares his name only as the compiler. He is just working as an instrument; the real speaker here is none other than God. It is this ‘Abhayvani’, which at one time spread like wildfire in different parts of India, and flared up the sacred fire of love of Naam in every disciple of Sitaram.'''
-    ),
-    Article(
-        heading: 'Severe Asceticism and Recognition',
-        body: '''At Omkareshwar Thakur observed severe maunatapasya lasting for five months in 1952-53 and for sixteen months in 1954-55. The pangs of separation and an intense desire to see him rose in the hearts of his devotees scattered all over the country. Thereafter, during the chaturmasa at Gopalpur, once again there was a flood. Again he observed the longest mauna at Omkareshwar in the years 1956-57 lasting for twenty-two months consecutively. This severe asceticism was unimaginable –can anyone describe it? After that he preached on a massive scale! The name of Sitaram –‘asceticism personified’; a being bereft of all outward ostentation; powerful incarnation of love; an uncompromising follower of the Shastras, spread among the intellectuals, political heads, religious preceptors, artists and great men of all other walks of life, not only in Bengal but all over India.
-
-He had already been blessed with the best wishes of Mahatma Ramdayal Muzumdar. The leading pundits and intellectuals of Bengal of that time were charmed by bathing in the streams of nectar that poured out of the pen of this young spiritualist. Mahamahopadhyaya Yogendranath, the greatest among the philosophers of his epoch held Thakur in a new form. After many assessments all these enlightened personages came to regard Sitaram as an incarnation of God, descended in human form for the divine sport. He was not a siddha saint in the general sense of the term. He did not exhibit any supernatural power in his childlike simple behaviour; he never made any prophecies, on the contrary he sent the sick ones to the doctors for treatment. Nevertheless Yogendranath said, “I have personally and distinctly experienced this –His mere contact is capable of inspiring divine feeling in any person, in any state, and drown him or her in boundless joy.”
-
-This philosopher and a scholar revered all over the country did not feel the slightest hesitation in declaring aloud: “In the modern times the Lord of the world, out of his boundless grace, has personally descended in the form of Sitaram to alleviate our sorrows and afflictions….”'''
-    ),
-    Article(
-        heading: 'Later Activities and Organizations',
-        body: '''The chaturmasya Leela at Puri, Pushkar and Bithur (Kanpur) went on with great pomp! In 1965 he lived at the ‘Janhavi Kunj’ at Barrakpore on the banks of Ganga because he was suffering from the hernia trouble. Bedridden during the leisurely hours, upon divine inspiration he founded organizations such as Mahamilan Math, the headquarters of ‘Akhil Bharat Jai Guru Sampradaya’, Kishore Sangh, Yuvak Sangh, Vidwat Sangh, and Chikitsak Sangh etc. He had established at different locations Sati Sanghs, centres for women to meet, sing Kirtan and study the scriptures. In addition to ‘Devayana’ and ‘Jai Guru’ Bengali magazines, ‘The Mother’ in English, ‘Pranav Parijata’ in Sanskrit and the monthly ‘Arya Shastra’ and ‘Arya Nari’ etc. in Bengali were established.
-
-Thereafter through a long illness at Kedar Bhawan, Bali, a weekly called ‘Pather Alo’ was also started. Making Mahamilan Math the center, ‘Shastra Bhagwan Press’ and ‘Mahamilan' 'Vidyapeetha’ were founded. In early 1970 one huge nine-peaked temple, peerless in India, of Shyam Rai and Shyam Rani, along with eight sakhis was established. They were the Emperor and Empress of Sitaram’s dream of Satya Dharma Prachar Sangha!
-
-After this the works spread in Uttarakhand making Delhi the centre. Many of the Central ministers took refuge and had his blessings. The influence of Sitaram and Mahamantra Kirtan spread over the Indian Army as well. Military officials at the Rishikesh ashram maintained round-the-clock singing of Naam. The soldiers on the Indo-Tibet Border Police continued unbroken Naam for three years at the unique hermitage on the banks of Ganga –Bhagirathi Math, Uttar Kashi! In 1970-71 in the Bangladesh war Thakur directly imparted his spiritual power to the freedom struggle. Banga Bandhu Mujibur Rehman and Maulana Bhasani came to be the admirers of Sitaram. Maulana had personally come to the Rishikesh ashram and was bound in a loving embrace of Sitaram ever intent on upholding dharma. In the words of an Army General of that time: ‘The commander in chief of this war was indeed Thakur!’'''
-    ),
-    Article(
-        heading: 'Western Devotees',
-        body: '''In 1973, at Chakrata, the Dalai Lama, the highest authority in Tibetan religious order, received spiritual instruction from Sitaram. Thakur’s dear and distinguished disciple Maj. Gen. Sujan Singh Uban brought about the meeting of these two religious preceptors of different faiths. ‘Guru’s of India’ a book written by Maj. Gen. Uban created uproar in the last part of Thakur’s mortal existence. It was as a consequence of this that the internationally renowned Sufi preceptor Inayat Vilayat Khan came and paid his obeisance at Sitaram’s feet along with nearly hundred and fifty male and female disciples. In the February of 1981 a grand religious congregation was called to celebrate his birthday. The leaders of every faith – the Hindus, Buddhists, Sikhs, Jains, and Christians participated in it. All of them declared him to be the universal religious incarnation of the modern age and the greatest spiritual leader and offered their reverent homage.
-
-This was also the time for the ultimate consummation of Thakur’s spiritual life. The religious practice, the instruction which he had hitherto restricted to a few chosen disciples, now he gave that tantrik ‘Brahmi Diksha’, rooted in the Advaita doctrine, to the extremely humble and common people as well regardless of restrictions. In a state of an unprecedented divine rapture he summoned devotees from the whole of India to the most holy spot at Gangasagar and initiated them with a unique and fundamental mantra leading to the realization of Brahma. There was of course no negation of his earlier advice of worshipping the ultimate reality in a form. Maintaining his earlier faith in adherence to Shastras, purity in food habits, safeguarding of requirements of varnashram as before and continuing the efficacy of Naam Sankirtan, this time Thakur declared:
-
-“The ultimate answer to the question ‘Who am I?’ is –I am indeed the only true principle in this world. I am the one who has lost the way and am searching for it. After wandering through eighty-four lakhs yonis (births) I have now become a disciple devoted to spiritual practice. In the form of Guru and the Mantra, it is I who am sporting in order to uplift myself. I am established in the Surya, Sushumna and the right eye in the most subtle form, pervading all over.” This profound truth is Thakur’s supreme sermon.'''
-    ),
-    Article(
-        heading: 'Final Days and Passing',
-        body: '''Year 1981. Sitaram had begun to wear out his body with excessive work, lack of rest, and intense ascetic practices. A little improvement in his body was evident after his rest in Delhi and Rishikesh. But his scriptural study in Kannyakumari, difficult mauna regime, constant compassionate contact with the dear ones once again resulted in physical exhaustion and illness. The affliction of phlegm in the lungs, which he had from his childhood, continued to be his permanent companion. During the Durga Pooja of 1982 he developed blood pressure, indigestion, breathing trouble etc. which made him immobile in Srirangam.
-
-He was brought to Kolkata. He spent the whole of November in a topmost room in a twelve-floor building ‘Vaikuntha’ in the Southern part of Kolkata (‘Avenue House’ of the ardent devotee Sri Gopal Mitra). It appeared as though he had taken on the burden of sins of all his disciples and become Neelkantha; he was bearing the painful lot of everyone alone. Leading doctors and companions left no stones unturned in his treatment. The exalted religious heads, holy men and great sadhaks started pouring in for the final meeting. About five months before this Ma Anandamayi, who was no different from Thakur in spiritual body and mind, attained to Brahma. Despite hundreds of agonies and ailments he continued to give an assurance to everyone, “There’s no trouble whatsoever, I am very happy!”
-
-Finally the hour of final departure arrived. He had forsaken food and medicine for a few days. On the night of 5th of December before attaining to depths, he called the disciples and gave them an inexplicable indication in Sanskrit: “When the sun rises and dispels darkness, the crows shriek from fear: ‘We are crows, we are mere crows! We are not darkness; don’t kill us please!’
-
-Before this, he had remarked: “Take me! Come, take me!”
-
-Sri Madhav Swami, a disciple and a part of his retinue, asked: “Where are you asking to be conducted Baba? Where?”
-
-He answered in solemn voice: “Within the inner heaven!” Into the inner being of everyone, perhaps!
-
-In the midnight of 6th of December, at about one thirty, in a sitting posture, with his gaze fixed upwards, Sri Sri Sitaram, God manifest in human form, concluded his mortal sport and merged with his inner essence in presence of the second president of the Sampradaya, Kinkar Mahimananda and a palanquin of Gayatri recitation and the all-pervading Mahamantra Kirtan as well as ‘Narayana, Narayana’ sound by the disciples.
-
-His sacred body was placed in Sri Ramashram at Dumurdaha. By the night and day lakhs of disciples came to offer their obeisance to his divine body. There was a command that one should wait until the signs of bodily decay were evident and only then proceed for the final rites. This divine body remained radiant and intact for three days –without any treatment!
-
-In the early dawn of the 8th of December in the midst of Naam Kirtan and Vedic chants sung in voice of thousands of disciples, inundated with tears, Sitaram’s mortal body mixed with the dust at Sri Ramashram in sandalwood pyre.
-
-Years ago, while establishing the Akhanda Naam Kirtan at Adi Ashram Sri Ramashram (Dumurdaha) Sitaram exclaimed with some rapture: “Now let there be an end here for it’s from here the journey had begun.”'''
-    ),
-    Article(
-        heading: 'Initiation (Diksha)',
-        body: '''The diksha (initiation) given in the tradition of Sri Sitaramdas Omkarnath is Niradhara or Jnanavati diksha, Veda diksha or Siddha Yoga. Ordinarily the initiate must work for himself and proceed stage by stage; he is to ascend the stairs himself by virtue of his own effort. Not so with those initiated in the Master’s fold. The essence of this initiation is that the Guru transmits power to the disciple, awakens his kundalini, which begins thereafter to take its own course. The Master infuses spiritual energy by touch, look or thought and the sleeping kundalini wakes up, never to droop or drowse again. The disciple has various experiences of various grades. Tremours, mild and wild, seize the limbs. One shakes as an aspen leaf, one sways and oscillates, assumes various gestures, all unawares, and without any effort on one’s part, indeed against one’s best endeavour to the contrary. The hands wave up gracefully in a thousand rhythmic ways, one feels electrified. One shivers all over, willy-nilly. One perspires profusely. Fragrance of flowers, sandal and incense come from nowhere. Jyoti and Naad, non-generated Light and Sound, appear. Light of so many shades and hues blazes forth: one sees them with eyes closed as well as with eyes open. Equally incalculable and infinite are the super-sensuous sounds that are apprehended. Ditties of no tone can be heard. Images of Gods and Goddesses and saints reveal themselves. To be initiated in this fold is to have such experiences without effort: one has not to mount the steps, one rises in an elevator. Siddha Yoga that is administered in Sri Sitaramdas Omkardeva’s fold places one in a lift. Fulfillment comes as a matter of course: what is wanted is only a spirit of total surrender, which too has not to be cultivated but is induced almost automatically by his ineffable touch.'''
-    ),
-    Article(
-        heading: 'First Revelation: Fulfillment',
-        body: '''Sri Gurudeva’s first revelation is: fulfillment or God realisation is the end of life. And to that end it ought to be everybody’s endeavour to dedicate himself or herself. And how or when can one recognize whether fulfillment has been attained? Fulfilment or God-realisation means the realisation that one is the Supreme or that one is His Slave: Brahmasmi or Dasosmi It is not imaginative apprehension or intellectual conception that is meant here but a permanent lodge - ment or habitation in one or other perception: when one is installed irrevocably in the sense that one is Brahman or that one is His Dasa (slave) one achieves Fulfillment; and it is only then that one reaches the Journey’s end: until then the quest continues.
-
-This Realisation of Fulfillment, Sri Sri Sitaramdas Omkarnath states, is not something to be achieved hereafter in some other world or existence; it is to be obtained here and now, in this life and on this planet. Fulfillment or Perfection is not an intangible far off ideal not a chimera or a mirage but something positive and concrete attainable here and now. Spiritual exercise is not a price to be paid for a prize promised in another life; the prize is guaranteed in this life if only the price is paid. Nor is the price too much but of that later. Let us first note the value of this message. The life divine comes to be within the hollow of one’s palm, and on earth itself man becomes superman, he is one with God while he is still alive; man is translated into God, the earthly life is transmuted in to the life divine, the transformation occurring here and now. This portion of the Master’s Gospel too is a startling revelation because the usual assumption is that the kingdom of Heaven is elsewhere and remote and that spiritual career is intended to provide admittance to it after this life; it is generally believed that the earth has to be adjured in order that Heaven may be gained. But the assumption is false.
-
-To this unbelieving age Sri Sitaramdas Omkarnath’s message may well appear to be shocking: God is – he says; He can be seen, touched, felt, talked with and listened to. He appears visibly before the seeker, addresses him and blesses him with his boon. Meeting him face-to-face, exchanging words with Him, this is the initial stage of fulfillment, which is followed by the realisation of God being everything and of everything being God. The first part however is really of movement, for once God has been seen and listened to what else is needed follows as a matter of course: once you have seen your God, your responsibility ceases and He it is that assumes control of the rudder; He undertakes to do the rest for you. Nor is “darshan” hard to attain: it is, the Master assures, an easy job even in this grim age. We can have it, he tells us, if only we hold fast to the divine Naam.
-
-Let us simply chant the Naam and chant it while we sit and eat, stand, walk and work and as we go to bed. That will suffice, he declares. We need not say the Naam with faith or devotion; in fact of neither are we capable. Faith, devotion is beyond our reach. What if we are skeptics; we can still chant the Naam, mechanically, even disdainfully, and the Naam shall work on its own, and we shall, willy-nilly, be gratified. A revolutionary doctrine, is it not? But the Master substantiates with citations from sacred texts, with cogent argument and with conclusive evidence of saints who have vouched for it from personal realisation. It is needless to mention that his stand on this question is fortified by his own experience. Next, the uniqueness of the Master as Apostle of the Naam is, first his elevation of it to the status of Yoga, and his pointing out how the Naam is not just a way to realisation but a way to all possible ways to it. Both point call for clarification.
-
-XVI.
-
-The doctrine of the Naam is an old, old one, but it has ever been taken as belonging to the cult of bhakti. This myth the Master explodes once and for all. He says that the Naam leads to Jyoti and Nada, access to which means yoga. The arduous course of yoga is not for the masses: it calls for continence, right diet and an able guide, all of which are scarce these days. But to adopt the Naam is to rise to the sphere of yoga, for it fetches Nada and Jyoti that characterize yoga. Next, he argues that these two experiences, Jyoti and Nada are common to seekers of every category, sects and denominations. Whatever one’s creed or approach, one on the way to the Supreme, is bound to experience Nada and Jyoti. Seekers of every shade and complexion meet at this crossing of the roads: this is a point where all roads must meet, and then they diverge, each following its course, until they meet finally again on fulfillment. This last point of convergence, this confluence is marked by realization of Pranava (Om). On the Master’s analysis then, or rather his mapping of the various spiritual streams, it follows that diversities of spiritual approach are an admitted and inescapable fact; because aptitudes and temperaments vary, approaches have got to be various and a leveling down of all difference into one drab and rigid monotony is neither desirable nor practicable. What is sauce for the goose cannot be sauce for the gander; the fox and the crane cannot feed from the same vessel. So diversities are and should be there. But a unity emerges out of all diversities: the goal is one and the same for all, and the Rome, that all roads lead to, is Pranava. Apart from this final meeting- point, there are two more points where they meet: the first is the starting-point, namely the Naam; the next is the crossing of the roads at Nada and Jyoti. All irrespective of creed and ideology may chant the Naam or and say it silently: to start at or with the Naam is the ideal course in spiritual life, because it is a simple way for which all are eligible, because it ensures immediate concentration even to those who are otherwise completely incapable of it. And it is not only possible but also gainful for even those who subscribe to a different ideology to adopt the Naam as an auxiliary to their own cult, for the Naam is the shortest cut to Jyoti and Nada, which constitute the passport to yoga proper. This stage forms a common platform for all seekers, and when this stage has been reached, the paths bifurcate again, the Hata Yogi concentrating on Jyoti, the Laya Yogi on Nada, the Raj Yogi aspiring after Nirvana, the Bhakta yearning for the vision of God, the Jnanin undertaking vichara or analysis of the supreme in the form: Neti Neti, Not this, Not this, A-savdam, A-sparsham, Not-sound, Not –touch, and so on.
-
-So the Master offers the way of the Naam as a way to every possible way of realization. Nor does his distinctiveness cease there. He utilizes the Naam for two additional purposes: as a way out of the hurdle of competence or status. Differences between sect and sect and between creed and creed are genuine and fundamental. The origin of creation is to be traced to the divine will to be many: “Bahusyam praja-yayam,” He declared, or decided, before He began to create. So creation is both one and many. It is One because whatever exists is the One disguised as many: it is many because the One has multiplied Himself. Multifarious forms therefore appear to view. That they are One is not a fact actually or immediately perceived except by a spiritual seeker arrived at the goal and securely installed there; for all else it is a matter of logical inference, dimly felt and fitfully known, a vague, occasional awareness, not a realization. So variations are there among individuals and groups, and variations in temperament or predisposition call for variation in spiritual approach. Hence the diversities of schools or sects. These divergences are often so pronounced that one sect stands in sharp opposition to another. One man’s food is another man’s poison, spiritually as well as literally. What to speak of conflict between sects, there is often a sharp cleavage between two subsects within the same order; there is, for instance, a yawning chasm between a Vaishnava of the Vatsalya school and a Vaishnava of the Madhura cult. One views God as a parent views a child: the other looks upon God as Spouse or Lover. How can the two attitudes unite? Necessarily they stand apart.
-
-The Master solved this baffling problem of the clash of creeds in a way that is novel as well as simple. He offers the Naam in the well known combination: Hare Krishna Hare Krishna Krishna Krishna Hare Hare, Hare Rama Hare Rama Rama Rama Hare Hare as a common platform for all to stand upon. To this divine Naam may all subscribe and that to equal advantage. It is the Taraka Brahma Naam, he points out, the Naam par excellence that redeems and rescues all in this age. As the Mantra prescribed for the age, it is acceptable to all alike. There are five primary schools: Shaiva, Shakta, Saura, Ganapatya and Vaishnava. The Shaiva’s chosen Deity is Shiva; the Shakta adores Shakti (the Cosmic Mother); the Saura worship Surya; the Ganapatya’s devotion is to Ganapati (Ganesha); the Vaishnava’s allegiance is to Vishnu. Each has thus own exclusive Deity. But in the Hare Krishna Naam quoted here each finds one’s own Deity mentioned. Hari, Krishna and Ram in the couplet mean Shiva to the Shaiva, Shakti to the Shakta, Surya to the Saura, Ganapati to the Ganapatya and Vishnu to the Vaishnava, for Hari here means ‘He who steals or lifts’ and what He lifts is the dead weight of material existence while ‘Rama’ in the formula implies ‘He who ravishes with delight,’ signifying the Supreme, that is to say the particular Deity adored by each sect and ‘Krishna’ likewise connotes ‘He who attracts,’ referring similarly to the particular Deity appealing to each sect. So on this platform of the Naam can all meet in a spirit of amity, sinking all differences; here is then a reconciliation of incompatibles in the spiritual world, a neat solution to an intricate problem otherwise absolutely insoluble. It is partly in order to bridge the gulf between creeds and cult that the Master offers the Naam as way for the Age.
-
-No less beautiful is the solution provided by the Master to the equally complicated problem of discrimination in the spiritual world. There is the vexed question of Adhikari Bheda, the insuperable inequality of status or eligibility that is actually there. The validity of the concept of Andhikara or status is above question: it is a fact, rather than a concept. That different seekers present different grades of eligibility is a fact. But it is equally a fact that this basic inequality is hard for even spiritual aspirants to exactly own these days. To cut one’s coat according to one’s cloth is just what we in this age fail to do. Even the unfit millions have their aspirations, and because they have yet to be quite fit for what they demand, they cannot curtail their aspirations in proportion to their competence. This psychological factor results in frustration, in sullen despair or in dogged suicidal daring. Some resenting the hurdle of status keep out of spiritual exercise itself; their thirst remains unslaked as a result and their aim in life remains unrealized, but they cannot help it. Some dare beyond their deserts and come to grief; in defiant spirit of rebellion they practise what proves disastrous for them. Unhappy they find impostors too in the field to exploit and ruin them, for so-called gurus do appear before them, all too willing to initiate them either ignorantly or fraudulently into mantras or systems to which they are not actually entitled at the moment, the consequences proving deplorable at the end.
-
-The Master solved this problem with sympathy and originality equally rare and profound. He eases the situation by placing all alike on the same footing; he preaches the Naam to which all have equal access and by virtue of which all eventually can rise alike to the summit. To chant the Naam and Repeat it constantly is to earn the status that is desired. Is it the right to Pranava (chanting Om) that is demanded? Voicing the demand is useless; willful utterance without eligibility will be harmful. But to repeat the Naam is to have Pranava well up from within as Naad, and that alone is realization of Pranava. To chant or put ‘Om Om’ in the mouth is silly as well as deadly except for the Jivan-mukta, and a Jivan-mukta is scarce; but to chant the Naam is to have the Pranava Nada and then ‘Om’ is distinctly and continuously audible within. So the Master offers the Naam and all else including Pranava via the Naam. And he does not want you to argue uselessly: he asks you to do it and to see the result for yourself. His is the scientific way, the way of experimental verification. The taste of the pudding is in the eating: the truth of what he says is to be tested; it is to be verified by practice.'''
-    )
   ],
 );
+

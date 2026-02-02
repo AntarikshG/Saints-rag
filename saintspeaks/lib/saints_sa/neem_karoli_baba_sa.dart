@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final neemKaroliBabaSaintSa =   Saint(
     'baba_neeb_karori',
-    'Neem Karoli Baba',
+    'नीम करोली बाबा',
     'assets/images/baba_neeb_karori.jpg',
     [
       // 50 quotes from Baba Neeb Karori (Neem Karoli Baba)
@@ -161,150 +161,148 @@ final neemKaroliBabaSaintSa =   Saint(
     [
       // Articles about Baba Neeb Karori
       Article(
-          heading: 'The Life of Neem Karoli Baba',
-          body: '''Neem Karoli Baba, also known as Baba Neeb Karori, was a Hindu guru who lived in the mountains of northern India. His exact birth date is unknown, but he is believed to have been born sometime between 1890-1900. He left his body on September 11, 1973, at the Vrindavan hospital.
+          heading: 'नीमकरोलीबाबायाः जीवनचरितम्',
+          body: '''नीमकरोलीबाबा, ‘बाबा नीब करोरी’ इत्यपि प्रसिद्धः, उत्तरभारते हिमालयपर्वतप्रदेशेषु वसन् कश्चन हिन्दुगुरुः आसीत्। तस्य जन्मतिथि निश्चिततया न ज्ञायते; तथापि १८९०–१९०० मध्ये कदाचित् तस्य जन्म अभवदिति जनाः मन्यन्ते। स १९७३ तमस्य वर्षस्य सितम्बरमासस्य एकादश्यां वृन्दावने चिकित्सालये देहं त्यक्तवान्।
 
-Known for his unconditional love and miraculous powers, Neem Karoli Baba attracted devotees from all walks of life, including many Westerners in the 1960s and 70s. Among his Western devotees were Ram Dass (Richard Alpert), Krishna Das, and many others who brought his teachings to the West.
+अस्यानिर्वचनीयप्रेम्णा च, अद्भुतशक्त्या च, स सर्वेषां जनानामाकर्षणं कृतवान्। १९६०–७० दशकेषु बहवो पाश्चात्याः अपि तस्य समीपं समागताः। तेषु पाश्चात्यभक्तेषु रामदासः (Richard Alpert), कृष्णदासः, अन्ये च बहवः सन्ति, ये तस्योपदेशान् पाश्चात्यदेशेषु प्रचारयामासुः।
 
-Baba was known for his simplicity and his teaching that "Love everyone, serve everyone, remember God." He rarely gave formal discourses, preferring to teach through his presence and actions. His ashrams were always open to all, regardless of caste, creed, or nationality.
+बाबा था सरलतया प्रसिद्धः आसीत्; तस्य मुख्योपदेशः—“सर्वान् प्रीयस्व, सर्वान् सेवस्व, देवं स्मर” इति। स औपचारिकप्रवचनानि विरलमेव ददौ; स्वसन्निधिना स्वकर्मभिश्च स शिक्षयामास। तस्य आश्रमाः सर्वैः कृते उद्घाटिताः आसन्—जातिमतदेशादिभेदान् निरस्य।
 
-The name "Neem Karoli" comes from the village where he first appeared to his devotees, sitting under a neem tree. Throughout his life, he was known to appear in multiple places simultaneously, demonstrating his transcendental nature.
+‘नीमकरोली’ इति नाम तस्य प्रथमभक्तप्रादुर्भावस्थले ग्रामात् आगतम्; स तत्र नीमवृक्षस्य अधः उपविष्टः इति कथा प्रवर्तते। तस्य जीवनकाले स बहुषु स्थानेषु एककालेन प्रादुर्भवति स्मेति जनाः कथयन्ति—तस्यातीतस्वभावं दर्शयन् इव।
 
-His legacy continues through the numerous ashrams, hospitals, and schools built in his name, and through the countless lives he touched with his boundless love and compassion.'''
+तस्य नाम्ना निर्मिताः बहवः आश्रमाः, चिकित्सालयाः, विद्यालयाश्च अद्यापि तस्य स्मृतिं धारयन्ति; अस्यापारकरुणया प्रेम्णा च स्पृष्टानां जनानां जीवनानि तदनन्तरं अपि पावनानि जातानि।'''
       ),
       Article(
-          heading: 'The Miracle of Unconditional Love',
-          body: '''One of the most remarkable aspects of Neem Karoli Baba was his ability to love unconditionally. Stories abound of his treating everyone - from the poorest beggar to the wealthiest person - with the same boundless love and respect.
+          heading: 'निरुपाधिकप्रेम्णोऽद्भुतशक्तिः',
+          body: '''नीमकरोलीबाबायाः चरिते सर्वाधिकं विस्मयकरं तस्य निरुपाधिकप्रेमशक्तिः आसीत्। अनेकाः कथाः प्रचलन्ति—स दरिद्रं भिक्षुकं यावत्, धनाढ्यं नरं च यावत्, सर्वान् समानया करुणया प्रेम्णा च मानयति स्म।
 
-He would often say, "Love is the strongest medicine," and lived this principle completely. Devotees recall how he would feed anyone who came to him, often multiplying food miraculously to ensure no one left hungry.
+स बहुधा अवदत्—“प्रेम परमं औषधम्” इति; स च तद् सर्वथा आचरन् आसीत्। भक्ताः स्मरन्ति—यः कश्चन तस्य समीपं आगच्छति स्म, स तेन भोजयितुं प्रयत्नं कृतम्; कदाचित् स अल्पं भोजनं बहुभ्यः पर्याप्तं कृत्वा इव, कोऽपि न क्षुधितः निर्गतः इति कथ्यते।
 
-His love was not sentimental or emotional, but rather a pure, divine love that saw the same consciousness in all beings. This love transformed the lives of thousands of people who came into contact with him.
+तस्य प्रेम न केवलं भावुकता वा संवेदना वा; अपि तु शुद्धं दिव्यप्रेम, यत् सर्वेषु भूतेषु एकमेव चैतन्यम् पश्यति। एतत् प्रेम तस्य संसर्गेण सहस्रशः जनानां जीवनानि परिवर्तितवान्।
 
-Western devotees often speak of how Baba's love healed their psychological wounds and spiritual seeking. Ram Dass famously said that meeting Neem Karoli Baba changed his life completely, showing him what it meant to love without conditions.
+पाश्चात्यभक्ताः विशेषतः वदन्ति—बाबायाः प्रेम तेषां मानसिकव्रणान् शमितवान्, आध्यात्मिकान्वेषणं च नूतनं मार्गं दत्तवान्। रामदासः विशेषेण अवदत्—नीमकरोलीबाबेन सह साक्षात्कारः तस्य जीवनं सर्वथा परिवर्तितवान्; स तेन निरुपाधिकप्रेमस्य अर्थं प्रत्यक्षं ज्ञातवान्।
 
-Baba taught that this love is not something to be achieved but something to be remembered - it is our true nature. By serving others and keeping God in our hearts, we naturally express this divine love that we already are.'''
+बाबा शिक्षयामास—एतत् प्रेम न किमपि साध्यं, किन्तु स्मर्तव्यं; एतदेव अस्माकं स्वभावः। परसेवया, हृदि देवस्मरणेन च, वयं स्वयमेव तद् दिव्यप्रेम प्रकाशयामः, यद् पूर्वमेव अस्मासु विद्यते।'''
       ),
       Article(
-          heading: 'Serve, Love, Give - The Core Teaching',
-          body: '''Neem Karoli Baba's primary teaching was beautifully simple: "Serve, love, give, purify, meditate, realize." These six words encompass the entire spiritual path according to his understanding.
+          heading: 'सेवा—प्रेम—दानम् : सारोपदेशः',
+          body: '''नीमकरोलीबाबायाः प्रधानोपदेशः आश्चर्यरूपेण सरलः—“सेवस्व, प्रीयस्व, ददास्व, शुद्धिं कुरु, ध्याय, साक्षात्कुरु” इति। एते षट् पदानि तस्य मत्या समग्रं साधनापथं सङ्गृह्णन्ति।
 
-Service (Seva) was central to his teaching. He established numerous hospitals, schools, and feeding programs. He taught that serving others is the fastest way to purify the heart and realize God. "By serving others, you serve God," he would say.
+सेवा (सेवा) तस्य शिक्षायाः केन्द्रे आसीत्। स बहून् चिकित्सालयान्, विद्यालयान्, अन्नदानकार्यक्रमान् च स्थापयामास। स अवदत्—परसेवा हृदयशुद्धेः शीघ्रतमः उपायः, भगवत्साक्षात्कारस्य च सुलभतमः पन्थाः। “परेषां सेवया देवं सेवसे” इति स वक्तुं प्रियः आसीत्।
 
-Love was not just an emotion for Baba but the very fabric of existence. He encouraged his devotees to love all beings as manifestations of the Divine. This love was to be practical and active, not merely philosophical.
+प्रेम तस्य कृते न केवलं भावना, किन्तु सत्ताया एव तन्तुः। स भक्तान् प्रेरयामास—सर्वे भूताः दिव्यस्य प्रकाशरूपाः; तेषु प्रेम व्यवहारतः, कर्मणा च, दृश्यताम्—न केवलं तर्करूपेण।
 
-Giving was another cornerstone. Baba himself owned nothing and gave everything away. He taught that the more we give, the more we receive, and that holding onto things creates suffering.
+दानं तस्य शिक्षायाः अन्यः स्तम्भः। बाबायाः स्वस्य किञ्चिद् अपि नासीदिति कथ्यते; स सर्वं दत्तवान्। स उपदिदेश—यावत् ददासि तावत् लभसे; वस्तुषु आसक्तिः दुःखं जनयति।
 
-Purification happens naturally through service, love, and giving. As the heart becomes pure, meditation deepens, and realization dawns. For Baba, this was not a linear process but a dynamic interplay of all these elements.
+शुद्धिः स्वभावतः सेवया प्रेम्णा दानेन च जायते। हृदये शुद्धे सति ध्यानं गम्भीरं भवति, साक्षात्कारः च उदेति। बाबायाः दृष्टीयां न एषः क्रमानुगतः रेखावत् क्रमः; किन्तु एते सर्वे अङ्गानि परस्परं प्रेरयन्ति, सहैव प्रवर्तन्ते।
 
-His approach was practical and accessible to householders and renunciates alike, showing that enlightenment is possible while living an ordinary life filled with love and service.'''
+सः मार्गः गृहस्थेषु संन्यासिषु च समानरूपेण उपयुज्यते; स दर्शयामास—प्रबोधनं न केवलं निर्जनवने, अपि तु प्रेमसेवारूपेण साधारणजीवनेऽपि सुलभम्।'''
       ),
       Article(
-          heading: 'The Power of Ram Nam (God\'s Name)',
-          body: '''Neem Karoli Baba was a great devotee of Lord Ram and constantly chanted "Ram, Ram, Ram." He taught that the name of God (Ram Nam) is the most powerful spiritual practice available to humanity.
+          heading: 'रामनाम्नः महिमा (देवनामशक्तिः)',
+          body: '''नीमकरोलीबाबा श्रीरामस्य महान् भक्तः आसीत्, सततं “राम, राम, राम” इति जपन्। स उपदिदेश—देवनाम (रामनाम) मानवजातये उपलब्धेषु साधनेषु महाशक्तिमत् साधनम्।
 
-He would often say that in this age of Kali Yuga, chanting the name of God is the most effective spiritual practice. "Ram, Ram, Ram - this is the greatest mantra," he would tell his devotees.
+स बहुधा अवदत्—कलियुगे देवनामजपः एव सर्वाधिकं प्रभावी साधना। “राम, राम, राम—एष परमो मन्त्रोऽस्ति” इति स भक्तान् अवदत्।
 
-Baba explained that the name of God contains the full power and presence of the Divine. When we chant with devotion, we invoke that divine presence into our lives. The repetition of God's name purifies the mind and heart, removing negativity and filling us with divine qualities.
+बाबा व्याचष्ट—देवनाम्नि दिव्यशक्तिः, दिव्यसन्निधिश्च, समग्रतया निहिता। यदा वयं भक्त्या जपामः, तदा तां दिव्यसन्निधिं स्वजीवने आह्वयामः। नामजपः मनो-हृदययोः शुद्धिं करोति, नकारात्मकभावान् अपसारयति, दिव्यगुणैश्च पूरयति।
 
-He taught that Ram Nam could be chanted at any time - while working, walking, or resting. There was no special posture or ritual required. The key was constant remembrance with love and devotion.
+स उपदिदेश—रामनाम कदा अपि जप्यते—कर्मकाले, गमनकाले, विश्रामकाले वा। न विशेषासनं न विशेषविधिः आवश्यकः। मुख्यं तु प्रेम्णा सह सततस्मरणम्।
 
-Many devotees experienced profound transformations through the simple practice of chanting Ram Nam as taught by Baba. He demonstrated that the most profound spiritual practices are often the simplest ones, accessible to all regardless of education or social status.
+अनेके भक्ताः अस्य सरलसाधनस्य प्रभावेन गम्भीरपरिवर्तनानि अनुभूतवन्तः। बाबा दर्शयामास—गम्भीरतमाः साधनाः प्रायः सरलतमेव; सर्वेभ्यः सुलभाः, विद्याविभवभेदान् निरस्य।
 
-The power of the Divine Name, according to Baba, lies not in the sound itself but in the love and faith with which it is chanted. "God is love, and love is God," he would say, showing that the name connects us directly to the source of all love.'''
+बाबायाः मते नामशक्तिः न केवलं शब्दे, किन्तु यया श्रद्धया प्रेम्णा च जप्यते तस्यां निहिता। “देवः प्रेम, प्रेमैव देवः” इति स अवदत्—नामेन वयं प्रेमस्रोतसा सह साक्षात् संयुज्यामः।'''
       ),
       Article(
-          heading: 'Miracles and the Transcendental Nature',
-          body: '''Stories of Neem Karoli Baba's miraculous powers are legendary among his devotees. He was known to appear in multiple places simultaneously, know people's thoughts before they spoke them, and manifest food and objects when needed.
+          heading: 'अद्भुताः चमत्काराः, अतीतस्वभावश्च',
+          body: '''नीमकरोलीबाबायाः चमत्कारशक्तेः कथाः तस्य भक्तेषु अत्यन्तं प्रसिद्धाः सन्ति। स एककाले बहुषु स्थानेषु दृश्यते स्म, परेषां मनोवृत्तीन् पूर्वमेव ज्ञातवान् इति कथ्यते, आवश्यककाले च भोजनवस्तूनि प्रकटितवान् इति अपि श्रूयते।
 
-However, Baba himself never emphasized these powers. When devotees would marvel at his miracles, he would redirect their attention to love and service. He understood that fascination with miraculous powers could become a distraction from the real spiritual goal.
+किन्तु बाबा स्वयम् एतानि न विशेषेण प्रकाशयामास। यदा भक्ताः तस्य चमत्कारान् दृष्ट्वा विस्मयं कुर्वन्ति स्म, तदा स तेषां मनः पुनः प्रेमसेवयोः पथे स्थापयति स्म। स अवगच्छत्—चमत्कारप्रलोभनं साध्यलक्ष्यात् चित्तं विचालयितुं शक्नोति।
 
-One famous story tells of how he saved a devotee's train from derailing by appearing on the tracks. Another recounts how he multiplied a small amount of food to feed hundreds of people. Western devotees like Ram Dass documented numerous instances of Baba's omniscience and supernatural abilities.
+कश्चित् प्रसिद्धः दृष्टान्तः—यथा स भक्तस्य रेलयानं विपत्तेः रक्षितवान् इति; अन्यः—अल्पेन अन्नेन बहून् तर्पितवान् इति। रामदासः इत्यादयः पाश्चात्यभक्ताः तस्य सर्वज्ञत्वस्य अद्भुतशक्तेः च अनेकान् प्रसङ्गान् लेखैः प्रकाशितवन्तः।
 
-Yet for Baba, these manifestations were simply expressions of his natural state of consciousness. He lived in the understanding that all of existence is one divine play, and from that perspective, what we call miracles are simply different movements within the same cosmic dance.
+तथापि, बाबायाः कृते एते सर्वे भावाः तस्य स्वाभाविकचैतन्यस्थितेः अभिव्यक्तयः इव आसन्। स एकं दिव्यलीलामेव सर्वं मन्यते स्म; तस्मात् यद् वयं चमत्कारम् इति वदामः, तत् तस्य दृष्टीयां तस्यैव विश्वनृत्यस्य भिन्ना गत्यः।
 
-His true miracle was his ability to awaken love and devotion in people's hearts. Devotees often say that being in his presence was itself the greatest miracle - feeling unconditionally loved and accepted exactly as they were.
+तस्य सत्यः चमत्कारः तु—जनानां हृदये भक्तिं प्रेम च जागरयितुं सामर्थ्यम्। भक्ताः बहुधा वदन्ति—तस्य सन्निधिमात्रं एव महान् चमत्कारः; निरुपाधिकं प्रेम अनुभवन् स्वीकारं च, यथास्वम्।
 
-Baba taught that these powers are available to anyone who surrenders completely to the Divine. The key is not to seek the powers themselves but to seek God with complete devotion, and then whatever is needed for service will naturally manifest.'''
+बाबा शिक्षयामास—एताः शक्तयः तेषामपि सम्भवन्ति ये दिव्येच्छायां पूर्णतया समर्पयन्ति। मुख्यं तु शक्तीनां चिन्तनं न, भगवदन्वेषणं सर्वसमर्पणेन। ततः सेवायै यत् आवश्यकं तत् स्वयमेव प्रकटिष्यते।'''
       ),
       Article(
-          heading: 'The Western Connection - Ram Dass and Beyond',
-          body: '''In the late 1960s and early 1970s, Neem Karoli Baba became known to the Western world primarily through Harvard psychology professor Richard Alpert, who became Ram Dass after meeting Baba in India.
+          heading: 'पाश्चात्यसम्बन्धः—रामदासः च परम्',
+          body: '''१९६०–७० दशकेषु नीमकरोलीबाबा पाश्चात्यलोके विशेषेण प्रसिद्धः अभवत्, मुख्यतः हार्वर्डविश्वविद्यालयस्य मनोविज्ञानाचार्यः Richard Alpert इति यस्य नाम, स भारतं गत्वा बाबां दृष्ट्वा ‘रामदासः’ अभवत्।
 
-Ram Dass had gone to India seeking spiritual experiences after his experiments with psychedelic substances. When he met Neem Karoli Baba, he found something far beyond what any drug could provide - pure, unconditional love and acceptance.
+रामदासः मादकद्रव्य-प्रयोगादीनां पश्चात् आध्यात्मिकानुभवान् अन्वेष्टुं भारतं गतवान्। यदा स बाबां दृष्टवान्, तदा स अनुभवम् अलभत् यत् किञ्चिदपि औषधेन न दातुं शक्यते—शुद्धं निरुपाधिकं प्रेम, स्वीकारश्च।
 
-Baba's interaction with Ram Dass became legendary. He reportedly took several tabs of LSD that Ram Dass gave him and showed no effects, saying "It's useful, but it's not the true samadhi." This demonstrated his complete transcendence of ordinary consciousness states.
+रामदासेन सह बाबायाः संवादाः अद्भुताः इति प्रसिद्धाः। कथ्यते—रामदासः यत् LSD इति दत्तवान्, तद् बाबा गृहीत्वा किञ्चिदपि विकारं न दर्शितवान्, “उपयोगी, परं न सत्यसमाधिः” इति अवदत्। एतत् तस्य चित्तस्थितेः सर्वथा अतीतत्वं दर्शयति।
 
-Through Ram Dass's books, particularly "Be Here Now," millions of Westerners learned about Neem Karoli Baba and his teachings. Many were inspired to visit India and seek him out, though few were able to meet him before he left his body in 1973.
+रामदासस्य ग्रन्थैः—विशेषतः “Be Here Now” इति—लक्षलक्षाः पाश्चात्यजनाः बाबां तस्योपदेशांश्च अवगच्छन्। बहवः भारतं गत्वा तं द्रष्टुमिच्छन्ति स्म; किन्तु १९७३ तमे वर्षे देहत्यागात् पूर्वं अल्पैरेव साक्षात्कारः जातः।
 
-Other notable Western devotees included musician Krishna Das, who became one of the foremost kirtan artists in the West, and many others who established ashrams, meditation centers, and service organizations based on Baba's teachings.
+अन्ये पाश्चात्यभक्ताः अपि सन्ति—उदाहरणतः कृष्णदासः, यः पाश्चात्येषु कीर्तनकले प्रसिद्धः अभवत्; अन्ये च, ये आश्रम-ध्यानकेन्द्र-सेवासनिर्माणादिभिः बाबोपदेशान् जीवनरूपेण प्रदर्शयामासुः।
 
-Baba's influence on Western spirituality cannot be overstated. He showed that authentic spiritual realization transcends cultural boundaries and that the universal principles of love, service, and devotion speak to hearts everywhere.
+पाश्चात्यधर्मचिन्तने बाबायाः प्रभावः महत् आसीत्। स दर्शयामास—आध्यात्मिकसाक्षात्कारः संस्कृतिसीमाः नातिक्रामति, अपि तु सर्वत्र एक एव; प्रेमसेवा-भक्तयः सार्वत्रिकाः तत्त्वानि हृदयेषु भाषन्ते।
 
-His legacy in the West continues through the numerous teachers, musicians, and service organizations founded by his devotees, all carrying forward his essential message of love and service.'''
+पाश्चात्यलोके अपि तस्य स्मृतिः जीवति—तस्य भक्तैः स्थापितेषु आचार्येषु, संगीतकारेषु, सेवासंस्थासु च; सर्वे तस्य मूलसन्देशं वहन्ति—प्रेम, सेवा, भक्ति च।'''
       ),
       Article(
-          heading: 'The Ashrams and Service Projects',
-          body: '''Throughout his life, Neem Karoli Baba established numerous ashrams, temples, hospitals, and schools. His approach to service was comprehensive, addressing both spiritual and material needs of people.
+          heading: 'आश्रमाः सेवाकार्याणि च',
+          body: '''नीमकरोलीबाबा स्वजीवने बहून् आश्रमान्, मन्दिराणि, चिकित्सालयान्, विद्यालयाश्च स्थापयामास। तस्य सेवा-प्रवृत्तिः व्यापकाऽऽसीत्—आध्यात्मिकानां च भौतिकानां च आवश्यकतानां सम्यक् परिपालनाय।
 
-The main ashrams associated with Baba include Kainchi Dham near Nainital, Vrindavan, and several others in the Himalayan foothills. Kainchi Dham, established in 1964, became the most famous and continues to attract thousands of devotees annually.
+बाबासम्बद्धेषु प्रमुखेषु आश्रमेषु कैञ्चीधाम (नैनीतालसमीपे), वृन्दावनम्, अन्ये च हिमालयपादप्रदेशेषु स्थिता आश्रमाः प्रसिद्धाः। कैञ्चीधाम १९६४ तमे वर्षे स्थापितम्, सर्वाधिकं प्रसिद्धं जातम्, अद्यापि च प्रतिवर्षं सहस्रशः भक्तान् आकर्षति।
 
-Baba's service projects were extensive. He built hospitals to serve the poor, schools to educate children regardless of their ability to pay, and feeding programs that continue to this day. He believed that serving humanity was the highest form of worship.
+तस्य सेवाकार्याणि बहूनि। स दरिद्रसेवायाः कृते चिकित्सालयान् निर्मापयामास, शिक्षायै विद्यालयान्—यत्र शुल्कसामर्थ्यभेदः न मान्यः—अन्नदानकार्यक्रमांश्च ये अद्यापि प्रवर्तन्ते। स मन्यते स्म—मानवसेवा परमा पूजा।
 
-The hospitals built under his guidance provided free medical care to all who needed it. The schools he established offered education without discrimination based on caste, creed, or economic status. This was revolutionary in the social context of his time.
+तस्य निर्देशनात् निर्मितेषु चिकित्सालयेषु सर्वेभ्यः निःशुल्कं वैद्यसेवनं दत्तम्। विद्यालयेषु जातिमतधनभेदेन अविवक्षया शिक्षादानं प्रचलितम्। तस्य काले एषा प्रवृत्तिः सामाजिकदृष्ट्या बहुधा नूतना इव आसीत्।
 
-His devotees continue these service traditions today. The Neem Karoli Baba Ashram organizations worldwide run numerous charitable projects, including medical clinics, schools, feeding programs, and disaster relief efforts.
+अद्यापि तस्य भक्ताः एतानि सेवाव्रतानि अनुवर्तन्ते। जगति नाना-देशेषु नीमकरोलीबाबाश्रमसंस्थाः बहूनि दानकार्याणि कुर्वन्ति—चिकित्सालय-विद्यालय-अन्नदान-विपत्तिसहाय्यादीनि।
 
-Baba taught that these service projects were not separate from spiritual practice but were spiritual practice itself. By serving others, particularly the poor and suffering, devotees purify their hearts and come closer to God.
+बाबा शिक्षयामास—एतानि सेवाकार्याणि न आध्यात्मिकसाधनात् पृथक्; एतानि एव साधना। दरिद्रपीडितेषु सेवां कुर्वन्, भक्तः हृदयशुद्धिं लभते, भगवतः समीपं च गच्छति।
 
-The ashrams serve not just as places of worship but as centers of service, continuing Baba's vision that spirituality and service are inseparable aspects of the same divine love in action.'''
+आश्रमाः न केवलं पूजास्थानानि, अपि तु सेवाकेन्द्राणि; तेन बाबायाः दृष्टीः जीवति—आध्यात्मिकता सेवा च, उभे एकस्य दिव्यप्रेम्णः अङ्गे।'''
       ),
       Article(
-          heading: 'Teachings on Surrender and Faith',
-          body: '''One of Neem Karoli Baba's central teachings was the importance of complete surrender to the Divine. He often said, "Let go and let God," teaching that our attempts to control life create suffering.
+          heading: 'समर्पणश्रद्धयोः उपदेशाः',
+          body: '''नीमकरोलीबाबायाः प्रमुखोपदेशेषु एकः—दिव्येच्छायां पूर्णसमर्पणस्य आवश्यकता। स बहुधा अवदत्—“त्यज, देवाय समर्पय” इति—जीवनं नियन्तुं अस्माकं व्यर्थप्रयत्नाः दुःखमेव जनयन्ति।
 
-Baba demonstrated perfect surrender in his own life. He owned nothing, planned nothing, and yet everything he needed for his service always appeared. He trusted completely in divine providence and taught his devotees to do the same.
+बाबा स्वजीवने पूर्णसमर्पणं दर्शयामास। तस्य स्वामित्वं किञ्चिदपि नासीदिति कथ्यते; स न योजनां कृतवान्, न संचयम्; तथापि सेवायै यत् आवश्यकं तत् सर्वं समये समये प्रकटितम्। स दिव्यव्यवस्थायां (दैवप्रसादे) पूर्णविश्वासं धारयन्, भक्तान् अपि तत एव शिक्षयति स्म।
 
-He explained that surrender doesn't mean passivity but rather aligning our will with divine will. When we surrender our ego's desires and fears, we become instruments through which the Divine can work in the world.
+स व्याचष्ट—समर्पणं न निष्क्रियता; किन्तु स्वेच्छां दिव्येच्छया सह सम्यग् संयोगः। यदा अहङ्कारस्य कामाः भीतयः च त्यज्यन्ते, तदा वयं तस्य दिव्यस्य साधनरूपेण भवामः।
 
-Faith was another cornerstone of his teaching. He said, "Faith is a bird that feels dawn breaking and sings while it is still dark." This faith was not blind belief but a deep trust in the fundamental goodness and intelligence of existence.
+श्रद्धा अपि तस्य शिक्षायाः आधारः आसीत्। स अवदत्—“श्रद्धा विहङ्गः—उषःप्रभां अनुभूय अन्धकारेऽपि गायति” इति। एषा श्रद्धा न अन्धविश्वासः; किन्तु सत्तायाः मूलभद्रतायां बुद्धौ च गूढः विश्वासः।
 
-Baba taught that doubt and worry are forms of self-torture that serve no useful purpose. Instead of worrying about the future, he encouraged devotees to focus on serving and loving in the present moment, trusting that the future would take care of itself.
+बाबा उपदिदेश—संशयः चिन्ता च आत्मताडनरूपे, निरर्थके च। भविष्यचिन्तां त्यक्त्वा, वर्तमानक्षणे प्रेमसेवां कुर्याः; भविष्यं स्वयमेव व्यवस्थितं भविष्यति इति विश्वासः धार्यः।
 
-His own life was a perfect example of this teaching. Despite having no material security, he lived in complete joy and peace, caring for thousands of devotees and maintaining numerous service projects through divine grace alone.
+तस्य जीवनम् एतस्योपदेशस्य दृष्टान्तः आसीत्। भौतिकसुरक्षा न सतीति यद्यपि, स हर्षशान्त्या वसन्, सहस्रशः भक्तानां पालनं कृतवान्, सेवाकार्याणि च दिव्यकृपया धारितवान्।
 
-For Baba, surrender and faith were not just spiritual concepts but practical approaches to living that lead to greater effectiveness, joy, and service in the world.'''
+बाबायाः मते समर्पणं श्रद्धा च न केवलं दार्शनिकौ शब्दौ; किन्तु जीवनव्यवहारस्य व्यावहारिकौ उपायौ, यौ कार्यक्षमतां, हर्षं, सेवां च वर्धयतः।'''
       ),
       Article(
-          heading: 'The Universal Message - All Religions Are One',
-          body: '''Neem Karoli Baba taught that all religions lead to the same truth when practiced with sincerity and devotion. He would say, "All religions are one. All people are one," demonstrating this belief through his interactions with people of all faiths.
+          heading: 'सार्वत्रिकसन्देशः—सर्वे धर्मा एकाः',
+          body: '''नीमकरोलीबाबा शिक्षयामास—यदा धर्माः निष्ठया भक्त्या च आचर्यन्ते, तदा ते सर्वे तमेव सत्यं प्रति नयन्ति। स अवदत्—“सर्वे धर्मा एकाः, सर्वे जनाः एकाः” इति, एतत् च स्वव्यवहारेण प्रत्यक्षं दर्शयामास।
 
-His ashrams welcomed people regardless of their religious background. Christians, Muslims, Buddhists, Jews, Hindus, and people of no formal religion all found acceptance and love in his presence. He saw beyond external religious forms to the universal spiritual essence within all traditions.
+तस्य आश्रमाः सर्वेषां कृते उद्घाटिताः आसन्—धर्ममतभेदान् निरस्य। ख्रीष्टियनाः, मुस्लिमाः, बौद्धाः, यहूदिनः, हिन्दवः, औपचारिकधर्मरहिताश्च—सर्वे तस्य सन्निधौ स्वीकारं प्रेम च अलभन्त। स बाह्यरूपाणि अतिक्रम्य सर्वत्र अन्तःस्थितं आध्यात्मिकसारं पश्यति स्म।
 
-Baba often spoke about Christ with great reverence, saying that Christ and Ram were the same divine consciousness appearing in different forms. He taught that religious conflicts arise from ignorance of this fundamental unity.
+बाबा ख्रीष्टं प्रति अपि महता श्रद्धया वदति स्म; स अवदत्—ख्रीष्टः रामश्च एक एव दिव्यचैतन्यः, भिन्नेषु रूपेषु प्रकटितः। स दर्शयामास—धर्मयुद्धाः तस्यैव एकत्वस्य अज्ञानात् उद्भवन्ति।
 
-He encouraged his devotees to practice their own religious traditions with greater depth rather than converting to another religion. A Christian devotee would be encouraged to become a better Christian, a Muslim to become a better Muslim, and so on.
+स भक्तान् प्रेरयामास—स्वधर्मे एव गाढतया प्रवर्तध्वम्; अन्यधर्मपरिवर्तनाय न आवश्यकता। ख्रीष्टियनः उत्तमो ख्रीष्टियनः भवतु, मुस्लिमः उत्तमो मुस्लिमः, इति स उपदिदेश।
 
-This inclusive approach was revolutionary and healing for many Western devotees who had become disillusioned with organized religion. Baba showed them that spirituality transcends religious boundaries while honoring all authentic spiritual paths.
+एषा समावेशिनी दृष्टिः बहूनां पाश्चात्यजनानां कृते नूतना आसीत्, ये संगठितधर्मे निराशा जाताः। बाबा दर्शयामास—आध्यात्मिकता धर्मसीमाः नातिक्रामति, अपि तु सर्वत्र एक एव; प्रेमसेवा-भक्तयः सार्वत्रिकाः तत्त्वानि हृदयेषु भाषन्ते।
 
-His teaching that "God is love and love is God" provided a common ground for people of all backgrounds. Regardless of how they conceived of the Divine, everyone could understand and practice love.
-
-This universal message continues to be relevant in our increasingly connected but often divided world, offering a vision of unity that respects diversity while recognizing the common spiritual heart of all authentic religious seeking.'''
+पाश्चात्यलोके अपि तस्य स्मृतिः जीवति—तस्य भक्तैः स्थापितेषु आचार्येषु, संगीतकारेषु, सेवासंस्थासु च; सर्वे तस्य मूलसन्देशं वहन्ति—प्रेम, सेवा, भक्ति च।'''
       ),
       Article(
-          heading: 'Living the Teachings Today',
-          body: '''The teachings of Neem Karoli Baba remain as relevant today as they were during his lifetime. In our modern world filled with stress, conflict, and uncertainty, his simple message of love and service offers a practical path to peace and fulfillment.
+          heading: 'अद्यतनजीवने शिक्षानुष्ठानम्',
+          body: '''नीमकरोलीबाबायाः उपदेशाः अद्यापि तस्य जीवनकाले यथैव प्रासङ्गिकाः। आधुनिके लोके—तनाव-संघर्ष-अनिश्चितताभिः पूर्णे—तस्य सरलः प्रेमसेवासन्देशः शान्तये पूर्णतायै च व्यावहारिकः पन्थः।
 
-His core teaching - "Love everyone, serve everyone, remember God" - can be applied in any life situation. Whether we are parents, professionals, students, or retirees, we can practice these principles in our daily activities.
+तस्य सारोपदेशः—“सर्वान् प्रीयस्व, सर्वान् सेवस्व, देवं स्मर”—समीपे दूरस्थे च सर्वासु परिस्थितिषु उपयुज्यते। वयं जनकाः, कर्मिणः, छात्राः, वृद्धाः वा भवामः—एतानि तत्त्वानि दैनन्दिनकर्मसु आचरितुं शक्नुमः।
 
-Serving others doesn't require joining an organization or traveling to distant places. It can be as simple as listening to a friend in need, helping an elderly neighbor, or treating colleagues with kindness and respect. Baba taught that any act done with love and selflessness is service to God.
+परसेवा न महद्भिः संस्थाभिः सह केवलं, न दूरदेशगमनेन आवश्यकं। सा सरलतया भवति—दुःखिनं मित्रं श्रवणेन् उपकुरु, वृद्धपड़ोसीं सहाय्यं कुरु, सहकर्मिभ्यः सौजन्यं सम्मानं च दद। बाबा शिक्षयामास—यत् कर्म प्रेम्णा निष्कामतया च क्रियते, तत् देवसेवा एव।
 
-Remembering God can happen throughout the day through prayer, chanting, meditation, or simply maintaining an attitude of gratitude and awareness. Baba emphasized that constant remembrance of the Divine transforms ordinary activities into spiritual practice.
+देवस्मरणं दिवसे सर्वत्र भवितुं शक्नोति—प्रार्थनया, जपेन, ध्यानena, कृतज्ञताभावेन वा। बाबा विशेषेण “सततस्मरणम्” उपदिदेश—येन साधारणकर्माण्यपि साधनारूपाणि भवन्ति।
 
-The practice of "feeding people" that was so important to Baba can be literal or metaphorical. We can feed others physically, emotionally, or spiritually by sharing food, love, encouragement, or wisdom according to our abilities and circumstances.
+‘जनान् भोजय’ इति यत् बाबायाः प्रियं कर्म, तत् स्थूलरूपेण वा सूक्ष्मरूपेण वा साध्यं। वयं परान् अन्नेन, प्रेम्णा, उत्साहप्रदानेन, प्रज्ञया वा, यथाशक्ति, तर्पयितुं शक्नुमः।
 
-His teaching to "tell the truth" becomes increasingly important in a world where honesty is often compromised. Living truthfully means being authentic in our relationships and honest in our dealings with others.
+“सत्यं वद” इति उपदेशः अपि अद्य विशेषः महत्त्वं लभते—यत्र कदाचित् सत्यनिष्ठा क्षीयते। सत्यजीवनं सम्बन्धेषु प्रामाण्यं, व्यवहारिषु च स्पष्टता वदति।
 
-Modern devotees continue to find that Baba's teachings work. By practicing love, service, and remembrance, people report greater happiness, better relationships, and a deeper sense of meaning and purpose in their lives.'''
+अद्यतनभक्ताः अपि अनुभवन्ति—बाबायाः शिक्षाः कार्यकराः। प्रेमसेवा-स्मरणेषु प्रवृत्ताः जनाः अधिकहर्षं, उत्तमसम्बन्धान्, जीवनार्थस्य गूढं बोधं च अनुभवन्ति इति बहवः निवेदयन्ति।'''
       )
     ]
 );

@@ -565,6 +565,7 @@ class _AskTabState extends State<AskTab> {
     'en-GB': 'English (UK)',
     'en-IN': 'English (India)',
     'hi-IN': 'Hindi (India)',
+    'sa-IN': 'Sanskrit (India)',
     'de-DE': 'German (Germany)',
   };
 
@@ -573,6 +574,7 @@ class _AskTabState extends State<AskTab> {
     'en-GB': 'en_GB',
     'en-IN': 'en_IN',
     'hi-IN': 'hi_IN',
+    'sa-IN': 'sa_IN',
     'de-DE': 'de_DE',
   };
 

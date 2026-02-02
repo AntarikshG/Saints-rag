@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final shankaracharyaSaintSa = Saint(
   'Shankaracharya',
-  'Shankaracharya',
+  'आदि शंकराचार्य',
   'assets/images/shankaracharya.jpg',
   [
     'ब्रह्मैव सत्यं जगन्मिथ्या।',
@@ -161,16 +161,16 @@ final shankaracharyaSaintSa = Saint(
   ],
   [
     Article(
-        heading: 'The Nature of Brahman',
-        body: 'Brahman is existence absolute, consciousness absolute, and bliss absolute. It is without attributes (nirguna), beyond all qualities and limitations. It is not this, not that (neti neti), yet it is the reality behind all appearances.\n\nBrahman is the ultimate truth, the ground of all being. It is neither born nor does it die, neither increases nor decreases. It is eternal, infinite, and unchanging. The entire universe appears in Brahman like waves in the ocean, yet Brahman remains unaffected.\n\nTo realize Brahman is to understand that the individual self (Atman) and the Supreme Self (Brahman) are one and the same. This realization is not intellectual understanding but direct experience - the culmination of spiritual practice.\n\nBrahman cannot be known through the senses or mind, for it is the very consciousness by which all else is known. It is self-evident, self-luminous, and self-existent. When all superimpositions are removed, what remains is Brahman alone.'
+        heading: 'ब्रह्मणः स्वरूपम्',
+        body: 'ब्रह्म सत्यमेव—परमसत्ता, पराचित्, परमानन्दश्च। तद् निर्गुणं, सर्वगुणातीतं, सर्वसीमातीतं च। “नेति नेति”—इति निरूप्यते; तथापि सर्वप्रपञ्चप्रतिभासानामन्तःस्थितं परं तत्त्वमेव तत्।\n\nब्रह्म परमार्थसत्यं, सर्वसत्तायाः आधारः, सर्वस्य च मूलम्। न जायते, न म्रियते; न वर्धते, न क्षीयते। नित्यं, अनन्तं, अविकारि च। यथा सागरे तरङ्गा उदेति-लीयन्ते, तथा ब्रह्मणि जगत् प्रतिभासते; ब्रह्म तु न किञ्चिदपि स्पृश्यते।\n\nब्रह्मसाक्षात्कारः तावत्—जीवात्मनः परब्रह्मणश्चैक्यबोधः, “आत्मा ब्रह्मैव” इति निश्चयः। स न केवलं बौद्धिकविचारः, किन्तु प्रत्यक्षानुभवः—साधनस्य परिपाकः, अध्यात्माभ्यासस्य परिनिष्पत्तिश्च।\n\nइन्द्रियैः मनसा वा ब्रह्म न ज्ञायते; यतो यया चैतन्यशक्त्या सर्वं ज्ञायते सा एव तस्य स्वरूपम्। स्वयम्प्रकाशं, स्वयंसिद्धं, स्वयमेवावभासमानं च। यदा सर्वाध्यासा अपयान्ति, तदा अवशिष्टं ब्रह्मैव केवलम्।'
     ),
     Article(
-        heading: 'Maya and the World',
-        body: 'Maya is the mysterious power by which the one appears as many. It is neither real nor unreal but indescribable (anirvachaniya). Maya veils the true nature of Brahman and projects the world of multiplicity.\n\nThe world, from the absolute standpoint, is neither real nor unreal. It appears real to the ignorant but is known to be apparent to the wise. Like a dream that seems real while being experienced, the world has empirical reality but no ultimate reality.\n\nMaya operates through the three gunas - sattva (harmony), rajas (activity), and tamas (inertia). These three qualities in various combinations create all the diversity we see. The wise transcend the gunas and realize their true nature beyond all qualities.\n\nUnderstanding maya is crucial for liberation. When we realize that the world is a superimposition on Brahman, we are no longer bound by it. We can function in the world while knowing its true nature.'
+        heading: 'माया च जगच्च',
+        body: 'माया नाम सा गुह्या शक्तिः यया एकं बहुधा प्रतिभाति। सा न सत् नासत्—अनिर्वचनीया। माया ब्रह्मणः सत्यस्वरूपं आवृणोति, नानात्वप्रपञ्चं च प्रक्षिपति।\n\nपरमार्थदृष्ट्या जगत् न सत्यमेव नासत्यं च। अज्ञस्य तु वस्तुतया प्रतिभाति; ज्ञस्य पुनः केवलं प्रतिभासरूपं बोध्यते। यथा स्वप्नः अनुभवे सत्य इव दृश्यते, परन्तु प्रबोधे मिथ्येति निगद्यते, तथा जगतो व्यवहारसत्ता अस्ति, परमार्थसत्ता तु नास्ति।\n\nमाया त्रिगुणात्मिका—सत्त्वं (प्रसादः/समत्वम्), रजः (प्रवृत्तिः), तमः (आवरणम्/जडता) इति। एतेषां गुणानां विभिन्नसंयोगैः सर्वं वैचित्र्यं दृश्यते। विवेकिनः गुणातीताः सन्तः, सर्वगुणातीतं स्वस्वरूपं ब्रह्मैव अनुभवन्ति।\n\nमायातत्त्वबोधो मोक्षायावश्यकः। यदा अवगम्यते यत् जगत् ब्रह्मणि अध्यासितमेव, तदा तेन न बध्यते जीवः। ज्ञानी जगति व्यवहरति, किन्तु तस्य यथार्थस्वभावं विदित्वा निष्सङ्गः तिष्ठति।'
     ),
     Article(
-        heading: 'The Path to Liberation',
-        body: 'Liberation (moksha) is not something to be attained but something to be realized. We are already free; ignorance alone makes us feel bound. The path to liberation involves removing this ignorance through knowledge (jnana).\n\nThe traditional path involves three steps: hearing the truth (shravana), reflecting on it (manana), and meditating on it (nididhyasana). Through this process, the truth becomes direct experience.\n\nDiscrimination (viveka) between the real and unreal is essential. We must learn to distinguish between the Self and the not-self, the eternal and the temporary, consciousness and its contents.\n\nDispassion (vairagya) naturally follows discrimination. When we truly understand the temporary nature of worldly pleasures, attachment falls away naturally.\n\nThe four qualifications for spiritual practice are: discrimination, dispassion, the six virtues (including tranquility and self-control), and an intense desire for liberation. With these qualifications and the grace of a guru, liberation is assured.'
+        heading: 'मोक्षमार्गः',
+        body: 'मोक्षः न कश्चिद् नूतनः प्राप्तव्यः पदार्थः; स स्वस्वरूपसिद्ध एव। वयं नित्यं मुक्ताः; अज्ञानमेव बन्धभावं उत्पादयति। अतः मोक्षमार्गः—अज्ञाननिवृत्तिः, ज्ञानप्रकाशेन तस्य नाशः।\n\nपरम्परया स मार्गः त्रिधा निरूप्यते—श्रवणम् (तत्त्वश्रवणम्), मननम् (युक्त्या परिशीलनम्), निदिध्यासनम् (ध्याननिष्ठा) इति। एतेन क्रमेण तत्त्वं प्रत्यक्षानुभवरूपेण दृढीभवति।\n\nविवेकः—सत्यानृतयोः भेदबुद्धिः—आवश्यकः। आत्मानात्मनोः, नित्य-अनित्ययोः, चैतन्यस्य तद्वृत्तीनां च भेदो यथावत् ज्ञातव्यः।\n\nविवेकात् वैराग्यं स्वयमेव जायते। यदा विषयसुखानां क्षणभङ्गुरता प्रत्यक्षतया बोध्यते, तदा आसक्तिः स्वाभाविकं शिथिलीभवति।\n\nसाधनचतुष्टयं प्रसिद्धम्—विवेकः, वैराग्यम्, षट्सम्पत्तिः (शमादयः), मुमुक्षुत्वं च। एतेषु सिद्धेषु, गुरुकृपानुगृहीतेन शिष्येण, मोक्षः सुनिश्चितः।'
     )
   ],
 );

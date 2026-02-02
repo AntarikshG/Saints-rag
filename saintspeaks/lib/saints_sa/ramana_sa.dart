@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final ramanaSaintSa = Saint(
   'raman',
-  'Maharishi Ramana',
+  'श्री रामण महर्षि',
   'assets/images/raman.jpg',
   [
     'स्वात्मसाक्षात्कार एव जगते दातुं शक्यः सर्वोत्तमः सेवा।',

@@ -93,13 +93,14 @@ class _ArticlePageState extends State<ArticlePage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
-  // Supported TTS languages map for Article - English, Hindi, Kannada, and German
+  // Supported TTS languages map for Article - English, Hindi, Kannada, Sanskrit, and German
   final Map<String, String> _supportedTtsLanguages = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
     'en-IN': 'English (India)',
     'hi-IN': 'Hindi (India)',
     'kn-IN': 'Kannada (India)',
+    'sa-IN': 'Sanskrit (India)',
     'de-DE': 'German (Germany)',
     'de-AT': 'German (Austria)',
     'de-CH': 'German (Switzerland)',
@@ -2482,6 +2483,37 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
     }
   }
 
+  Future<void> _navigateToEnglishQuote() async {
+    try {
+      // Find the English saint with the same ID
+      final englishSaint = saintsEn.firstWhere(
+        (s) => s.id == widget.saintId,
+        orElse: () => throw Exception('English saint not found'),
+      );
+
+      // Navigate to the same quote index in English
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SingleQuoteViewPage(
+            quotes: englishSaint.quotes,
+            initialIndex: _currentIndex,
+            saintName: englishSaint.name,
+            saintId: englishSaint.id,
+            image: englishSaint.image,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('English translation not available'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
@@ -2654,6 +2686,14 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
                           onPressed: () => _shareQuote(quote),
                           color: Colors.blue,
                         ),
+                        // Show "English Meaning" button only for non-English languages
+                        if (Localizations.localeOf(context).languageCode != 'en')
+                          _buildActionButton(
+                            icon: Icons.translate,
+                            label: 'English Meaning',
+                            onPressed: () => _navigateToEnglishQuote(),
+                            color: Colors.purple,
+                          ),
                       ],
                     ),
                     SizedBox(height: 40),
