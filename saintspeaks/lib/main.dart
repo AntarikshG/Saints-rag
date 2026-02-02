@@ -42,6 +42,7 @@ import 'badge_service.dart';
 import 'badge_widget.dart';
 import 'wisdom_sharing_service.dart';
 import 'app_version_service.dart';
+import 'all_saints_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1726,7 +1727,126 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-              SizedBox(height: 12),
+              SizedBox(height: 16),
+              // Saints of Bharat Button - Prominent Featured Card with Saint Images
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.deepOrange.shade900,
+                            Colors.deepOrange.shade800,
+                            Colors.orange.shade900,
+                          ],
+                        )
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white,
+                            Colors.deepOrange.shade50,
+                            Colors.orange.shade100,
+                          ],
+                        ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepOrange.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AllSaintsPage(
+                          userName: widget.userName,
+                          onBadgeRefresh: _refreshBadge,
+                        ),
+                      ),
+                    ).then((_) => _refreshBadge()),
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Title and subtitle
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      loc.saintsOfBharat,
+                                      style: GoogleFonts.playfairDisplay(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: brightness == Brightness.dark
+                                            ? Colors.orange.shade200
+                                            : Colors.deepOrange.shade900,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Explore wisdom from 11 spiritual masters',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: brightness == Brightness.dark
+                                            ? Colors.orange.shade100
+                                            : Colors.deepOrange.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: brightness == Brightness.dark
+                                      ? Colors.orange.shade800
+                                      : Colors.deepOrange.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.arrow_forward,
+                                  color: brightness == Brightness.dark
+                                      ? Colors.orange.shade100
+                                      : Colors.deepOrange.shade800,
+                                  size: 24,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+                          // Row of 6 saint circular images
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildSaintAvatar('assets/images/vivekananda.jpg', brightness),
+                              _buildSaintAvatar('assets/images/sivananda.jpg', brightness),
+                              _buildSaintAvatar('assets/images/paramhansa.jpg', brightness),
+                              _buildSaintAvatar('assets/images/raman.jpg', brightness),
+                              _buildSaintAvatar('assets/images/shankaracharya.jpg', brightness),
+                              _buildSaintAvatar('assets/images/ramkrishna.jpg', brightness),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
               // Ask AI Button - New addition
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -1822,115 +1942,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-              SizedBox(height: 12),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  AppLocalizations.of(context)!.chooseSpiritualGuide,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: brightness == Brightness.dark
-                        ? Colors.orange.shade300
-                        : Colors.deepOrange.shade800,
-                    fontSize: 20,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              SizedBox(height: 12),
-              Expanded(
-                child: GridView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.0, // Changed from 0.85 to 1.0 to make boxes smaller
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: saintList.length,
-                  itemBuilder: (context, i) => Material(
-                    elevation: 6,
-                    borderRadius: BorderRadius.circular(20),
-                    shadowColor: Colors.deepOrange.withOpacity(0.25),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: brightness == Brightness.dark
-                              ? [
-                                  Colors.grey.shade800,
-                                  Colors.grey.shade900,
-                                ]
-                              : [
-                                  Colors.white,
-                                  Colors.deepOrange.shade50,
-                                ],
-                        ),
-                      ),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SaintPage(
-                              saint: saintList[i],
-                              userName: widget.userName,
-                            ),
-                          ),
-                        ).then((_) => _refreshBadge()),
-                        child: Padding(
-                          padding: EdgeInsets.all(10), // Reduced from 12 to 10
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Hero(
-                                tag: 'saint_${saintList[i].id}',
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.deepOrange.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: CircleAvatar(
-                                    radius: 30, // Reduced from 35 to 30
-                                    backgroundColor: Colors.white,
-                                    child: CircleAvatar(
-                                      radius: 27, // Reduced from 32 to 27
-                                      backgroundImage: saintList[i].image.startsWith('assets/')
-                                          ? AssetImage(saintList[i].image) as ImageProvider
-                                          : NetworkImage(saintList[i].image),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 8), // Reduced from 12 to 8
-                              Text(
-                                saintList[i].name,
-                                style: GoogleFonts.playfairDisplay(
-                                  fontSize: 14, // Reduced from 16 to 14
-                                  fontWeight: FontWeight.bold,
-                                  color: brightness == Brightness.dark
-                                      ? Colors.orange.shade300
-                                      : Colors.deepOrange.shade800,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              SizedBox(height: 20),
             ],
           ),
         ),
@@ -2007,6 +2019,34 @@ class _HomePageState extends State<HomePage> {
           Navigator.pop(context);
         },
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Widget _buildSaintAvatar(String imagePath, Brightness brightness) {
+    return Container(
+      width: 45,
+      height: 45,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: brightness == Brightness.dark
+              ? Colors.orange.shade300
+              : Colors.deepOrange.shade700,
+          width: 2.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.deepOrange.withOpacity(0.4),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: 20,
+        backgroundColor: Colors.white,
+        backgroundImage: AssetImage(imagePath),
       ),
     );
   }

@@ -86,6 +86,9 @@ class AppLocalizationsSa extends AppLocalizations {
   String get chooseSpiritualGuide => 'आध्यात्मिकगुरुं चिनुत';
 
   @override
+  String get saintsOfBharat => 'भारतस्य सन्ताः';
+
+  @override
   String get askDisclaimer =>
       'सन्तानां बुद्ध्या आध्यात्मिकमार्गदर्शनं प्राप्नुवन्तु। जीवनस्य, आध्यात्मिकतायाः, आन्तरिकशान्तेः प्राप्तेः च विषये प्रश्नान् पृच्छन्तु।';
 

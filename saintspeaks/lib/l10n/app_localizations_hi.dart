@@ -86,6 +86,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chooseSpiritualGuide => 'अपना आध्यात्मिक गुरु चुनें';
 
   @override
+  String get saintsOfBharat => 'भारत के संत';
+
+  @override
   String get askDisclaimer =>
       'संतों की बुद्धि से आध्यात्मिक मार्गदर्शन प्राप्त करें। जीवन, आध्यात्म, और आंतरिक शांति पाने के बारे में प्रश्न पूछें।';
 

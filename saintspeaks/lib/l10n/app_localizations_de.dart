@@ -86,6 +86,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get chooseSpiritualGuide => 'Wählen Sie Ihren spirituellen Führer';
 
   @override
+  String get saintsOfBharat => 'Heilige von Bharat';
+
+  @override
   String get askDisclaimer =>
       'Erhalten Sie spirituelle Führung aus der Weisheit der Heiligen. Stellen Sie Fragen über das Leben, Spiritualität und inneren Frieden.';
 

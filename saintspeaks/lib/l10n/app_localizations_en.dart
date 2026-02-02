@@ -86,6 +86,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseSpiritualGuide => 'Choose your spiritual guide';
 
   @override
+  String get saintsOfBharat => 'Saints of Bharat';
+
+  @override
   String get askDisclaimer =>
       'Get spiritual guidance from the wisdom of saints. Ask questions about life, spirituality, and finding inner peace.';
 

@@ -256,6 +256,12 @@ abstract class AppLocalizations {
   /// **'Choose your spiritual guide'**
   String get chooseSpiritualGuide;
 
+  /// No description provided for @saintsOfBharat.
+  ///
+  /// In en, this message translates to:
+  /// **'Saints of Bharat'**
+  String get saintsOfBharat;
+
   /// No description provided for @askDisclaimer.
   ///
   /// In en, this message translates to:

@@ -87,6 +87,9 @@ class AppLocalizationsKn extends AppLocalizations {
       'ನಿಮ್ಮ ಆಧ್ಯಾತ್ಮಿಕ ಮಾರ್ಗದರ್ಶಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ';
 
   @override
+  String get saintsOfBharat => 'ಭಾರತದ ಸಂತರು';
+
+  @override
   String get askDisclaimer =>
       'ಸಂತರ ಜ್ಞಾನದಿಂದ ಆಧ್ಯಾತ್ಮಿಕ ಮಾರ್ಗದರ್ಶನ ಪಡೆಯಿರಿ. ಜೀವನ, ಆಧ್ಯಾತ್ಮಿಕತೆ ಮತ್ತು ಆಂತರಿಕ ಶಾಂತಿಯನ್ನು ಕಂಡುಕೊಳ್ಳುವ ಬಗ್ಗೆ ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಿ.';
 

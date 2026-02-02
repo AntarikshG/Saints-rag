@@ -86,6 +86,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get chooseSpiritualGuide => 'আপনার আধ্যাত্মিক গাইড বেছে নিন';
 
   @override
+  String get saintsOfBharat => 'ভারতের সাধুগণ';
+
+  @override
   String get askDisclaimer =>
       'সাধুদের জ্ঞান থেকে আধ্যাত্মিক নির্দেশনা পান। জীবন, আধ্যাত্মিকতা এবং অন্তর শান্তি খুঁজে পাওয়া সম্পর্কে প্রশ্ন জিজ্ঞাসা করুন।';
 
