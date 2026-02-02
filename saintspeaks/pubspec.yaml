@@ -98,6 +98,8 @@ dependencies:
   flutter_tts: ^3.8.5
   # Speech-to-Text (voice input)
   speech_to_text: ^7.3.0
+  # Audio player for meditation
+  audioplayers: ^6.0.0
   # In-app review for rating functionality
   in_app_review: ^2.0.8
   # YouTube player

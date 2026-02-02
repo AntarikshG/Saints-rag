@@ -1,0 +1,115 @@
+{
+  "gradio_server_running": true,
+  "gradio_server_link": "https://your-gradio-server.com",
+  "latest_app_version": "2.3.0",
+  "ekadashi_data": {
+    "2025-02-03": "Jaya Ekadashi",
+    "2025-02-18": "Vijaya Ekadashi",
+    "2025-03-05": "Amalaki Ekadashi",
+    "2025-03-20": "Papmochani Ekadashi",
+    "2025-04-04": "Kamada Ekadashi",
+    "2025-04-19": "Varuthini Ekadashi",
+    "2025-05-03": "Mohini Ekadashi",
+    "2025-05-19": "Apara Ekadashi",
+    "2025-06-02": "Nirjala Ekadashi",
+    "2025-06-17": "Yogini Ekadashi"
+  },
+  "meditation_data": [
+    {
+      "id": "med_morning_001",
+      "name": "Morning Peace Meditation",
+      "name_hi": "प्रातः शांति ध्यान",
+      "description": "Start your day with inner peace and clarity. A gentle 10-minute guided meditation to center yourself.",
+      "description_hi": "अपने दिन की शुरुआत आंतरिक शांति और स्पष्टता के साथ करें। अपने आप को केंद्रित करने के लिए 10 मिनट का सौम्य निर्देशित ध्यान।",
+      "duration_minutes": 10,
+      "category": "morning",
+      "audio_url": "https://example.com/meditations/morning_peace.mp3",
+      "instructor": "Swami Sivananda",
+      "difficulty": "beginner"
+    },
+    {
+      "id": "med_breathing_001",
+      "name": "Breath Awareness Meditation",
+      "name_hi": "श्वास जागरूकता ध्यान",
+      "description": "Focus on your breath to calm the mind and reduce stress. Perfect for beginners.",
+      "description_hi": "मन को शांत करने और तनाव को कम करने के लिए अपनी सांस पर ध्यान केंद्रित करें। शुरुआती लोगों के लिए बिल्कुल सही।",
+      "duration_minutes": 15,
+      "category": "breathing",
+      "audio_url": "https://example.com/meditations/breath_awareness.mp3",
+      "instructor": "Swami Vivekananda",
+      "difficulty": "beginner"
+    },
+    {
+      "id": "med_chakra_001",
+      "name": "Chakra Balancing Meditation",
+      "name_hi": "चक्र संतुलन ध्यान",
+      "description": "Balance your seven chakras and harmonize your energy centers for complete wellbeing.",
+      "description_hi": "अपने सात चक्रों को संतुलित करें और संपूर्ण कल्याण के लिए अपने ऊर्जा केंद्रों को सामंजस्यपूर्ण बनाएं।",
+      "duration_minutes": 20,
+      "category": "chakra",
+      "audio_url": "https://example.com/meditations/chakra_balance.mp3",
+      "instructor": "Paramahansa Yogananda",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": "med_relaxation_001",
+      "name": "Deep Relaxation Session",
+      "name_hi": "गहन विश्राम सत्र",
+      "description": "Release tension from your body and mind. Achieve profound relaxation and rejuvenation.",
+      "description_hi": "अपने शरीर और मन से तनाव मुक्त करें। गहन विश्राम और कायाकल्प प्राप्त करें।",
+      "duration_minutes": 25,
+      "category": "relaxation",
+      "audio_url": "https://example.com/meditations/deep_relaxation.mp3",
+      "instructor": "Ramana Maharshi",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": "med_mantra_001",
+      "name": "Om Mantra Chanting",
+      "name_hi": "ॐ मंत्र जप",
+      "description": "Connect with universal consciousness through the sacred sound of Om. Feel the vibrations heal and energize.",
+      "description_hi": "ॐ की पवित्र ध्वनि के माध्यम से सार्वभौमिक चेतना से जुड़ें। कंपन को महसूस करें जो उपचार और ऊर्जा प्रदान करता है।",
+      "duration_minutes": 12,
+      "category": "mantra",
+      "audio_url": "https://example.com/meditations/om_chanting.mp3",
+      "instructor": "Adi Shankaracharya",
+      "difficulty": "beginner"
+    },
+    {
+      "id": "med_evening_001",
+      "name": "Evening Wind Down",
+      "name_hi": "सायंकाल विश्राम",
+      "description": "Peaceful meditation to end your day. Release the day's stress and prepare for restful sleep.",
+      "description_hi": "अपने दिन को समाप्त करने के लिए शांतिपूर्ण ध्यान। दिन के तनाव को मुक्त करें और आरामदायक नींद के लिए तैयार हों।",
+      "duration_minutes": 18,
+      "category": "evening",
+      "audio_url": "https://example.com/meditations/evening_wind_down.mp3",
+      "instructor": "Sri Ramakrishna",
+      "difficulty": "beginner"
+    },
+    {
+      "id": "med_walking_001",
+      "name": "Walking Meditation",
+      "name_hi": "चलते हुए ध्यान",
+      "description": "Practice mindfulness while walking. Connect with each step and breath in harmony.",
+      "description_hi": "चलते समय सावधानी का अभ्यास करें। प्रत्येक कदम और सांस के साथ सामंजस्य में जुड़ें।",
+      "duration_minutes": 20,
+      "category": "general",
+      "audio_url": "https://example.com/meditations/walking_meditation.mp3",
+      "instructor": "Thich Nhat Hanh",
+      "difficulty": "beginner"
+    },
+    {
+      "id": "med_silence_001",
+      "name": "Silent Meditation",
+      "name_hi": "मौन ध्यान",
+      "description": "Advanced meditation in complete silence. Experience pure awareness without guidance.",
+      "description_hi": "पूर्ण मौन में उन्नत ध्यान। मार्गदर्शन के बिना शुद्ध जागरूकता का अनुभव करें।",
+      "duration_minutes": 30,
+      "category": "general",
+      "audio_url": "https://example.com/meditations/silent_meditation.mp3",
+      "instructor": "Ramana Maharshi",
+      "difficulty": "advanced"
+    }
+  ]
+}

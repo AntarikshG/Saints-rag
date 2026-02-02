@@ -27,6 +27,7 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'meditation_service.dart';
 // Book reading imports
 import 'books_library.dart';
 import 'books_tab.dart';
@@ -1377,7 +1378,15 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      // Return a loading widget if localizations aren't ready yet
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     final brightness = Theme.of(context).brightness;
     final languageCode = Localizations.localeOf(context).languageCode;
     final List<dynamic> saintList = _getSaintsForLanguage(languageCode);
@@ -1587,9 +1596,10 @@ class _HomePageState extends State<HomePage> {
           decoration: BoxDecoration(
             gradient: mainGradient,
           ),
-          child: Column(
-            children: [
-              SizedBox(height: 100), // Space for AppBar
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                SizedBox(height: 100), // Space for AppBar
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
@@ -1942,8 +1952,297 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+              SizedBox(height: 16),
+              // Meditate Deeply Button - New meditation feature
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(colors: [Colors.indigo.shade900, Colors.indigo.shade800])
+                      : LinearGradient(colors: [Colors.white, Colors.indigo.shade50]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.indigo.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => MeditationPage()),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.indigo.shade50,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.indigo.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.self_improvement,
+                              color: Colors.indigo.shade700,
+                              size: 20,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Meditate Deeply',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.indigo.shade300
+                                        : Colors.indigo.shade800,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Guided meditation sessions',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.indigo.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.indigo.shade700,
+                              size: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              // Spiritual Diary Button - New addition
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(colors: [Colors.teal.shade900, Colors.teal.shade800])
+                      : LinearGradient(colors: [Colors.white, Colors.teal.shade50]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.teal.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => SpiritualDiaryPage()),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade50,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.teal.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.book,
+                              color: Colors.teal.shade700,
+                              size: 20,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  loc.spiritualDiary,
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.teal.shade300
+                                        : Colors.teal.shade800,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Write your spiritual journey',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.teal.shade700,
+                              size: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              // My Books Library Button - New addition
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(colors: [Colors.amber.shade900, Colors.amber.shade800])
+                      : LinearGradient(colors: [Colors.white, Colors.amber.shade50]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.amber.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => BooksLibraryPage()),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade50,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.amber.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.library_books,
+                              color: Colors.amber.shade700,
+                              size: 20,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  loc.myBooksLibrary,
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.amber.shade300
+                                        : Colors.amber.shade800,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Sacred texts and teachings',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.amber.shade700,
+                              size: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               SizedBox(height: 20),
             ],
+          ),
           ),
         ),
       ),
@@ -1981,7 +2280,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showThemeDialog(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) return;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -2052,7 +2352,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showLanguageDialog(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) return;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -2098,7 +2399,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showNameDialog(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) return;
     final controller = TextEditingController(text: widget.userName);
     showDialog(
       context: context,
@@ -2884,7 +3186,12 @@ class _SaintPageState extends State<SaintPage> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     final isHindi = Localizations.localeOf(context).languageCode == 'hi';
     final saintId = widget.saint.id;
     final saintName = widget.saint.name;
@@ -3612,7 +3919,12 @@ class _AboutAppPageState extends State<AboutAppPage> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     // Show loading indicator until controller is initialized
     if (!_isInitialized) {
@@ -3705,7 +4017,12 @@ class _AboutAppPageState extends State<AboutAppPage> {
 class ContactPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -3896,7 +4213,12 @@ class ContactPage extends StatelessWidget {
 class BuyMeACoffeePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -4127,7 +4449,12 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     final brightness = Theme.of(context).brightness;
 
     final gradient = brightness == Brightness.dark
@@ -4181,7 +4508,10 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
   }
 
   Widget _buildHistoryTab() {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Center(child: CircularProgressIndicator());
+    }
     if (_history.isEmpty) {
       return Center(
         child: Column(
