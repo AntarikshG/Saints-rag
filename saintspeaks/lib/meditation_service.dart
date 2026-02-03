@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 import 'config_service.dart';
 
 class Meditation {
@@ -153,9 +154,34 @@ class MeditationService {
   }
 
   // Get local file path for meditation
-  static Future<String> getMeditationFilePath(String meditationId) async {
+  static Future<String> getMeditationFilePath(String meditationId, {String? audioUrl}) async {
     final directory = await getApplicationDocumentsDirectory();
-    return '${directory.path}/meditations/$meditationId.mp3';
+
+    // Determine file extension from URL if provided
+    String extension = 'mp3'; // default
+    if (audioUrl != null) {
+      final uri = Uri.parse(audioUrl);
+      final path = uri.path.toLowerCase();
+      if (path.endsWith('.m4a')) {
+        extension = 'm4a';
+      } else if (path.endsWith('.aac')) {
+        extension = 'aac';
+      } else if (path.endsWith('.mp3')) {
+        extension = 'mp3';
+      }
+    }
+
+    return '${directory.path}/meditations/$meditationId.$extension';
+  }
+
+  // Helper to get file extension from meditation
+  static String _getFileExtension(String audioUrl) {
+    final uri = Uri.parse(audioUrl);
+    final path = uri.path.toLowerCase();
+    if (path.endsWith('.m4a')) return 'm4a';
+    if (path.endsWith('.aac')) return 'aac';
+    if (path.endsWith('.mp3')) return 'mp3';
+    return 'mp3'; // default
   }
 
   // Download meditation file
@@ -164,23 +190,75 @@ class MeditationService {
     Function(double)? onProgress,
   }) async {
     try {
-      final filePath = await getMeditationFilePath(meditation.id);
+      final filePath = await getMeditationFilePath(meditation.id, audioUrl: meditation.audioUrl);
       final file = File(filePath);
+      final extension = _getFileExtension(meditation.audioUrl);
 
       // Create directory if it doesn't exist
       await file.parent.create(recursive: true);
 
       // Download the file
       final dio = Dio();
+
+      // Add headers to ensure we get proper audio format
       await dio.download(
         meditation.audioUrl,
         filePath,
+        options: Options(
+          headers: {
+            'Accept': 'audio/mpeg,audio/mp3,audio/aac,audio/mp4,audio/m4a,audio/*',
+            'User-Agent': 'Talk with Saints App',
+          },
+          responseType: ResponseType.bytes,
+        ),
         onReceiveProgress: (received, total) {
           if (total != -1 && onProgress != null) {
             onProgress(received / total);
           }
         },
       );
+
+      // Validate the downloaded file
+      final downloadedFile = File(filePath);
+      if (await downloadedFile.exists()) {
+        final size = await downloadedFile.length();
+        print('Downloaded file size: $size bytes');
+        print('File extension: .$extension');
+
+        // Check if it's a valid audio file by reading header
+        if (size > 100) {
+          final bytes = await downloadedFile.openRead(0, 10).first;
+          final header = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+          print('File header: $header');
+
+          // Detect actual file type from header
+          String detectedType = 'unknown';
+
+          // Check for MP3 (starts with 'FF FB' or 'FF F3' or 'FF F2' or has ID3 tag)
+          if (bytes[0] == 0xFF && (bytes[1] & 0xE0) == 0xE0) {
+            detectedType = 'MP3';
+          } else if (bytes[0] == 0x49 && bytes[1] == 0x44 && bytes[2] == 0x33) {
+            detectedType = 'MP3 with ID3';
+          }
+          // Check for M4A/AAC/MP4 (starts with 00 00 00 xx 'ftyp')
+          else if (bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0x00 &&
+                   (bytes[3] >= 0x18 && bytes[3] <= 0x24)) {
+            detectedType = 'M4A/AAC/MP4';
+          }
+          // Check for plain AAC (starts with 'FF Fx' where x is F0-FF)
+          else if (bytes[0] == 0xFF && (bytes[1] & 0xF0) == 0xF0) {
+            detectedType = 'AAC';
+          }
+
+          print('Detected file type: $detectedType');
+
+          if (detectedType == 'unknown') {
+            print('WARNING: Could not identify audio format. Header: $header');
+          } else {
+            print('File appears to be a valid $detectedType file');
+          }
+        }
+      }
 
       // Mark as downloaded
       await markAsDownloaded(meditation.id, true);
@@ -192,14 +270,31 @@ class MeditationService {
   }
 
   // Delete meditation file
-  static Future<void> deleteMeditation(String meditationId) async {
+  static Future<void> deleteMeditation(String meditationId, {String? audioUrl}) async {
     try {
-      final filePath = await getMeditationFilePath(meditationId);
-      final file = File(filePath);
-      if (await file.exists()) {
-        await file.delete();
-        await markAsDownloaded(meditationId, false);
+      // Try all possible extensions if audioUrl not provided
+      if (audioUrl == null) {
+        final directory = await getApplicationDocumentsDirectory();
+        final extensions = ['mp3', 'm4a', 'aac'];
+
+        for (final ext in extensions) {
+          final filePath = '${directory.path}/meditations/$meditationId.$ext';
+          final file = File(filePath);
+          if (await file.exists()) {
+            await file.delete();
+            print('Deleted: $filePath');
+          }
+        }
+      } else {
+        final filePath = await getMeditationFilePath(meditationId, audioUrl: audioUrl);
+        final file = File(filePath);
+        if (await file.exists()) {
+          await file.delete();
+          print('Deleted: $filePath');
+        }
       }
+
+      await markAsDownloaded(meditationId, false);
     } catch (e) {
       print('Error deleting meditation: $e');
     }
@@ -540,19 +635,27 @@ class _MeditationPlayerPageState extends State<MeditationPlayerPage> {
   void _initAudioPlayer() {
     _audioPlayer = AudioPlayer();
 
+    // Configure audio session for iOS
+    if (Platform.isIOS) {
+      _configureAudioSession();
+    }
+
     // Listen to player state changes
-    _audioPlayer?.onPlayerStateChanged.listen((PlayerState state) {
+    _audioPlayer?.playerStateStream.listen((state) {
       if (mounted) {
         setState(() {
-          isPlaying = state == PlayerState.playing;
-          isPaused = state == PlayerState.paused;
+          isPlaying = state.playing;
+          // Only set isPaused if we're not playing AND not completed/idle
+          isPaused = !state.playing &&
+                     state.processingState != ProcessingState.completed &&
+                     state.processingState != ProcessingState.idle;
         });
       }
     });
 
     // Listen to duration changes
-    _audioPlayer?.onDurationChanged.listen((Duration duration) {
-      if (mounted) {
+    _audioPlayer?.durationStream.listen((duration) {
+      if (mounted && duration != null) {
         setState(() {
           totalDuration = duration;
         });
@@ -560,7 +663,7 @@ class _MeditationPlayerPageState extends State<MeditationPlayerPage> {
     });
 
     // Listen to position changes
-    _audioPlayer?.onPositionChanged.listen((Duration position) {
+    _audioPlayer?.positionStream.listen((position) {
       if (mounted) {
         setState(() {
           currentPosition = position;
@@ -569,13 +672,23 @@ class _MeditationPlayerPageState extends State<MeditationPlayerPage> {
     });
 
     // Listen to completion
-    _audioPlayer?.onPlayerComplete.listen((_) {
-      if (mounted) {
+    _audioPlayer?.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed && mounted) {
+        print('Meditation playback completed, resetting state');
+
+        // Thoroughly reset player to allow replaying (use .then() to avoid async listener issues)
+        _audioPlayer?.stop().then((_) {
+          return _audioPlayer?.seek(Duration.zero);
+        }).catchError((e) {
+          print('Note: Error during completion reset: $e');
+        });
+
         setState(() {
           isPlaying = false;
           isPaused = false;
           currentPosition = Duration.zero;
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Meditation completed! 🧘'),
@@ -585,6 +698,22 @@ class _MeditationPlayerPageState extends State<MeditationPlayerPage> {
         );
       }
     });
+  }
+
+  Future<void> _configureAudioSession() async {
+    if (Platform.isIOS) {
+      try {
+        // Configure iOS audio session for playback
+        await _audioPlayer?.setAudioSource(
+          AudioSource.uri(Uri.parse('asset:///assets/audio/silence.mp3')),
+        ).catchError((e) {
+          // Ignore error if silence file doesn't exist
+          print('Note: Silence asset not found, continuing without pre-warming');
+        });
+      } catch (e) {
+        print('Audio session pre-configuration note: $e');
+      }
+    }
   }
 
   Future<void> _checkDownloadStatus() async {
@@ -641,8 +770,11 @@ class _MeditationPlayerPageState extends State<MeditationPlayerPage> {
 
   Future<void> _playMeditation() async {
     try {
-      // Get the local file path
-      final filePath = await MeditationService.getMeditationFilePath(widget.meditation.id);
+      // Get the local file path with correct extension
+      final filePath = await MeditationService.getMeditationFilePath(
+        widget.meditation.id,
+        audioUrl: widget.meditation.audioUrl,
+      );
       final file = File(filePath);
 
       // Check if file exists
@@ -650,31 +782,125 @@ class _MeditationPlayerPageState extends State<MeditationPlayerPage> {
         throw Exception('Audio file not found. Please download again.');
       }
 
+      // Verify file is not empty
+      final fileSize = await file.length();
+      if (fileSize == 0) {
+        throw Exception('Audio file is empty. Please download again.');
+      }
+
+      print('Playing meditation from: $filePath (size: $fileSize bytes)');
+
+      // Read first few bytes to check file format
+      final bytes = await file.openRead(0, 4).first;
+      print('File header bytes: ${bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}');
+
       // Increment play count
       await MeditationService.incrementPlayCount(widget.meditation.id);
       await _loadPlayCount();
 
-      // Play the audio file
-      await _audioPlayer?.play(DeviceFileSource(filePath));
+      // Properly reset the player before setting new source
+      print('Resetting audio player state...');
+      try {
+        await _audioPlayer?.stop();
+        await _audioPlayer?.seek(Duration.zero);
+      } catch (e) {
+        print('Note: Error during reset (player may be idle): $e');
+      }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Playing: ${widget.meditation.name}'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // Reset UI state
+      if (mounted) {
+        setState(() {
+          currentPosition = Duration.zero;
+          totalDuration = Duration.zero;
+          isPlaying = false;
+          isPaused = false;
+        });
+      }
+
+      // Small delay to ensure player state is fully reset
+      await Future.delayed(Duration(milliseconds: 150));
+
+      // Try local file first, fallback to streaming on iOS if needed
+      try {
+        print('Setting audio source from local file...');
+        await _audioPlayer?.setAudioSource(
+          AudioSource.file(filePath),
+        );
+        print('Starting playback...');
+        await _audioPlayer?.play();
+        print('Playback started successfully');
+      } catch (localFileError) {
+        print('Local file playback failed: $localFileError');
+
+        // iOS fallback: Try streaming from URL if local file fails
+        if (Platform.isIOS) {
+          print('Attempting iOS fallback: streaming from URL...');
+          try {
+            await _audioPlayer?.setAudioSource(
+              AudioSource.uri(Uri.parse(widget.meditation.audioUrl)),
+            );
+            await _audioPlayer?.play();
+            print('Streaming playback started successfully');
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Playing via streaming (local file had issues)'),
+                  duration: Duration(seconds: 2),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          } catch (streamError) {
+            print('Streaming also failed: $streamError');
+            throw Exception(
+              'Could not play audio. Local file error: $localFileError. '
+              'Streaming error: $streamError'
+            );
+          }
+        } else {
+          rethrow;
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Playing: ${widget.meditation.name}'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       print('Error playing meditation: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error playing audio: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() {
-        isPlaying = false;
-      });
+      if (mounted) {
+        // Provide helpful error message
+        String errorMessage = 'Error playing audio';
+        if (e.toString().contains('11800')) {
+          errorMessage = 'Audio format not supported. Try deleting and re-downloading.';
+        } else if (e.toString().contains('not found')) {
+          errorMessage = 'Audio file not found. Please download first.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Delete',
+              textColor: Colors.white,
+              onPressed: () => _deleteMeditation(),
+            ),
+          ),
+        );
+      }
+      if (mounted) {
+        setState(() {
+          isPlaying = false;
+        });
+      }
     }
   }
 
@@ -683,11 +909,12 @@ class _MeditationPlayerPageState extends State<MeditationPlayerPage> {
   }
 
   Future<void> _resumeMeditation() async {
-    await _audioPlayer?.resume();
+    await _audioPlayer?.play();
   }
 
   Future<void> _stopMeditation() async {
     await _audioPlayer?.stop();
+    await _audioPlayer?.seek(Duration.zero);
     setState(() {
       currentPosition = Duration.zero;
     });
@@ -713,7 +940,10 @@ class _MeditationPlayerPageState extends State<MeditationPlayerPage> {
     );
 
     if (confirmed == true) {
-      await MeditationService.deleteMeditation(widget.meditation.id);
+      await MeditationService.deleteMeditation(
+        widget.meditation.id,
+        audioUrl: widget.meditation.audioUrl,
+      );
       setState(() {
         isDownloaded = false;
       });
@@ -1011,6 +1241,8 @@ class _MeditationPlayerPageState extends State<MeditationPlayerPage> {
 
   @override
   void dispose() {
+    // Dispose must be synchronous - just dispose the player
+    // The player will handle cleanup internally
     _audioPlayer?.dispose();
     super.dispose();
   }

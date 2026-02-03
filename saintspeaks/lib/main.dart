@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'articlesquotes.dart';
 import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
@@ -1547,10 +1548,6 @@ class _HomePageState extends State<HomePage> {
                     Navigator.pop(context);
                     _showNameDialog(context);
                   }),
-                  _buildDrawerItem(context, Icons.note, loc.spiritualDiary, () {
-                    Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => SpiritualDiaryPage()));
-                  }),
                   _buildDrawerItem(context, Icons.bookmark, loc.bookmarkedQuotes, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
@@ -1558,10 +1555,6 @@ class _HomePageState extends State<HomePage> {
                   _buildDrawerItem(context, Icons.brightness_2, loc.nextEkadashi, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => EkadashiPage()));
-                  }),
-                  _buildDrawerItem(context, Icons.library_books, loc.myBooksLibrary, () {
-                    Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => BooksLibraryPage()));
                   }),
                   _buildDrawerItem(context, Icons.info, loc.aboutApp, () {
                     Navigator.pop(context);
@@ -1634,19 +1627,31 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               SizedBox(height: 16),
-              // Quote of the Day Card - Made smaller
+              // Quote of the Day Card - Enhanced with animations
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   gradient: brightness == Brightness.dark
-                      ? LinearGradient(colors: [Colors.grey.shade900, Colors.grey.shade800])
-                      : LinearGradient(colors: [Colors.white, Colors.orange.shade50]),
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.grey.shade900, Colors.grey.shade800, Colors.orange.shade900.withOpacity(0.3)])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.orange.shade50, Colors.orange.shade100.withOpacity(0.5)]),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.deepOrange.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+                      color: Colors.deepOrange.withOpacity(0.25),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
                 ),
@@ -1659,34 +1664,39 @@ class _HomePageState extends State<HomePage> {
                       MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()),
                     ).then((_) => _refreshBadge()),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: brightness == Brightness.dark
-                                  ? Colors.orange.shade900
-                                  : Colors.deepOrange.shade50,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.orange.shade800, Colors.orange.shade900]
+                                    : [Colors.deepOrange.shade300, Colors.deepOrange.shade500],
+                              ),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.deepOrange.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+                                  color: Colors.deepOrange.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
                                 ),
                               ],
                             ),
                             child: Icon(
                               Icons.format_quote,
-                              color: brightness == Brightness.dark
-                                  ? Colors.orange.shade300
-                                  : Colors.deepOrange.shade700,
-                              size: 20,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          ),
-                          SizedBox(width: 12),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .shimmer(duration: 2000.ms, delay: 1000.ms, color: Colors.white.withOpacity(0.3))
+                            .then()
+                            .shake(duration: 500.ms, hz: 2, curve: Curves.easeInOut),
+                          SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1694,16 +1704,17 @@ class _HomePageState extends State<HomePage> {
                                 Text(
                                   loc.quoteOfTheDay,
                                   style: GoogleFonts.playfairDisplay(
-                                    fontSize: 14,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: brightness == Brightness.dark
                                         ? Colors.orange.shade300
                                         : Colors.deepOrange.shade800,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                SizedBox(height: 3),
                                 Text(
-                                  'Daily wisdom',
+                                  'Daily wisdom ✨',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: brightness == Brightness.dark
@@ -1716,33 +1727,38 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.all(6),
+                            padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: brightness == Brightness.dark
-                                  ? Colors.orange.shade900
+                                  ? Colors.orange.shade900.withOpacity(0.5)
                                   : Colors.deepOrange.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.arrow_forward_ios,
                               color: brightness == Brightness.dark
                                   ? Colors.orange.shade300
                                   : Colors.deepOrange.shade700,
-                              size: 14,
+                              size: 16,
                             ),
-                          ),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .moveX(begin: -2, end: 2, duration: 1000.ms, curve: Curves.easeInOut)
+                            .then()
+                            .moveX(begin: 2, end: -2, duration: 1000.ms, curve: Curves.easeInOut),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 16),
-              // Saints of Bharat Button - Prominent Featured Card with Saint Images
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 100.ms)
+                .slideX(begin: -0.2, end: 0, duration: 400.ms, delay: 100.ms, curve: Curves.easeOutCubic),
+              SizedBox(height: 18),
+              // Saints of Bharat Button - Enhanced Featured Card
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                   gradient: brightness == Brightness.dark
                       ? LinearGradient(
                           begin: Alignment.topLeft,
@@ -1764,16 +1780,28 @@ class _HomePageState extends State<HomePage> {
                         ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.deepOrange.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: Offset(0, 6),
+                      color: Colors.deepOrange.withOpacity(0.4),
+                      blurRadius: 16,
+                      offset: Offset(0, 8),
+                      spreadRadius: 2,
+                    ),
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.2),
+                      blurRadius: 24,
+                      offset: Offset(0, 12),
                     ),
                   ],
+                  border: Border.all(
+                    color: brightness == Brightness.dark
+                        ? Colors.orange.shade700.withOpacity(0.5)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1.5,
+                  ),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(24),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -1784,7 +1812,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ).then((_) => _refreshBadge()),
                     child: Padding(
-                      padding: EdgeInsets.all(20),
+                      padding: EdgeInsets.all(22),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1795,59 +1823,87 @@ class _HomePageState extends State<HomePage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      loc.saintsOfBharat,
-                                      style: GoogleFonts.playfairDisplay(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        color: brightness == Brightness.dark
-                                            ? Colors.orange.shade200
-                                            : Colors.deepOrange.shade900,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.stars_rounded,
+                                          color: brightness == Brightness.dark
+                                              ? Colors.orange.shade300
+                                              : Colors.deepOrange.shade700,
+                                          size: 20,
+                                        ).animate(onPlay: (controller) => controller.repeat())
+                                          .rotate(duration: 3000.ms, curve: Curves.easeInOut)
+                                          .then()
+                                          .rotate(begin: 1, end: 0, duration: 3000.ms, curve: Curves.easeInOut),
+                                        SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            loc.saintsOfBharat,
+                                            style: GoogleFonts.playfairDisplay(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                              color: brightness == Brightness.dark
+                                                  ? Colors.orange.shade200
+                                                  : Colors.deepOrange.shade900,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    SizedBox(height: 4),
+                                    SizedBox(height: 6),
                                     Text(
-                                      'Explore wisdom from 11 spiritual masters',
+                                      '🕉️ Explore wisdom from 11 spiritual masters',
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: brightness == Brightness.dark
                                             ? Colors.orange.shade100
                                             : Colors.deepOrange.shade700,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                               Container(
-                                padding: EdgeInsets.all(8),
+                                padding: EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: brightness == Brightness.dark
-                                      ? Colors.orange.shade800
-                                      : Colors.deepOrange.shade100,
-                                  borderRadius: BorderRadius.circular(12),
+                                  gradient: LinearGradient(
+                                    colors: brightness == Brightness.dark
+                                        ? [Colors.orange.shade700, Colors.orange.shade800]
+                                        : [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.deepOrange.withOpacity(0.4),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
                                 child: Icon(
                                   Icons.arrow_forward,
-                                  color: brightness == Brightness.dark
-                                      ? Colors.orange.shade100
-                                      : Colors.deepOrange.shade800,
-                                  size: 24,
+                                  color: Colors.white,
+                                  size: 26,
                                 ),
-                              ),
+                              ).animate(onPlay: (controller) => controller.repeat())
+                                .scale(begin: Offset(1, 1), end: Offset(1.1, 1.1), duration: 800.ms, curve: Curves.easeInOut)
+                                .then()
+                                .scale(begin: Offset(1.1, 1.1), end: Offset(1, 1), duration: 800.ms, curve: Curves.easeInOut),
                             ],
                           ),
-                          SizedBox(height: 16),
+                          SizedBox(height: 18),
                           // Row of 6 saint circular images
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              _buildSaintAvatar('assets/images/vivekananda.jpg', brightness),
-                              _buildSaintAvatar('assets/images/sivananda.jpg', brightness),
-                              _buildSaintAvatar('assets/images/paramhansa.jpg', brightness),
-                              _buildSaintAvatar('assets/images/raman.jpg', brightness),
-                              _buildSaintAvatar('assets/images/shankaracharya.jpg', brightness),
-                              _buildSaintAvatar('assets/images/ramkrishna.jpg', brightness),
+                              _buildSaintAvatar('assets/images/vivekananda.jpg', brightness, 0),
+                              _buildSaintAvatar('assets/images/sivananda.jpg', brightness, 1),
+                              _buildSaintAvatar('assets/images/paramhansa.jpg', brightness, 2),
+                              _buildSaintAvatar('assets/images/raman.jpg', brightness, 3),
+                              _buildSaintAvatar('assets/images/shankaracharya.jpg', brightness, 4),
+                              _buildSaintAvatar('assets/images/ramkrishna.jpg', brightness, 5),
                             ],
                           ),
                         ],
@@ -1855,74 +1911,117 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 16),
-              // Ask AI Button - New addition
+              ).animate()
+                .fadeIn(duration: 500.ms, delay: 200.ms)
+                .slideY(begin: 0.3, end: 0, duration: 500.ms, delay: 200.ms, curve: Curves.easeOutCubic)
+                .shimmer(duration: 1500.ms, delay: 800.ms, color: Colors.white.withOpacity(0.2)),
+              SizedBox(height: 18),
+              // Ask AI Button - Enhanced with animations
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   gradient: brightness == Brightness.dark
-                      ? LinearGradient(colors: [Colors.purple.shade900, Colors.purple.shade800])
-                      : LinearGradient(colors: [Colors.white, Colors.purple.shade50]),
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.purple.shade900, Colors.purple.shade800, Colors.deepPurple.shade900])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.purple.shade50, Colors.purple.shade100.withOpacity(0.5)]),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.purple.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+                      color: Colors.purple.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.deepPurple.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
+                  border: Border.all(
+                    color: brightness == Brightness.dark
+                        ? Colors.purple.shade700.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1,
+                  ),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => AskAIPage(userName: widget.userName)),
                     ),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: Colors.purple.shade50,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.purple.shade600, Colors.purple.shade800]
+                                    : [Colors.purple.shade300, Colors.purple.shade500],
+                              ),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.purple.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+                                  color: Colors.purple.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
                                 ),
                               ],
                             ),
                             child: Icon(
                               Icons.psychology,
-                              color: Colors.purple.shade700,
-                              size: 20,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          ),
-                          SizedBox(width: 12),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .shimmer(duration: 2000.ms, delay: 500.ms, color: Colors.white.withOpacity(0.3))
+                            .then()
+                            .scale(begin: Offset(1, 1), end: Offset(1.05, 1.05), duration: 800.ms)
+                            .then()
+                            .scale(begin: Offset(1.05, 1.05), end: Offset(1, 1), duration: 800.ms),
+                          SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  loc.talkToSpiritualAIFriend,
-                                  style: GoogleFonts.playfairDisplay(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: brightness == Brightness.dark
-                                        ? Colors.purple.shade300
-                                        : Colors.purple.shade800,
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      loc.talkToSpiritualAIFriend,
+                                      style: GoogleFonts.playfairDisplay(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: brightness == Brightness.dark
+                                            ? Colors.purple.shade300
+                                            : Colors.purple.shade800,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                    SizedBox(width: 4),
+                                    Icon(Icons.auto_awesome, size: 14, color: Colors.purple.shade400)
+                                      .animate(onPlay: (controller) => controller.repeat())
+                                      .fadeIn(duration: 600.ms)
+                                      .then()
+                                      .fadeOut(duration: 600.ms),
+                                  ],
                                 ),
-                                SizedBox(height: 2),
+                                SizedBox(height: 3),
                                 Text(
-                                  'Get wisdom from all saints',
+                                  'Get wisdom from all saints 🙏',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: brightness == Brightness.dark
@@ -1935,15 +2034,19 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.all(6),
+                            padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.purple.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                              color: brightness == Brightness.dark
+                                  ? Colors.purple.shade800.withOpacity(0.5)
+                                  : Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.arrow_forward_ios,
-                              color: Colors.purple.shade700,
-                              size: 14,
+                              color: brightness == Brightness.dark
+                                  ? Colors.purple.shade300
+                                  : Colors.purple.shade700,
+                              size: 16,
                             ),
                           ),
                         ],
@@ -1951,57 +2054,86 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 16),
-              // Meditate Deeply Button - New meditation feature
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 300.ms)
+                .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms, curve: Curves.easeOutCubic),
+              SizedBox(height: 18),
+              // Meditate Deeply Button - Enhanced with calming animations
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   gradient: brightness == Brightness.dark
-                      ? LinearGradient(colors: [Colors.indigo.shade900, Colors.indigo.shade800])
-                      : LinearGradient(colors: [Colors.white, Colors.indigo.shade50]),
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.indigo.shade900, Colors.indigo.shade800, Colors.blue.shade900])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.indigo.shade50, Colors.blue.shade50]),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.indigo.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+                      color: Colors.indigo.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
+                  border: Border.all(
+                    color: brightness == Brightness.dark
+                        ? Colors.indigo.shade700.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1,
+                  ),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => MeditationPage()),
                     ),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: Colors.indigo.shade50,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.indigo.shade600, Colors.indigo.shade800]
+                                    : [Colors.indigo.shade300, Colors.indigo.shade500],
+                              ),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.indigo.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+                                  color: Colors.indigo.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
                                 ),
                               ],
                             ),
                             child: Icon(
                               Icons.self_improvement,
-                              color: Colors.indigo.shade700,
-                              size: 20,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          ),
-                          SizedBox(width: 12),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .scale(begin: Offset(1, 1), end: Offset(1.08, 1.08), duration: 1500.ms, curve: Curves.easeInOut)
+                            .then()
+                            .scale(begin: Offset(1.08, 1.08), end: Offset(1, 1), duration: 1500.ms, curve: Curves.easeInOut),
+                          SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2009,16 +2141,17 @@ class _HomePageState extends State<HomePage> {
                                 Text(
                                   'Meditate Deeply',
                                   style: GoogleFonts.playfairDisplay(
-                                    fontSize: 14,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: brightness == Brightness.dark
                                         ? Colors.indigo.shade300
                                         : Colors.indigo.shade800,
+                                    letterSpacing: 0.3,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                SizedBox(height: 3),
                                 Text(
-                                  'Guided meditation sessions',
+                                  'Guided meditation sessions 🧘',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: brightness == Brightness.dark
@@ -2031,15 +2164,19 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.all(6),
+                            padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.indigo.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                              color: brightness == Brightness.dark
+                                  ? Colors.indigo.shade800.withOpacity(0.5)
+                                  : Colors.indigo.shade100,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.arrow_forward_ios,
-                              color: Colors.indigo.shade700,
-                              size: 14,
+                              color: brightness == Brightness.dark
+                                  ? Colors.indigo.shade300
+                                  : Colors.indigo.shade700,
+                              size: 16,
                             ),
                           ),
                         ],
@@ -2047,57 +2184,86 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 16),
-              // Spiritual Diary Button - New addition
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 400.ms)
+                .slideX(begin: -0.2, end: 0, duration: 400.ms, delay: 400.ms, curve: Curves.easeOutCubic),
+              SizedBox(height: 18),
+              // Spiritual Diary Button - Enhanced with elegant animations
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   gradient: brightness == Brightness.dark
-                      ? LinearGradient(colors: [Colors.teal.shade900, Colors.teal.shade800])
-                      : LinearGradient(colors: [Colors.white, Colors.teal.shade50]),
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.teal.shade900, Colors.teal.shade800, Colors.cyan.shade900])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.teal.shade50, Colors.cyan.shade50.withOpacity(0.5)]),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.teal.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+                      color: Colors.teal.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.cyan.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
+                  border: Border.all(
+                    color: brightness == Brightness.dark
+                        ? Colors.teal.shade700.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1,
+                  ),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => SpiritualDiaryPage()),
                     ),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: Colors.teal.shade50,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.teal.shade600, Colors.teal.shade800]
+                                    : [Colors.teal.shade300, Colors.teal.shade500],
+                              ),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.teal.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+                                  color: Colors.teal.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
                                 ),
                               ],
                             ),
                             child: Icon(
                               Icons.book,
-                              color: Colors.teal.shade700,
-                              size: 20,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          ),
-                          SizedBox(width: 12),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .shimmer(duration: 2000.ms, delay: 700.ms, color: Colors.white.withOpacity(0.3))
+                            .then(delay: 1000.ms)
+                            .shake(duration: 400.ms, hz: 1, curve: Curves.easeInOut),
+                          SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2105,16 +2271,17 @@ class _HomePageState extends State<HomePage> {
                                 Text(
                                   loc.spiritualDiary,
                                   style: GoogleFonts.playfairDisplay(
-                                    fontSize: 14,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: brightness == Brightness.dark
                                         ? Colors.teal.shade300
                                         : Colors.teal.shade800,
+                                    letterSpacing: 0.3,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                SizedBox(height: 3),
                                 Text(
-                                  'Write your spiritual journey',
+                                  'Write your spiritual journey ✍️',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: brightness == Brightness.dark
@@ -2127,15 +2294,19 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.all(6),
+                            padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.teal.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                              color: brightness == Brightness.dark
+                                  ? Colors.teal.shade800.withOpacity(0.5)
+                                  : Colors.teal.shade100,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.arrow_forward_ios,
-                              color: Colors.teal.shade700,
-                              size: 14,
+                              color: brightness == Brightness.dark
+                                  ? Colors.teal.shade300
+                                  : Colors.teal.shade700,
+                              size: 16,
                             ),
                           ),
                         ],
@@ -2143,57 +2314,90 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 16),
-              // My Books Library Button - New addition
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 500.ms)
+                .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 500.ms, curve: Curves.easeOutCubic),
+              SizedBox(height: 18),
+              // My Books Library Button - Enhanced with warm animations
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   gradient: brightness == Brightness.dark
-                      ? LinearGradient(colors: [Colors.amber.shade900, Colors.amber.shade800])
-                      : LinearGradient(colors: [Colors.white, Colors.amber.shade50]),
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.amber.shade900, Colors.amber.shade800, Colors.orange.shade900])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.amber.shade50, Colors.orange.shade50.withOpacity(0.5)]),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.amber.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+                      color: Colors.amber.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
+                  border: Border.all(
+                    color: brightness == Brightness.dark
+                        ? Colors.amber.shade700.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1,
+                  ),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => BooksLibraryPage()),
                     ),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: Colors.amber.shade50,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.amber.shade600, Colors.amber.shade800]
+                                    : [Colors.amber.shade300, Colors.amber.shade500],
+                              ),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.amber.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+                                  color: Colors.amber.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
                                 ),
                               ],
                             ),
                             child: Icon(
                               Icons.library_books,
-                              color: Colors.amber.shade700,
-                              size: 20,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          ),
-                          SizedBox(width: 12),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .shimmer(duration: 2000.ms, delay: 900.ms, color: Colors.white.withOpacity(0.3))
+                            .then(delay: 1000.ms)
+                            .rotate(begin: 0, end: 0.05, duration: 300.ms)
+                            .then()
+                            .rotate(begin: 0.05, end: -0.05, duration: 600.ms)
+                            .then()
+                            .rotate(begin: -0.05, end: 0, duration: 300.ms),
+                          SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2201,16 +2405,17 @@ class _HomePageState extends State<HomePage> {
                                 Text(
                                   loc.myBooksLibrary,
                                   style: GoogleFonts.playfairDisplay(
-                                    fontSize: 14,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: brightness == Brightness.dark
                                         ? Colors.amber.shade300
                                         : Colors.amber.shade800,
+                                    letterSpacing: 0.3,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                SizedBox(height: 3),
                                 Text(
-                                  'Sacred texts and teachings',
+                                  'Sacred texts and teachings 📚',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: brightness == Brightness.dark
@@ -2223,15 +2428,19 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.all(6),
+                            padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.amber.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                              color: brightness == Brightness.dark
+                                  ? Colors.amber.shade800.withOpacity(0.5)
+                                  : Colors.amber.shade100,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.arrow_forward_ios,
-                              color: Colors.amber.shade700,
-                              size: 14,
+                              color: brightness == Brightness.dark
+                                  ? Colors.amber.shade300
+                                  : Colors.amber.shade700,
+                              size: 16,
                             ),
                           ),
                         ],
@@ -2239,7 +2448,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-              ),
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 600.ms)
+                .slideX(begin: -0.2, end: 0, duration: 400.ms, delay: 600.ms, curve: Curves.easeOutCubic),
               SizedBox(height: 20),
             ],
           ),
@@ -2323,10 +2534,10 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildSaintAvatar(String imagePath, Brightness brightness) {
+  Widget _buildSaintAvatar(String imagePath, Brightness brightness, int index) {
     return Container(
-      width: 45,
-      height: 45,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
@@ -2337,18 +2548,34 @@ class _HomePageState extends State<HomePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.deepOrange.withOpacity(0.4),
-            blurRadius: 8,
+            color: Colors.deepOrange.withOpacity(0.5),
+            blurRadius: 10,
             offset: Offset(0, 4),
           ),
         ],
       ),
       child: CircleAvatar(
-        radius: 20,
+        radius: 22,
         backgroundColor: Colors.white,
         backgroundImage: AssetImage(imagePath),
       ),
-    );
+    ).animate(onPlay: (controller) => controller.repeat())
+      .moveY(
+        begin: -3,
+        end: 3,
+        duration: (1500 + (index * 200)).ms,
+        curve: Curves.easeInOut,
+      )
+      .then()
+      .moveY(
+        begin: 3,
+        end: -3,
+        duration: (1500 + (index * 200)).ms,
+        curve: Curves.easeInOut,
+      )
+      .animate(delay: (100 * index).ms)
+      .fadeIn(duration: 500.ms)
+      .scale(begin: Offset(0.5, 0.5), end: Offset(1, 1), duration: 500.ms, curve: Curves.easeOutBack);
   }
 
   void _showLanguageDialog(BuildContext context) {
