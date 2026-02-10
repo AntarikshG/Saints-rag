@@ -6,6 +6,8 @@ import 'package:talk_with_saints/articlesquotes_de.dart';
 import 'package:talk_with_saints/articlesquotes_kn.dart';
 import 'package:talk_with_saints/articlesquotes_bn.dart';
 import 'package:talk_with_saints/articlesquotes_sa.dart';
+import 'package:talk_with_saints/articlesquotes_ta.dart';
+import 'package:talk_with_saints/articlesquotes_te.dart';
 import 'package:talk_with_saints/l10n/app_localizations.dart';
 import 'package:talk_with_saints/main.dart';
 
@@ -37,6 +39,10 @@ class _AllSaintsPageState extends State<AllSaintsPage> {
         return saintsBn;
       case 'sa':
         return saintsSa;
+      case 'ta':
+        return saintsTa;
+      case 'te':
+        return saintsTe;
       default:
         return saintsEn;
     }

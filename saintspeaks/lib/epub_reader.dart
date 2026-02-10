@@ -100,7 +100,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
-  // Filtered TTS languages - English, Hindi, Kannada, Sanskrit, and German variants
+  // Filtered TTS languages - English, Hindi, Kannada, Sanskrit, Tamil, Telugu, and German variants
   final Map<String, String> _supportedTtsLanguages = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
@@ -108,6 +108,8 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     'hi-IN': 'Hindi (India)',
     'kn-IN': 'Kannada (India)',
     'sa-IN': 'Sanskrit (India)',
+    'ta-IN': 'Tamil (India)',
+    'te-IN': 'Telugu (India)',
     'de-DE': 'German (Germany)',
     'de-AT': 'German (Austria)',
     'de-CH': 'German (Switzerland)',
@@ -2478,6 +2480,10 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                                     testText = 'ಇದು ಒಂದು ಪರೀಕ್ಷೆಯಾಗಿದೆ.';
                                   } else if (_selectedLanguage.startsWith('sa')) {
                                     testText = 'इदं परीक्षणम् अस्ति।';
+                                  } else if (_selectedLanguage.startsWith('ta')) {
+                                    testText = 'இது ஒரு சோதனை.';
+                                  } else if (_selectedLanguage.startsWith('te')) {
+                                    testText = 'ఇది ఒక పరీక్ష.';
                                   } else if (_selectedLanguage.startsWith('de')) {
                                     testText = 'Dies ist ein Test der Sprachausgabe.';
                                   } else {

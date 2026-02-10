@@ -380,6 +380,44 @@ class _MeditationPageState extends State<MeditationPage> {
     }
   }
 
+  Future<void> _refreshMeditations() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Clear ONLY the meditation list cache (keeps downloaded files and play counts)
+      await MeditationService.clearCache();
+
+      // Reload data from config
+      final data = await MeditationService.getMeditations();
+
+      setState(() {
+        meditations = data;
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✓ Meditation list refreshed! Downloaded files preserved.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error refreshing: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   List<Meditation> get filteredMeditations {
     if (selectedCategory == null || selectedCategory == 'all') {
       return meditations;
@@ -404,6 +442,13 @@ class _MeditationPageState extends State<MeditationPage> {
             ? Colors.purple.shade900
             : Colors.purple.shade50,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: isLoading ? null : _refreshMeditations,
+            tooltip: 'Refresh meditation list',
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(

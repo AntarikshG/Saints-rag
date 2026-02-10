@@ -13,6 +13,8 @@ import 'articlesquotes_bn.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
 import 'articlesquotes_sa.dart';
+import 'articlesquotes_ta.dart';
+import 'articlesquotes_te.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -96,7 +98,7 @@ class _ArticlePageState extends State<ArticlePage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
-  // Supported TTS languages map for Article - English, Hindi, Kannada, Sanskrit, and German
+  // Supported TTS languages map for Article - English, Hindi, Kannada, Sanskrit, German, Tamil, and Telugu
   final Map<String, String> _supportedTtsLanguages = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
@@ -104,6 +106,8 @@ class _ArticlePageState extends State<ArticlePage> {
     'hi-IN': 'Hindi (India)',
     'kn-IN': 'Kannada (India)',
     'sa-IN': 'Sanskrit (India)',
+    'ta-IN': 'Tamil (India)',
+    'te-IN': 'Telugu (India)',
     'de-DE': 'German (Germany)',
     'de-AT': 'German (Austria)',
     'de-CH': 'German (Switzerland)',
@@ -876,6 +880,10 @@ class _ArticlePageState extends State<ArticlePage> {
                       testText = 'यह एक परीक्षण है।';
                     } else if (_selectedLanguage.startsWith('kn')) {
                       testText = 'ಇದು ಒಂದು ಪರೀಕ್ಷೆಯಾಗಿದೆ.';
+                    } else if (_selectedLanguage.startsWith('ta')) {
+                      testText = 'இது ஒரு சோதனை.';
+                    } else if (_selectedLanguage.startsWith('te')) {
+                      testText = 'ఇది ఒక పరీక్ష.';
                     } else if (_selectedLanguage.startsWith('de')) {
                       testText = 'Dies ist ein Test der Sprachausgabe.';
                     } else {
@@ -1251,7 +1259,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       locale: _locale,
-      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn'), Locale('sa')],
+      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn'), Locale('sa'), Locale('ta'), Locale('te')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
         FallbackMaterialLocalizationsDelegate(),
@@ -1309,6 +1317,10 @@ class _HomePageState extends State<HomePage> {
         return saintsBn;
       case 'sa':
         return saintsSa;
+      case 'ta':
+        return saintsTa;
+      case 'te':
+        return saintsTe;
       default:
         return saintsEn;
     }
@@ -2597,6 +2609,8 @@ class _HomePageState extends State<HomePage> {
             _buildLanguageOption(loc.german, Locale('de'), context),
             _buildLanguageOption(loc.kannada, Locale('kn'), context),
             _buildLanguageOption(loc.bengali, Locale('bn'), context),
+            _buildLanguageOption(loc.tamil, Locale('ta'), context),
+            _buildLanguageOption(loc.telugu, Locale('te'), context),
             _buildLanguageOption(loc.sanskrit, Locale('sa'), context),
           ],
         ),
@@ -2835,6 +2849,9 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
         break;
       case 'sa':
         saintsList = saintsSa;
+        break;
+      case 'ta':
+        saintsList = saintsTa;
         break;
       default:
         saintsList = saintsEn;
@@ -3789,6 +3806,9 @@ class _QuotesTabState extends State<QuotesTab> {
         break;
       case 'sa':
         saintsList = saintsSa;
+        break;
+      case 'ta':
+        saintsList = saintsTa;
         break;
       default:
         saintsList = saintsEn;

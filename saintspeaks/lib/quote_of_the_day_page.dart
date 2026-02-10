@@ -12,6 +12,8 @@ import 'articlesquotes_bn.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
 import 'articlesquotes_sa.dart';
+import 'articlesquotes_ta.dart';
+import 'articlesquotes_te.dart';
 import 'notification_service.dart';
 import 'l10n/app_localizations.dart';
 
@@ -98,6 +100,12 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
           break;
         case 'sa':
           saintsList = saintsSa;
+          break;
+        case 'ta':
+          saintsList = saintsTa;
+          break;
+        case 'te':
+          saintsList = saintsTe;
           break;
         default:
           saintsList = saintsEn;
