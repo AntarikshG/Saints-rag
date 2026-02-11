@@ -138,7 +138,13 @@ class AppLocalizationsKn extends AppLocalizations {
   String get tamil => 'ತಮಿಳು';
 
   @override
-  String get telugu => 'Telugu';
+  String get telugu => 'ತೆಲುಗು';
+
+  @override
+  String get malayalam => 'ಮಲಯಾಳಂ';
+
+  @override
+  String get marathi => 'ಮರಾಠಿ';
 
   @override
   String get supportTextHi => 'ಸ್ವಾಧ್ಯಾಯದ ಮಾರ್ಗದಲ್ಲಿ ಜಾಹೀರಾತು ಬರಬಾರದು, ಆದ್ದರಿಂದ ಇಲ್ಲಿ ಯಾವುದೇ ಜಾಹೀರಾತು ಇಲ್ಲ। ನಮ್ಮ ಸರ್ವರ್ 24x7 ಚಾಲನೆಯಾಗಬೇಕು ಮತ್ತು ಹೆಚ್ಚು ಜನರನ್ನು ತಲುಪಬೇಕೆಂದು ನೀವು ಬಯಸಿದರೆ, ದಯವಿಟ್ಟು ಈ ಉಪಕ್ರಮವನ್ನು ಬೆಂಬಲಿಸಿ: buymeacoffee.com/Antarikshverse';

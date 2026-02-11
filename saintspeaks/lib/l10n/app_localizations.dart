@@ -10,6 +10,8 @@ import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
 import 'app_localizations_hi.dart';
 import 'app_localizations_kn.dart';
+import 'app_localizations_ml.dart';
+import 'app_localizations_mr.dart';
 import 'app_localizations_sa.dart';
 import 'app_localizations_ta.dart';
 import 'app_localizations_te.dart';
@@ -102,6 +104,8 @@ abstract class AppLocalizations {
     Locale('en'),
     Locale('hi'),
     Locale('kn'),
+    Locale('ml'),
+    Locale('mr'),
     Locale('sa'),
     Locale('ta'),
     Locale('te')
@@ -370,6 +374,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Telugu'**
   String get telugu;
+
+  /// No description provided for @malayalam.
+  ///
+  /// In en, this message translates to:
+  /// **'Malayalam'**
+  String get malayalam;
+
+  /// No description provided for @marathi.
+  ///
+  /// In en, this message translates to:
+  /// **'Marathi'**
+  String get marathi;
 
   /// No description provided for @supportTextHi.
   ///
@@ -717,7 +733,7 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
   }
 
   @override
-  bool isSupported(Locale locale) => <String>['bn', 'de', 'en', 'hi', 'kn', 'sa', 'ta', 'te'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['bn', 'de', 'en', 'hi', 'kn', 'ml', 'mr', 'sa', 'ta', 'te'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -733,6 +749,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
     case 'en': return AppLocalizationsEn();
     case 'hi': return AppLocalizationsHi();
     case 'kn': return AppLocalizationsKn();
+    case 'ml': return AppLocalizationsMl();
+    case 'mr': return AppLocalizationsMr();
     case 'sa': return AppLocalizationsSa();
     case 'ta': return AppLocalizationsTa();
     case 'te': return AppLocalizationsTe();

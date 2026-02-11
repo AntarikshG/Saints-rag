@@ -15,6 +15,8 @@ import 'articlesquotes_kn.dart';
 import 'articlesquotes_sa.dart';
 import 'articlesquotes_ta.dart';
 import 'articlesquotes_te.dart';
+import 'articlesquotes_ml.dart';
+import 'articlesquotes_mr.dart';
 import 'ekadashi_service.dart';
 import 'quote_of_the_day_page.dart';
 import 'l10n/app_localizations.dart';
@@ -716,6 +718,18 @@ class NotificationService {
         }
       } else if (locale.languageCode == 'te') {
         for (final s in saintsTe) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else if (locale.languageCode == 'ml') {
+        for (final s in saintsMl) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else if (locale.languageCode == 'mr') {
+        for (final s in saintsMr) {
           for (final q in s.quotes) {
             allQuotes.add({'quote': q, 'saint': s.name});
           }

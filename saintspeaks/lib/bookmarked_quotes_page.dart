@@ -8,6 +8,8 @@ import 'articlesquotes_kn.dart';
 import 'articlesquotes_sa.dart';
 import 'articlesquotes_ta.dart';
 import 'articlesquotes_te.dart';
+import 'articlesquotes_ml.dart';
+import 'articlesquotes_mr.dart';
 import 'notification_service.dart';
 
 class BookmarkedQuotesPage extends StatefulWidget {
@@ -56,6 +58,12 @@ class _BookmarkedQuotesPageState extends State<BookmarkedQuotesPage> {
         break;
       case 'te':
         saintsList = saintsTe;
+        break;
+      case 'ml':
+        saintsList = saintsMl;
+        break;
+      case 'mr':
+        saintsList = saintsMr;
         break;
       default:
         saintsList = saintsEn;

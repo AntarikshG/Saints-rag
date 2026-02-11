@@ -15,6 +15,8 @@ import 'articlesquotes_kn.dart';
 import 'articlesquotes_sa.dart';
 import 'articlesquotes_ta.dart';
 import 'articlesquotes_te.dart';
+import 'articlesquotes_ml.dart';
+import 'articlesquotes_mr.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -98,7 +100,7 @@ class _ArticlePageState extends State<ArticlePage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
-  // Supported TTS languages map for Article - English, Hindi, Kannada, Sanskrit, German, Tamil, and Telugu
+  // Supported TTS languages map for Article - English, Hindi, Kannada, Sanskrit, German, Tamil, Telugu, Malayalam, and Marathi
   final Map<String, String> _supportedTtsLanguages = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
@@ -108,6 +110,8 @@ class _ArticlePageState extends State<ArticlePage> {
     'sa-IN': 'Sanskrit (India)',
     'ta-IN': 'Tamil (India)',
     'te-IN': 'Telugu (India)',
+    'ml-IN': 'Malayalam (India)',
+    'mr-IN': 'Marathi (India)',
     'de-DE': 'German (Germany)',
     'de-AT': 'German (Austria)',
     'de-CH': 'German (Switzerland)',
@@ -1259,7 +1263,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       locale: _locale,
-      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn'), Locale('sa'), Locale('ta'), Locale('te')],
+      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn'), Locale('sa'), Locale('ta'), Locale('te'), Locale('ml'), Locale('mr')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
         FallbackMaterialLocalizationsDelegate(),
@@ -1321,6 +1325,10 @@ class _HomePageState extends State<HomePage> {
         return saintsTa;
       case 'te':
         return saintsTe;
+      case 'ml':
+        return saintsMl;
+      case 'mr':
+        return saintsMr;
       default:
         return saintsEn;
     }
@@ -2611,6 +2619,8 @@ class _HomePageState extends State<HomePage> {
             _buildLanguageOption(loc.bengali, Locale('bn'), context),
             _buildLanguageOption(loc.tamil, Locale('ta'), context),
             _buildLanguageOption(loc.telugu, Locale('te'), context),
+            _buildLanguageOption(loc.malayalam, Locale('ml'), context),
+            _buildLanguageOption(loc.marathi, Locale('mr'), context),
             _buildLanguageOption(loc.sanskrit, Locale('sa'), context),
           ],
         ),
@@ -2852,6 +2862,15 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
         break;
       case 'ta':
         saintsList = saintsTa;
+        break;
+      case 'te':
+        saintsList = saintsTe;
+        break;
+      case 'ml':
+        saintsList = saintsMl;
+        break;
+      case 'mr':
+        saintsList = saintsMr;
         break;
       default:
         saintsList = saintsEn;
@@ -3809,6 +3828,15 @@ class _QuotesTabState extends State<QuotesTab> {
         break;
       case 'ta':
         saintsList = saintsTa;
+        break;
+      case 'te':
+        saintsList = saintsTe;
+        break;
+      case 'ml':
+        saintsList = saintsMl;
+        break;
+      case 'mr':
+        saintsList = saintsMr;
         break;
       default:
         saintsList = saintsEn;

@@ -100,7 +100,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
-  // Filtered TTS languages - English, Hindi, Kannada, Sanskrit, Tamil, Telugu, and German variants
+  // Filtered TTS languages - English, Hindi, Kannada, Sanskrit, Tamil, Telugu, Malayalam, Marathi, and German variants
   final Map<String, String> _supportedTtsLanguages = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
@@ -110,6 +110,8 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     'sa-IN': 'Sanskrit (India)',
     'ta-IN': 'Tamil (India)',
     'te-IN': 'Telugu (India)',
+    'ml-IN': 'Malayalam (India)',
+    'mr-IN': 'Marathi (India)',
     'de-DE': 'German (Germany)',
     'de-AT': 'German (Austria)',
     'de-CH': 'German (Switzerland)',

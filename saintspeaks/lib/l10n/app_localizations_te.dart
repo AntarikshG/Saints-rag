@@ -141,6 +141,12 @@ class AppLocalizationsTe extends AppLocalizations {
   String get telugu => 'తెలుగు';
 
   @override
+  String get malayalam => 'మలయాళం';
+
+  @override
+  String get marathi => 'మరాఠీ';
+
+  @override
   String get supportTextHi => 'స్వాధ్యాయ మార్గంలో వ్యాపార ప్రకటనలు రాకూడదు, అందుకే ఇక్కడ వ్యాపార ప్రకటనలు లేవు. మా సర్వర్ 24x7 నడవాలని మరియు ఎక్కువ మందికి చేరాలని మీరు కోరుకుంటే, దయచేసి ఈ ప్రయత్నానికి మద్దతు ఇవ్వండి: buymeacoffee.com/Antarikshverse';
 
   @override

@@ -138,7 +138,13 @@ class AppLocalizationsSa extends AppLocalizations {
   String get tamil => 'तमिलभाषा';
 
   @override
-  String get telugu => 'Telugu';
+  String get telugu => 'तेलुगुभाषा';
+
+  @override
+  String get malayalam => 'मलयालमभाषा';
+
+  @override
+  String get marathi => 'मराठीभाषा';
 
   @override
   String get supportTextHi => 'स्वाध्यायस्य मार्गे विज्ञापनं न आगन्तव्यम्, अतः अत्र किमपि विज्ञापनं नास्ति। यदि भवन्तः इच्छन्ति यत् अस्माकं सर्वर् 24x7 चलतु अधिकेभ्यः जनेभ्यः प्राप्नोतु च, तर्हि कृपया एतत् पहलं समर्थयन्तु: buymeacoffee.com/Antarikshverse';
