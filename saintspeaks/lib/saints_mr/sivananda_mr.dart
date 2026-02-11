@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final sivanandaSaintMr = Saint(
   'sivananda',
-  'Swami Sivananda',
+  'स्वामी शिवानंद',
   'assets/images/sivananda.jpg',
   [
     'एक औंस प्रथा एक टन सिद्धांताच्या मूल्याची आहे!',

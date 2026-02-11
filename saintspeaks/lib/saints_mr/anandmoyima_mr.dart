@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final anandmoyimaSaintMr = Saint(
   'anandmoyima',
-  'Anandamayi Ma',
+  'आनंदमयी मा',
   'assets/images/anandmoyima.jpg',
   [
     'हा देह तुमच्या जगात मानवी हृदयांमध्ये दिव्य प्रेम जागृत करण्यासाठी आला आहे.',

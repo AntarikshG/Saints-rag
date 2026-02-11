@@ -18,7 +18,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contact => 'Contact';
 
   @override
-  String get contactUs => 'Antarikshverse is dedicated to spreading spiritual awareness and fostering meaningful interaction with inspiring saints and their timeless literature. Through this app, we aim to help the younger generation connect with the wisdom of saints, find clarity in their doubts, and develop a deeper understanding of spiritual teachings. Our goal is to encourage more time spent in swadhyaya (self-study) and the study of sacred texts. \n\n For feedback or suggestions, please reach out to us at antarikshverse@gmail.com.';
+  String get contactUs =>
+      'Antarikshverse is dedicated to spreading spiritual awareness and fostering meaningful interaction with inspiring saints and their timeless literature. Through this app, we aim to help the younger generation connect with the wisdom of saints, find clarity in their doubts, and develop a deeper understanding of spiritual teachings. Our goal is to encourage more time spent in swadhyaya (self-study) and the study of sacred texts. \n\n For feedback or suggestions, please reach out to us at antarikshverse@gmail.com.';
 
   @override
   String get selectTheme => 'Select Theme';
@@ -75,7 +76,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutApp => 'How to use the App';
 
   @override
-  String get aboutAppInstructions => 'Welcome to the Motivational Saints app!\n\nHow to use the app:\n• Browse the list of saints on the home screen. Tap a saint to view their quotes, articles, and ask questions.\n• Use the \'Ask\' tab to ask questions to the selected saint and get motivational answers.\n• View your previous questions and answers in the \'History\' tab.\n• Use the \'Spiritual diary\' from the menu to write and save your personal notes.\n• Change the app language or theme from the menu.\n• Contact the developer from the menu if you have feedback or suggestions.\n\nEnjoy your journey towards inspiration and self-improvement!';
+  String get aboutAppInstructions =>
+      'Welcome to the Motivational Saints app!\n\nHow to use the app:\n• Browse the list of saints on the home screen. Tap a saint to view their quotes, articles, and ask questions.\n• Use the \'Ask\' tab to ask questions to the selected saint and get motivational answers.\n• View your previous questions and answers in the \'History\' tab.\n• Use the \'Spiritual diary\' from the menu to write and save your personal notes.\n• Change the app language or theme from the menu.\n• Contact the developer from the menu if you have feedback or suggestions.\n\nEnjoy your journey towards inspiration and self-improvement!';
 
   @override
   String get watchOurVideo => 'Watch our video:';
@@ -87,7 +89,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saintsOfBharat => 'Saints of Bharat';
 
   @override
-  String get askDisclaimer => 'Get spiritual guidance from the wisdom of saints. Ask questions about life, spirituality, and finding inner peace.';
+  String get askDisclaimer =>
+      'Get spiritual guidance from the wisdom of saints. Ask questions about life, spirituality, and finding inner peace.';
 
   @override
   String get nextEkadashi => 'Next Ekadashi';
@@ -132,6 +135,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bengali => 'Bengali';
 
   @override
+  String get odia => 'Odia';
+
+  @override
   String get sanskrit => 'Sanskrit';
 
   @override
@@ -147,10 +153,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get marathi => 'Marathi';
 
   @override
-  String get supportTextHi => 'स्वाध्याय के मार्ग में विज्ञापन नहीं आना चाहिए, इसलिए यहाँ कोई विज्ञापन नहीं है। यदि आप चाहते हैं कि हमारा सर्वर 24x7 चले और अधिक लोगों तक पहुँचे, तो कृपया इस पहल का समर्थन करें: buymeacoffee.com/Antarikshverse';
+  String get supportTextHi =>
+      'स्वाध्याय के मार्ग में विज्ञापन नहीं आना चाहिए, इसलिए यहाँ कोई विज्ञापन नहीं है। यदि आप चाहते हैं कि हमारा सर्वर 24x7 चले और अधिक लोगों तक पहुँचे, तो कृपया इस पहल का समर्थन करें: buymeacoffee.com/Antarikshverse';
 
   @override
-  String get supportTextEn => 'Advertisement shouldn\'t come in way of Swadhaya and therefore there are no advertisement here. If you like our server to run 24x7 and reach more people, consider supporting this initiative: buymeacoffee.com/Antarikshverse';
+  String get supportTextEn =>
+      'Advertisement shouldn\'t come in way of Swadhaya and therefore there are no advertisement here. If you like our server to run 24x7 and reach more people, consider supporting this initiative: buymeacoffee.com/Antarikshverse';
 
   @override
   String get talkToSpiritualAIFriend => 'Talk to spiritual AI friend';
@@ -159,7 +167,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteQuestion => 'Delete Question?';
 
   @override
-  String get deleteQuestionConfirm => 'Are you sure you want to delete this question and answer? This action cannot be undone.';
+  String get deleteQuestionConfirm =>
+      'Are you sure you want to delete this question and answer? This action cannot be undone.';
 
   @override
   String get cancel => 'Cancel';
@@ -174,16 +183,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get askAIFeatureDisabled => 'Ask AI Feature Disabled';
 
   @override
-  String get askAINotAvailableForAnandmoyima => 'The Ask AI feature is not available for Anandamayi Ma.';
+  String get askAINotAvailableForAnandmoyima =>
+      'The Ask AI feature is not available for Anandamayi Ma.';
 
   @override
-  String get askAINotAvailableForBabaNeebKarori => 'The Ask AI feature is not available for Baba Neeb Karori.';
+  String get askAINotAvailableForBabaNeebKarori =>
+      'The Ask AI feature is not available for Baba Neeb Karori.';
 
   @override
   String get comingSoon => 'Coming soon';
 
   @override
-  String get exploreOtherTabs => 'Please explore their quotes and teachings in the other tabs.';
+  String get exploreOtherTabs =>
+      'Please explore their quotes and teachings in the other tabs.';
 
   @override
   String get askYourSpiritualQuestion => 'Ask Your Spiritual Question';
@@ -192,7 +204,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typeYourQuestionBelow => 'Type your question below:';
 
   @override
-  String get questionPlaceholder => 'e.g., How can I find inner peace? What is the meaning of life?';
+  String get questionPlaceholder =>
+      'e.g., How can I find inner peace? What is the meaning of life?';
 
   @override
   String get gettingWisdomFromSaints => 'Getting wisdom from saints...';
@@ -222,10 +235,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get flagSubmittedThankYou => 'Flag submitted. Thank you!';
 
   @override
-  String get configurationLoading => 'Configuration is still loading. Please wait and try again.';
+  String get configurationLoading =>
+      'Configuration is still loading. Please wait and try again.';
 
   @override
-  String get serverNotRunning => 'Gradio server is not running. Please try again later.';
+  String get serverNotRunning =>
+      'Gradio server is not running. Please try again later.';
 
   @override
   String get serverTimeout => 'Server timeout. Please try again later.';
@@ -236,19 +251,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get errorServerNotRespond => 'Error: Server did not respond in time. Please try later.';
+  String get errorServerNotRespond =>
+      'Error: Server did not respond in time. Please try later.';
 
   @override
-  String get noResponseFromServer => 'No response from server. Please try again later.';
+  String get noResponseFromServer =>
+      'No response from server. Please try again later.';
 
   @override
-  String get errorServerDown => 'Error: Server seems to be down. Please try later.';
+  String get errorServerDown =>
+      'Error: Server seems to be down. Please try later.';
 
   @override
   String get spreadSpirituality => 'Spread Spirituality';
 
   @override
-  String get rateShareDialogContent => 'If you like the app and want to feel difference and spirituality in lives of others, please:';
+  String get rateShareDialogContent =>
+      'If you like the app and want to feel difference and spirituality in lives of others, please:';
 
   @override
   String get rateUs5Stars => 'Rate us 5 stars ⭐⭐⭐⭐⭐';
@@ -257,7 +276,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareWithFriendsFamily => 'Share with friends & family';
 
   @override
-  String get helpOthersDiscover => '🙏 Help others discover the path to inner peace and spiritual growth';
+  String get helpOthersDiscover =>
+      '🙏 Help others discover the path to inner peace and spiritual growth';
 
   @override
   String get later => 'Later';
@@ -275,13 +295,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thankYouForSupport => 'Thank you for your support! 🙏';
 
   @override
-  String get thankYouForSharing => 'Thank you for sharing the spiritual journey! 🌟';
+  String get thankYouForSharing =>
+      'Thank you for sharing the spiritual journey! 🌟';
 
   @override
-  String get unableToShare => 'Unable to share at the moment. Please try again.';
+  String get unableToShare =>
+      'Unable to share at the moment. Please try again.';
 
   @override
-  String get shareMessageAndroid => '🙏Talk with Saints on Android & Ios:\n\n I liked the app and recommend this for staying positive with wisdom of saints, hence sharing this divine experience! 🕉️\n\nDiscover wisdom from great saints and transform your spiritual journey with Talk with Saints.\n\nDownload now\n Android: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints \n iOS : https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070';
+  String get shareMessageAndroid =>
+      '🙏Talk with Saints on Android & Ios:\n\n I liked the app and recommend this for staying positive with wisdom of saints, hence sharing this divine experience! 🕉️\n\nDiscover wisdom from great saints and transform your spiritual journey with Talk with Saints.\n\nDownload now\n Android: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints \n iOS : https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070';
 
   @override
   String get shareSubject => 'Discover Saints Speak - Spiritual Wisdom App 🙏';
@@ -290,7 +313,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationPermissionTitle => 'Daily Spiritual Wisdom';
 
   @override
-  String get notificationPermissionMessage => 'Receive inspiring quotes from saints twice daily - once in the morning to start your day with wisdom, and once in the evening for reflection.\n\n🌅 Morning wisdom to guide your day\n🌙 Evening reflection for inner peace\n\nThis feature enriches your spiritual journey and is highly recommended!';
+  String get notificationPermissionMessage =>
+      'Receive inspiring quotes from saints twice daily - once in the morning to start your day with wisdom, and once in the evening for reflection.\n\n🌅 Morning wisdom to guide your day\n🌙 Evening reflection for inner peace\n\nThis feature enriches your spiritual journey and is highly recommended!';
 
   @override
   String get enableNotifications => 'Enable Notifications';
@@ -302,16 +326,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wisdomSharingTitle => '📖 Share the Wisdom';
 
   @override
-  String get wisdomSharingVivekanandaQuote => 'The greatest religion is to be true to your own nature. Have faith in yourselves!';
+  String get wisdomSharingVivekanandaQuote =>
+      'The greatest religion is to be true to your own nature. Have faith in yourselves!';
 
   @override
-  String get wisdomSharingMessage => 'You\'ve been exploring profound spiritual wisdom. Would you like to share this transformative experience with others?';
+  String get wisdomSharingMessage =>
+      'You\'ve been exploring profound spiritual wisdom. Would you like to share this transformative experience with others?';
 
   @override
-  String get wisdomSharingGyaanaDana => 'Sharing knowledge is one of the highest forms of service (Gyaana Dana 📚)';
+  String get wisdomSharingGyaanaDana =>
+      'Sharing knowledge is one of the highest forms of service (Gyaana Dana 📚)';
 
   @override
-  String get wisdomSharingCallToAction => 'Help others discover these timeless teachings';
+  String get wisdomSharingCallToAction =>
+      'Help others discover these timeless teachings';
 
   @override
   String get wisdomSharingGotIt => 'Got it!';

@@ -10,6 +10,7 @@ import 'articlesquotes.dart';
 import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
 import 'articlesquotes_bn.dart';
+import 'articlesquotes_or.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
 import 'articlesquotes_sa.dart';
@@ -990,10 +991,11 @@ class FallbackMaterialLocalizationsDelegate extends LocalizationsDelegate<Materi
 
   @override
   Future<MaterialLocalizations> load(Locale locale) async {
-    // For unsupported locales (sa, kn, bn), use English
+    // For unsupported locales (sa, kn, bn, or), use English
     if (locale.languageCode == 'sa' ||
         locale.languageCode == 'kn' ||
-        locale.languageCode == 'bn') {
+        locale.languageCode == 'bn' ||
+        locale.languageCode == 'or') {
       return DefaultMaterialLocalizations();
     }
     // For other locales, delegate to the default
@@ -1013,10 +1015,11 @@ class FallbackCupertinoLocalizationsDelegate extends LocalizationsDelegate<Cuper
 
   @override
   Future<CupertinoLocalizations> load(Locale locale) async {
-    // For unsupported locales (sa, kn, bn), use English
+    // For unsupported locales (sa, kn, bn, or), use English
     if (locale.languageCode == 'sa' ||
         locale.languageCode == 'kn' ||
-        locale.languageCode == 'bn') {
+        locale.languageCode == 'bn' ||
+        locale.languageCode == 'or') {
       return DefaultCupertinoLocalizations();
     }
     // For other locales, delegate to the default
@@ -1263,7 +1266,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       locale: _locale,
-      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn'), Locale('sa'), Locale('ta'), Locale('te'), Locale('ml'), Locale('mr')],
+      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn'), Locale('or'), Locale('sa'), Locale('ta'), Locale('te'), Locale('ml'), Locale('mr')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
         FallbackMaterialLocalizationsDelegate(),
@@ -1319,6 +1322,8 @@ class _HomePageState extends State<HomePage> {
         return saintsKn;
       case 'bn':
         return saintsBn;
+      case 'or':
+        return saintsOr;
       case 'sa':
         return saintsSa;
       case 'ta':
@@ -2617,6 +2622,7 @@ class _HomePageState extends State<HomePage> {
             _buildLanguageOption(loc.german, Locale('de'), context),
             _buildLanguageOption(loc.kannada, Locale('kn'), context),
             _buildLanguageOption(loc.bengali, Locale('bn'), context),
+            _buildLanguageOption(loc.odia, Locale('or'), context),
             _buildLanguageOption(loc.tamil, Locale('ta'), context),
             _buildLanguageOption(loc.telugu, Locale('te'), context),
             _buildLanguageOption(loc.malayalam, Locale('ml'), context),
@@ -2856,6 +2862,9 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
         break;
       case 'bn':
         saintsList = saintsBn;
+        break;
+      case 'od':
+        saintsList = saintsOr;
         break;
       case 'sa':
         saintsList = saintsSa;
@@ -3822,6 +3831,9 @@ class _QuotesTabState extends State<QuotesTab> {
         break;
       case 'bn':
         saintsList = saintsBn;
+        break;
+      case 'od':
+        saintsList = saintsOr;
         break;
       case 'sa':
         saintsList = saintsSa;

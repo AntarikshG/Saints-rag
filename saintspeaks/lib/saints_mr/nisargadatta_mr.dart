@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final nisargadattaSaintMr = Saint(
   'nisargadatta',
-  'Nisargadatta maharaj',
+  'निसर्गदत्त महाराज',
   'assets/images/nisargadatta.jpg',
   [
     'तुम्ही जसे स्वतःला समजता, तसे तुम्ही नाही. तुम्ही काय आहात हे शोधा.',

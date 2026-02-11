@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final tapovanMaharajSaintMr = Saint(
   'tapovan_maharaj',
-  'Tapovan Maharaj',
+  'तपोवन महाराज',
   'assets/images/tapovan_maharaj.jpg',
   [
     'मानव जीवनाचा सर्वोच्च उद्देश आत्म-साक्षात्कार आहे, आणि इतर सर्व गोष्टी दुय्यम आहेत.',

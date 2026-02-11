@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final vivekanandaSaint = Saint(
   'vivekananda',
-  'Swami Vivekananda',
+  'സ്വാമി വിവേകാനന്ദ',
   'assets/images/vivekananda.jpg',
   [
     'ഉയരുക, ജാഗ്രതയോടെ ഇരിക്കുക, ലക്ഷ്യം എത്തുന്നതുവരെ നിർത്തരുത്.',

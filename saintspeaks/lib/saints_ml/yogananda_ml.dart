@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final yoganandaSaint = Saint(
   'yogananda',
-  'Paramhansa Yogananda',
+  'പരമഹംസ യോഗാനന്ദ',
   'assets/images/paramhansa.jpg',
   [
     'നിങ്ങളുടെ ജീവിതം സാധാരണ രീതിയിൽ ഓടാൻ അനുവദിക്കരുത്; മറ്റൊരുത്തനും ചെയ്തിട്ടില്ലാത്ത, ലോകത്തെ അത്ഭുതപ്പെടുത്തുന്ന ഒരു കാര്യം ചെയ്യുക.',

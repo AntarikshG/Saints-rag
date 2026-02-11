@@ -18,7 +18,8 @@ class AppLocalizationsTe extends AppLocalizations {
   String get contact => 'సంప్రదించండి';
 
   @override
-  String get contactUs => 'అంతరిక్ష్ వర్స్ ఆధ్యాత్మిక అవగాహనను వ్యాప్తి చేయడానికి మరియు ప్రేరణాత్మక సంతులు మరియు వారి కాలజేయ సాహిత్యంతో అర్థవంతమైన పరస్పర చర్యను ప్రోత్సహించడానికి అంకితం చేయబడింది. ఈ యాప్ ద్వారా, యువ తరానికి సంతుల జ్ఞానంతో అనుబంధం ఏర్పరచడం, వారి సందేహాలలో స్పష్టతను కనుగొనడం మరియు ఆధ్యాత్మిక బోధనల లోతైన అవగాహనను అభివృద్ధి చేయడం మా లక్ష్యం. స్వాధ్యాయ (స్వీయ అధ్యయనం) మరియు పవిత్ర గ్రంథాల అధ్యయనంలో ఎక్కువ సమయం గడపడాన్ని ప్రోత్సహించడం మా లక్ష్యం. \n\n అభిప్రాయాలు లేదా సూచనల కోసం, దయచేసి మాని antarikshverse@gmail.com వద్ద సంప్రదించండి.';
+  String get contactUs =>
+      'అంతరిక్ష్ వర్స్ ఆధ్యాత్మిక అవగాహనను వ్యాప్తి చేయడానికి మరియు ప్రేరణాత్మక సంతులు మరియు వారి కాలజేయ సాహిత్యంతో అర్థవంతమైన పరస్పర చర్యను ప్రోత్సహించడానికి అంకితం చేయబడింది. ఈ యాప్ ద్వారా, యువ తరానికి సంతుల జ్ఞానంతో అనుబంధం ఏర్పరచడం, వారి సందేహాలలో స్పష్టతను కనుగొనడం మరియు ఆధ్యాత్మిక బోధనల లోతైన అవగాహనను అభివృద్ధి చేయడం మా లక్ష్యం. స్వాధ్యాయ (స్వీయ అధ్యయనం) మరియు పవిత్ర గ్రంథాల అధ్యయనంలో ఎక్కువ సమయం గడపడాన్ని ప్రోత్సహించడం మా లక్ష్యం. \n\n అభిప్రాయాలు లేదా సూచనల కోసం, దయచేసి మాని antarikshverse@gmail.com వద్ద సంప్రదించండి.';
 
   @override
   String get selectTheme => 'థీమ్ ఎంచుకోండి';
@@ -75,7 +76,8 @@ class AppLocalizationsTe extends AppLocalizations {
   String get aboutApp => 'యాప్‌ను ఎలా ఉపయోగించాలి';
 
   @override
-  String get aboutAppInstructions => 'ప్రేరణాత్మక సంతుల యాప్‌కు స్వాగతం!\n\nయాప్‌ను ఎలా ఉపయోగించాలి:\n• హోమ్ స్క్రీన్‌లో సంతుల జాబితాను బ్రౌజ్ చేయండి. సంతుల కోట్స్, వ్యాసాలు చూడటానికి మరియు ప్రశ్నలు అడగడానికి సంతుపై ట్యాప్ చేయండి.\n• ఎంచుకున్న సంతుకు ప్రశ్నలు అడగడానికి మరియు ప్రేరణాత్మక సమాధానాలు పొందడానికి \'అడగండి\' ట్యాబ్ ఉపయోగించండి.\n• \'చరిత్ర\' ట్యాబ్‌లో మీ మునుపటి ప్రశ్నలు మరియు సమాధానాలను చూడండి.\n• మీ వ్యక్తిగత గమనికలను వ్రాయడానికి మరియు సేవ్ చేయడానికి మెను నుండి \'ఆధ్యాత్మిక డైరీ\' ఉపయోగించండి.\n• మెను నుండి యాప్ భాష లేదా థీమ్‌ను మార్చండి.\n• అభిప్రాయాలు లేదా సూచనలు ఉంటే మెను నుండి డెవలపర్‌ను సంప్రదించండి.\n\nప్రేరణ మరియు స్వీయ-అభివృద్ధి దిశగా మీ ప్రయాణాన్ని ఆనందించండి!';
+  String get aboutAppInstructions =>
+      'ప్రేరణాత్మక సంతుల యాప్‌కు స్వాగతం!\n\nయాప్‌ను ఎలా ఉపయోగించాలి:\n• హోమ్ స్క్రీన్‌లో సంతుల జాబితాను బ్రౌజ్ చేయండి. సంతుల కోట్స్, వ్యాసాలు చూడటానికి మరియు ప్రశ్నలు అడగడానికి సంతుపై ట్యాప్ చేయండి.\n• ఎంచుకున్న సంతుకు ప్రశ్నలు అడగడానికి మరియు ప్రేరణాత్మక సమాధానాలు పొందడానికి \'అడగండి\' ట్యాబ్ ఉపయోగించండి.\n• \'చరిత్ర\' ట్యాబ్‌లో మీ మునుపటి ప్రశ్నలు మరియు సమాధానాలను చూడండి.\n• మీ వ్యక్తిగత గమనికలను వ్రాయడానికి మరియు సేవ్ చేయడానికి మెను నుండి \'ఆధ్యాత్మిక డైరీ\' ఉపయోగించండి.\n• మెను నుండి యాప్ భాష లేదా థీమ్‌ను మార్చండి.\n• అభిప్రాయాలు లేదా సూచనలు ఉంటే మెను నుండి డెవలపర్‌ను సంప్రదించండి.\n\nప్రేరణ మరియు స్వీయ-అభివృద్ధి దిశగా మీ ప్రయాణాన్ని ఆనందించండి!';
 
   @override
   String get watchOurVideo => 'మా వీడియో చూడండి:';
@@ -87,7 +89,8 @@ class AppLocalizationsTe extends AppLocalizations {
   String get saintsOfBharat => 'భారత దేశపు సంతులు';
 
   @override
-  String get askDisclaimer => 'సంతుల జ్ఞానం నుండి ఆధ్యాత్మిక మార్గదర్శనం పొందండి. జీవితం, ఆధ్యాత్మికత మరియు అంతర్గత శాంతిని కనుగొనడం గురించి ప్రశ్నలు అడగండి.';
+  String get askDisclaimer =>
+      'సంతుల జ్ఞానం నుండి ఆధ్యాత్మిక మార్గదర్శనం పొందండి. జీవితం, ఆధ్యాత్మికత మరియు అంతర్గత శాంతిని కనుగొనడం గురించి ప్రశ్నలు అడగండి.';
 
   @override
   String get nextEkadashi => 'తదుపరి ఏకాదశి';
@@ -132,6 +135,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get bengali => 'బెంగాలీ';
 
   @override
+  String get odia => 'ఒడియా';
+
+  @override
   String get sanskrit => 'సంస్కృతం';
 
   @override
@@ -147,10 +153,12 @@ class AppLocalizationsTe extends AppLocalizations {
   String get marathi => 'మరాఠీ';
 
   @override
-  String get supportTextHi => 'స్వాధ్యాయ మార్గంలో వ్యాపార ప్రకటనలు రాకూడదు, అందుకే ఇక్కడ వ్యాపార ప్రకటనలు లేవు. మా సర్వర్ 24x7 నడవాలని మరియు ఎక్కువ మందికి చేరాలని మీరు కోరుకుంటే, దయచేసి ఈ ప్రయత్నానికి మద్దతు ఇవ్వండి: buymeacoffee.com/Antarikshverse';
+  String get supportTextHi =>
+      'స్వాధ్యాయ మార్గంలో వ్యాపార ప్రకటనలు రాకూడదు, అందుకే ఇక్కడ వ్యాపార ప్రకటనలు లేవు. మా సర్వర్ 24x7 నడవాలని మరియు ఎక్కువ మందికి చేరాలని మీరు కోరుకుంటే, దయచేసి ఈ ప్రయత్నానికి మద్దతు ఇవ్వండి: buymeacoffee.com/Antarikshverse';
 
   @override
-  String get supportTextEn => 'స్వాధ్యాయ మార్గంలో వ్యాపార ప్రకటనలు రాకూడదు మరియు అందుకే ఇక్కడ వ్యాపార ప్రకటనలు లేవు. మా సర్వర్ 24x7 నడవాలని మరియు ఎక్కువ మందికి చేరాలని మీరు కోరుకుంటే, ఈ ప్రయత్నానికి మద్దతు ఇవ్వడాన్ని పరిగణించండి: buymeacoffee.com/Antarikshverse';
+  String get supportTextEn =>
+      'స్వాధ్యాయ మార్గంలో వ్యాపార ప్రకటనలు రాకూడదు మరియు అందుకే ఇక్కడ వ్యాపార ప్రకటనలు లేవు. మా సర్వర్ 24x7 నడవాలని మరియు ఎక్కువ మందికి చేరాలని మీరు కోరుకుంటే, ఈ ప్రయత్నానికి మద్దతు ఇవ్వడాన్ని పరిగణించండి: buymeacoffee.com/Antarikshverse';
 
   @override
   String get talkToSpiritualAIFriend => 'ఆధ్యాత్మిక AI మిత్రునితో మాట్లాడండి';
@@ -159,7 +167,8 @@ class AppLocalizationsTe extends AppLocalizations {
   String get deleteQuestion => 'ప్రశ్నను తొలగించాలా?';
 
   @override
-  String get deleteQuestionConfirm => 'మీరు ఖచ్చితంగా ఈ ప్రశ్న మరియు సమాధానాన్ని తొలగించాలనుకుంటున్నారా? ఈ చర్యను రద్దు చేయలేరు.';
+  String get deleteQuestionConfirm =>
+      'మీరు ఖచ్చితంగా ఈ ప్రశ్న మరియు సమాధానాన్ని తొలగించాలనుకుంటున్నారా? ఈ చర్యను రద్దు చేయలేరు.';
 
   @override
   String get cancel => 'రద్దు చేయండి';
@@ -174,16 +183,19 @@ class AppLocalizationsTe extends AppLocalizations {
   String get askAIFeatureDisabled => 'AI ప్రశ్న ఫీచర్ నిలిపివేయబడింది';
 
   @override
-  String get askAINotAvailableForAnandmoyima => 'ఆనందమయ్యి మా కోసం AI ప్రశ్న ఫీచర్ అందుబాటులో లేదు.';
+  String get askAINotAvailableForAnandmoyima =>
+      'ఆనందమయ్యి మా కోసం AI ప్రశ్న ఫీచర్ అందుబాటులో లేదు.';
 
   @override
-  String get askAINotAvailableForBabaNeebKarori => 'బాబా నీబ్ కరోరీ కోసం AI ప్రశ్న ఫీచర్ అందుబాటులో లేదు.';
+  String get askAINotAvailableForBabaNeebKarori =>
+      'బాబా నీబ్ కరోరీ కోసం AI ప్రశ్న ఫీచర్ అందుబాటులో లేదు.';
 
   @override
   String get comingSoon => 'త్వరలో వస్తుంది';
 
   @override
-  String get exploreOtherTabs => 'దయచేసి ఇతర ట్యాబ్‌లలో వారి కోట్స్ మరియు బోధనలను అన్వేషించండి.';
+  String get exploreOtherTabs =>
+      'దయచేసి ఇతర ట్యాబ్‌లలో వారి కోట్స్ మరియు బోధనలను అన్వేషించండి.';
 
   @override
   String get askYourSpiritualQuestion => 'మీ ఆధ్యాత్మిక ప్రశ్నను అడగండి';
@@ -192,7 +204,8 @@ class AppLocalizationsTe extends AppLocalizations {
   String get typeYourQuestionBelow => 'దిగువన మీ ప్రశ్నను టైప్ చేయండి:';
 
   @override
-  String get questionPlaceholder => 'ఉదా., నేను అంతర్గత శాంతిని ఎలా కనుగొనగలను? జీవిత అర్థం ఏమిటి?';
+  String get questionPlaceholder =>
+      'ఉదా., నేను అంతర్గత శాంతిని ఎలా కనుగొనగలను? జీవిత అర్థం ఏమిటి?';
 
   @override
   String get gettingWisdomFromSaints => 'సంతుల నుండి జ్ఞానం పొందుతున్నాము...';
@@ -222,13 +235,16 @@ class AppLocalizationsTe extends AppLocalizations {
   String get flagSubmittedThankYou => 'ఫ్లాగ్ సమర్పించబడింది. ధన్యవాదాలు!';
 
   @override
-  String get configurationLoading => 'కాన్ఫిగరేషన్ ఇంకా లోడ్ అవుతుంది. దయచేసి వేచి ఉండి మళ్లీ ప్రయత్నించండి.';
+  String get configurationLoading =>
+      'కాన్ఫిగరేషన్ ఇంకా లోడ్ అవుతుంది. దయచేసి వేచి ఉండి మళ్లీ ప్రయత్నించండి.';
 
   @override
-  String get serverNotRunning => 'గ్రేడియో సర్వర్ నడుచుట్లేదు. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి.';
+  String get serverNotRunning =>
+      'గ్రేడియో సర్వర్ నడుచుట్లేదు. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి.';
 
   @override
-  String get serverTimeout => 'సర్వర్ టైమ్ అవుట్. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి.';
+  String get serverTimeout =>
+      'సర్వర్ టైమ్ అవుట్. దయచేసి తర్వాత మళ్లీ ప్రయత్నించండి.';
 
   @override
   String serverDownTryLater(Object status) {
@@ -236,19 +252,23 @@ class AppLocalizationsTe extends AppLocalizations {
   }
 
   @override
-  String get errorServerNotRespond => 'లోపం: సర్వర్ సమయానికి స్పందించలేదు. దయచేసి తర్వాత ప్రయత్నించండి.';
+  String get errorServerNotRespond =>
+      'లోపం: సర్వర్ సమయానికి స్పందించలేదు. దయచేసి తర్వాత ప్రయత్నించండి.';
 
   @override
-  String get noResponseFromServer => 'సర్వర్ నుండి ప్రతిస్పందన లేదు. దయచేసి మళ్లీ ప్రయత్నించండి.';
+  String get noResponseFromServer =>
+      'సర్వర్ నుండి ప్రతిస్పందన లేదు. దయచేసి మళ్లీ ప్రయత్నించండి.';
 
   @override
-  String get errorServerDown => 'లోపం: సర్వర్ డౌన్‌లో ఉన్నట్లు అనిపిస్తుంది. దయచేసి తర్వాత ప్రయత్నించండి.';
+  String get errorServerDown =>
+      'లోపం: సర్వర్ డౌన్‌లో ఉన్నట్లు అనిపిస్తుంది. దయచేసి తర్వాత ప్రయత్నించండి.';
 
   @override
   String get spreadSpirituality => 'ఆధ్యాత్మికతను వ్యాప్తి చేయండి';
 
   @override
-  String get rateShareDialogContent => 'మీకు యాప్ నచ్చితే మరియు ఇతరుల జీవితాల్లో తేడా మరియు ఆధ్యాత్మికతను అనుభవించాలని అనుకుంటే, దయచేసి:';
+  String get rateShareDialogContent =>
+      'మీకు యాప్ నచ్చితే మరియు ఇతరుల జీవితాల్లో తేడా మరియు ఆధ్యాత్మికతను అనుభవించాలని అనుకుంటే, దయచేసి:';
 
   @override
   String get rateUs5Stars => 'మాకు 5 స్టార్లు రేట్ చేయండి ⭐⭐⭐⭐⭐';
@@ -257,7 +277,8 @@ class AppLocalizationsTe extends AppLocalizations {
   String get shareWithFriendsFamily => 'మిత్రులు మరియు కుటుంబంతో పంచుకోండి';
 
   @override
-  String get helpOthersDiscover => '🙏 అంతర్గత శాంతి మరియు ఆధ్యాత్మిక అభివృద్ధి మార్గాన్ని కనుగొనడంలో ఇతరులకు సహాయం చేయండి';
+  String get helpOthersDiscover =>
+      '🙏 అంతర్గత శాంతి మరియు ఆధ్యాత్మిక అభివృద్ధి మార్గాన్ని కనుగొనడంలో ఇతరులకు సహాయం చేయండి';
 
   @override
   String get later => 'తర్వాత';
@@ -275,22 +296,27 @@ class AppLocalizationsTe extends AppLocalizations {
   String get thankYouForSupport => 'మీ మద్దతుకు ధన్యవాదాలు! 🙏';
 
   @override
-  String get thankYouForSharing => 'ఆధ్యాత్మిక ప్రయాణాన్ని పంచుకున్నందుకు ధన్యవాదాలు! 🌟';
+  String get thankYouForSharing =>
+      'ఆధ్యాత్మిక ప్రయాణాన్ని పంచుకున్నందుకు ధన్యవాదాలు! 🌟';
 
   @override
-  String get unableToShare => 'ప్రస్తుతం పంచుకోలేకపోతున్నాము. దయచేసి మళ్లీ ప్రయత్నించండి.';
+  String get unableToShare =>
+      'ప్రస్తుతం పంచుకోలేకపోతున్నాము. దయచేసి మళ్లీ ప్రయత్నించండి.';
 
   @override
-  String get shareMessageAndroid => '🙏Android & iOS లో సంతులతో మాట్లాడండి:\n\n నాకు యాప్ నచ్చింది మరియు సంతుల జ్ఞానంతో సానుకూలంగా ఉండటానికి దీన్ని సిఫార్సు చేస్తున్నాను, అందుకే ఈ దైవిక అనుభవాన్ని పంచుకుంటున్నాను! 🕉️\n\nగొప్ప సంతుల నుండి జ్ఞానాన్ని కనుగొనండి మరియు Talk with Saints తో మీ ఆధ్యాత్మిక ప్రయాణాన్ని మార్చండి.\n\nఇప్పుడే డౌన్‌లోడ్ చేయండి\n Android: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints \n iOS : https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070';
+  String get shareMessageAndroid =>
+      '🙏Android & iOS లో సంతులతో మాట్లాడండి:\n\n నాకు యాప్ నచ్చింది మరియు సంతుల జ్ఞానంతో సానుకూలంగా ఉండటానికి దీన్ని సిఫార్సు చేస్తున్నాను, అందుకే ఈ దైవిక అనుభవాన్ని పంచుకుంటున్నాను! 🕉️\n\nగొప్ప సంతుల నుండి జ్ఞానాన్ని కనుగొనండి మరియు Talk with Saints తో మీ ఆధ్యాత్మిక ప్రయాణాన్ని మార్చండి.\n\nఇప్పుడే డౌన్‌లోడ్ చేయండి\n Android: https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints \n iOS : https://apps.apple.com/us/app/talk-with-saints-ai/id6757002070';
 
   @override
-  String get shareSubject => 'Saints Speak - ఆధ్యాత్మిక జ్ఞానం యాప్‌ను కనుగొనండి 🙏';
+  String get shareSubject =>
+      'Saints Speak - ఆధ్యాత్మిక జ్ఞానం యాప్‌ను కనుగొనండి 🙏';
 
   @override
   String get notificationPermissionTitle => 'రోజువారీ ఆధ్యాత్మిక జ్ఞానం';
 
   @override
-  String get notificationPermissionMessage => 'రోజుకు రెండుసార్లు సంతుల నుండి ప్రేరణాత్మక కోట్స్ పొందండి - ఉదయం మీ రోజును జ్ఞానంతో మొదలుపెట్టడానికి మరియు సాయంత్రం ధ్యానం కోసం.\n\n🌅 మీ రోజును మార్గనిర్దేశం చేయడానికి ఉదయ జ్ఞానం\n🌙 అంతర్గత శాంతి కోసం సాయంత్రం ధ్యానం\n\nఈ ఫీచర్ మీ ఆధ్యాత్మిక ప్రయాణాన్ని సుసంపన్నం చేస్తుంది మరియు ఇది బాగా సిఫార్సు చేయబడింది!';
+  String get notificationPermissionMessage =>
+      'రోజుకు రెండుసార్లు సంతుల నుండి ప్రేరణాత్మక కోట్స్ పొందండి - ఉదయం మీ రోజును జ్ఞానంతో మొదలుపెట్టడానికి మరియు సాయంత్రం ధ్యానం కోసం.\n\n🌅 మీ రోజును మార్గనిర్దేశం చేయడానికి ఉదయ జ్ఞానం\n🌙 అంతర్గత శాంతి కోసం సాయంత్రం ధ్యానం\n\nఈ ఫీచర్ మీ ఆధ్యాత్మిక ప్రయాణాన్ని సుసంపన్నం చేస్తుంది మరియు ఇది బాగా సిఫార్సు చేయబడింది!';
 
   @override
   String get enableNotifications => 'నోటిఫికేషన్లను ఎనేబుల్ చేయండి';
@@ -302,16 +328,20 @@ class AppLocalizationsTe extends AppLocalizations {
   String get wisdomSharingTitle => '📖 జ్ఞానాన్ని పంచుకోండి';
 
   @override
-  String get wisdomSharingVivekanandaQuote => 'గొప్పతమ మతం మీ స్వంత స్వభావానికి నిజాయితీగా ఉండటమే. మీలో మీకు నమ్మకం ఉంచండి!';
+  String get wisdomSharingVivekanandaQuote =>
+      'గొప్పతమ మతం మీ స్వంత స్వభావానికి నిజాయితీగా ఉండటమే. మీలో మీకు నమ్మకం ఉంచండి!';
 
   @override
-  String get wisdomSharingMessage => 'మీరు లోతైన ఆధ్యాత్మిక జ్ఞానాన్ని అన్వేషిస్తున్నారు. ఈ పరివర్తనాత్మక అనుభవాన్ని ఇతరులతో పంచుకోవాలనుకుంటున్నారా?';
+  String get wisdomSharingMessage =>
+      'మీరు లోతైన ఆధ్యాత్మిక జ్ఞానాన్ని అన్వేషిస్తున్నారు. ఈ పరివర్తనాత్మక అనుభవాన్ని ఇతరులతో పంచుకోవాలనుకుంటున్నారా?';
 
   @override
-  String get wisdomSharingGyaanaDana => 'జ్ఞానాన్ని పంచుకోవడం అత్యున్నత సేవా రూపాలలో ఒకటి (జ్ఞాన దానం 📚)';
+  String get wisdomSharingGyaanaDana =>
+      'జ్ఞానాన్ని పంచుకోవడం అత్యున్నత సేవా రూపాలలో ఒకటి (జ్ఞాన దానం 📚)';
 
   @override
-  String get wisdomSharingCallToAction => 'ఈ కాలజేయ బోధనలను కనుగొనడంలో ఇతరులకు సహాయం చేయండి';
+  String get wisdomSharingCallToAction =>
+      'ఈ కాలజేయ బోధనలను కనుగొనడంలో ఇతరులకు సహాయం చేయండి';
 
   @override
   String get wisdomSharingGotIt => 'అర్థమైంది!';

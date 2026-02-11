@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final ramanaSaint = Saint(
   'raman',
-  'Maharishi Ramana',
+  'മഹർഷി രമണ',
   'assets/images/raman.jpg',
   [
     'നിന്റെ സ്വന്തം ആത്മാവിന്റെ സാക്ഷാത്കാരം ആണ് നീ ലോകത്തിന് നൽകുന്ന ഏറ്റവും വലിയ സേവനം.',

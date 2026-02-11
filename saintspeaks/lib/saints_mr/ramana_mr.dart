@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final ramanaSaintMr = Saint(
   'raman',
-  'Maharishi Ramana',
+  'महर्षी रमण',
   'assets/images/raman.jpg',
   [
     'तुमच्या स्वतःच्या आत्मज्ञानाची सेवा ही तुम्ही जगाला देऊ शकणारी सर्वात मोठी सेवा आहे.',

@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final neemKaroliBabaSaint = Saint(
   'baba_neeb_karori',
-  'Neem Karoli Baba',
+  'നീം കറോലി ബാബ',
   'assets/images/baba_neeb_karori.jpg',
   [
     'എല്ലാവരെയും സ്നേഹിക്കുക, എല്ലാവരെയും സേവിക്കുക, ദൈവത്തെ ഓർക്കുക.',

@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final shankaracharyaSaint = Saint(
   'Shankaracharya',
-  'Shankaracharya',
+  'ശങ്കരാചാര്യർ',
   'assets/images/shankaracharya.jpg',
   [
     'ബ്രഹ്മൻ മാത്രം സത്യമാണ്, ലോകം ഒരു പ്രതിഭാസമാണ്.',

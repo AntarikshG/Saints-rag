@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final nisargadattaSaint = Saint(
   'nisargadatta',
-  'Nisargadatta maharaj',
+  'നിസർഗദത്ത മഹാരാജ്',
   'assets/images/nisargadatta.jpg',
   [
     'നിങ്ങൾ നിങ്ങളെ എങ്ങനെ കാണുന്നു എന്നതിൽ നിങ്ങൾ അല്ല. നിങ്ങൾ ആരെന്നു കണ്ടെത്തുക.',

@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final tapovanMaharajSaint = Saint(
   'tapovan_maharaj',
-  'Tapovan Maharaj',
+  'തപോവന്‍ മഹാരാജ്',
   'assets/images/tapovan_maharaj.jpg',
   [
     'മനുഷ്യജീവിതത്തിന്റെ ഉന്നത ലക്ഷ്യം ആത്മാവിന്റെ സാക്ഷാത്കാരമാണ്, മറ്റൊന്നും അതിന് പിന്നിലായതാണ്.',

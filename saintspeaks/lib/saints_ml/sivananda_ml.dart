@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final sivanandaSaint = Saint(
   'sivananda',
-  'Swami Sivananda',
+  'സ്വാമി ശിവാനന്ദ',
   'assets/images/sivananda.jpg',
   [
     'ഒരു ഔൺസ് പ്രായോഗികത ഒരു ടൺ സിദ്ധാന്തത്തിന് സമാനമാണ്!',

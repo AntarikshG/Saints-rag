@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final shankaracharyaSaintMr = Saint(
   'Shankaracharya',
-  'Shankaracharya',
+  'शंकराचार्य',
   'assets/images/shankaracharya.jpg',
   [
     'ब्रह्मच एकटा खरा आहे, जग म्हणजे एक भास आहे.',

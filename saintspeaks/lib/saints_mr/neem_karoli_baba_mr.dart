@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final neemKaroliBabaSaintMr = Saint(
   'baba_neeb_karori',
-  'Neem Karoli Baba',
+  'नीम करोली बाबा',
   'assets/images/baba_neeb_karori.jpg',
   [
     'सर्वांना प्रेम करा, सर्वांची सेवा करा, भगवानाचे स्मरण करा.',

@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final yoganandaSaintMr = Saint(
   'yogananda',
-  'Paramhansa Yogananda',
+  'परमहंस योगानंद',
   'assets/images/paramhansa.jpg',
   [
     'तुम्हाला तुमचे जीवन सामान्य मार्गाने चालू ठेवू द्यावे लागणार नाही; काहीतरी करा जे इतरांनी केलेले नाही, काहीतरी जे जगाला चकित करेल.',

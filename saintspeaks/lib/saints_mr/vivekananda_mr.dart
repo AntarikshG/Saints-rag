@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final vivekanandaSaintMr = Saint(
   'vivekananda',
-  'Swami Vivekananda',
+  'स्वामी विवेकानंद',
   'assets/images/vivekananda.jpg',
   [
     'उठा, जागा व्हा, आणि लक्ष्य गाठेपर्यंत थांबू नका.',

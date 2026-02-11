@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
 import 'articlesquotes_bn.dart';
+import 'articlesquotes_or.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
 import 'articlesquotes_sa.dart';
@@ -688,6 +689,12 @@ class NotificationService {
         }
       } else if (locale.languageCode == 'bn') {
         for (final s in saintsBn) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else if (locale.languageCode == 'od') {
+        for (final s in saintsOr) {
           for (final q in s.quotes) {
             allQuotes.add({'quote': q, 'saint': s.name});
           }

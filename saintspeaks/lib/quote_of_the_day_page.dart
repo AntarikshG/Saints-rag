@@ -9,6 +9,7 @@ import 'dart:typed_data';
 import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
 import 'articlesquotes_bn.dart';
+import 'articlesquotes_or.dart';
 import 'articlesquotes_de.dart';
 import 'articlesquotes_kn.dart';
 import 'articlesquotes_sa.dart';
@@ -93,6 +94,9 @@ class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
           break;
         case 'bn':
           saintsList = saintsBn;
+          break;
+        case 'od':
+          saintsList = saintsOr;
           break;
         case 'de':
           saintsList = saintsDe;
