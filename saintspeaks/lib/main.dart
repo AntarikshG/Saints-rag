@@ -2606,6 +2606,24 @@ class _HomePageState extends State<HomePage> {
   void _showLanguageDialog(BuildContext context) {
     final loc = AppLocalizations.of(context);
     if (loc == null) return;
+
+    final brightness = Theme.of(context).brightness;
+
+    // Define languages with their native script samples for visual identification
+    final languages = [
+      {'name': loc.english, 'locale': Locale('en'), 'script': 'A'},
+      {'name': loc.hindi, 'locale': Locale('hi'), 'script': 'अ'},
+      {'name': loc.german, 'locale': Locale('de'), 'script': 'Ä'},
+      {'name': loc.kannada, 'locale': Locale('kn'), 'script': 'ಅ'},
+      {'name': loc.bengali, 'locale': Locale('bn'), 'script': 'অ'},
+      {'name': loc.odia, 'locale': Locale('or'), 'script': 'ଅ'},
+      {'name': loc.tamil, 'locale': Locale('ta'), 'script': 'அ'},
+      {'name': loc.telugu, 'locale': Locale('te'), 'script': 'అ'},
+      {'name': loc.malayalam, 'locale': Locale('ml'), 'script': 'അ'},
+      {'name': loc.marathi, 'locale': Locale('mr'), 'script': 'अ'},
+      {'name': loc.sanskrit, 'locale': Locale('sa'), 'script': 'ॐ'},
+    ];
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -2614,43 +2632,123 @@ class _HomePageState extends State<HomePage> {
           loc.language,
           style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildLanguageOption(loc.english, Locale('en'), context),
-            _buildLanguageOption(loc.hindi, Locale('hi'), context),
-            _buildLanguageOption(loc.german, Locale('de'), context),
-            _buildLanguageOption(loc.kannada, Locale('kn'), context),
-            _buildLanguageOption(loc.bengali, Locale('bn'), context),
-            _buildLanguageOption(loc.odia, Locale('or'), context),
-            _buildLanguageOption(loc.tamil, Locale('ta'), context),
-            _buildLanguageOption(loc.telugu, Locale('te'), context),
-            _buildLanguageOption(loc.malayalam, Locale('ml'), context),
-            _buildLanguageOption(loc.marathi, Locale('mr'), context),
-            _buildLanguageOption(loc.sanskrit, Locale('sa'), context),
-          ],
+        contentPadding: EdgeInsets.fromLTRB(16, 20, 16, 16),
+        content: Container(
+          width: double.maxFinite,
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+          child: SingleChildScrollView(
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.8,
+              ),
+              itemCount: languages.length,
+              itemBuilder: (context, index) {
+                final lang = languages[index];
+                return _buildLanguageOption(
+                  lang['name'] as String,
+                  lang['locale'] as Locale,
+                  lang['script'] as String,
+                  context,
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildLanguageOption(String title, Locale localeOption, BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: widget.locale == localeOption ? Colors.deepOrange.shade50 : null,
-      ),
-      child: RadioListTile<Locale>(
-        title: Text(title),
-        value: localeOption,
-        groupValue: widget.locale,
-        activeColor: Colors.deepOrange,
-        onChanged: (val) {
-          widget.onLocaleChange(localeOption);
-          Navigator.pop(context);
-        },
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  Widget _buildLanguageOption(String title, Locale localeOption, String script, BuildContext context) {
+    final isSelected = widget.locale == localeOption;
+    final brightness = Theme.of(context).brightness;
+
+    return InkWell(
+      onTap: () {
+        widget.onLocaleChange(localeOption);
+        Navigator.pop(context);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? Colors.deepOrange
+                : (brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade300),
+            width: isSelected ? 2 : 1,
+          ),
+          color: isSelected
+              ? (brightness == Brightness.dark ? Colors.deepOrange.shade900.withOpacity(0.3) : Colors.deepOrange.shade50)
+              : (brightness == Brightness.dark ? Colors.grey.shade800 : Colors.white),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: Colors.deepOrange.withOpacity(0.3),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ] : null,
+        ),
+        child: Stack(
+          children: [
+          // Main content
+          Padding(
+            padding: const EdgeInsets.all(6.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Native script indicator
+                Text(
+                  script,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.deepOrange : Colors.grey.shade600,
+                  ),
+                ),
+                SizedBox(height: 2),
+                // Language name
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: brightness == Brightness.dark
+                        ? (isSelected ? Colors.deepOrange.shade200 : Colors.white)
+                        : (isSelected ? Colors.deepOrange.shade700 : Colors.grey.shade800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+            // Checkmark for selected language
+            if (isSelected)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                  padding: EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.deepOrange,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
