@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final yoganandaSaintTe = Saint(
   'yogananda',
-  'Paramhansa Yogananda',
+  'పరమహంస యోగానంద',
   'assets/images/paramhansa.jpg',
   [
     'మీ జీవితం సాధారణ మార్గంలో కొనసాగకుండా ఉండాలి; ఎవరూ చేయని, ప్రపంచాన్ని ఆశ్చర్యపరిచే ఏదో ఒకటి చేయండి.',

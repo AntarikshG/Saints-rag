@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final nisargadattaSaintTe = Saint(
   'nisargadatta',
-  'Nisargadatta maharaj',
+  'నిసర్గదత్త మహారాజ్',
   'assets/images/nisargadatta.jpg',
   [
     'మీరు మీరనుకునేది కాదు. మీరు నిజంగా ఏమిటో తెలుసుకోండి.',

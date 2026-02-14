@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'book_service.dart';
+import 'config_service.dart';
 import 'epub_reader.dart';
 import 'pdf_reader.dart'; // Add PDF reader import
 import 'l10n/app_localizations.dart';
@@ -19,11 +20,15 @@ class BooksTab extends StatefulWidget {
 
 class _BooksTabState extends State<BooksTab> {
   List<Book> _books = [];
+  List<BookMetadata> _availableBooks = [];
   bool _isLoading = true;
+  bool _isLoadingAvailableBooks = true;
   TextEditingController _urlController = TextEditingController();
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
   String _downloadStatus = '';
+  Map<String, bool> _downloadingBooks = {}; // Track which books are downloading
+  Map<String, double> _bookDownloadProgress = {}; // Track download progress per book
 
   // Add sample books download tracking
   StreamSubscription<bool>? _sampleDownloadInProgressSub;
@@ -35,8 +40,9 @@ class _BooksTabState extends State<BooksTab> {
   void initState() {
     super.initState();
     _loadBooks();
+    _loadAvailableBooksFromConfig();
     _setupSampleDownloadListeners();
-    _downloadSampleBooksOnceIfNeeded();
+    // REMOVED: _downloadSampleBooksOnceIfNeeded(); // No longer auto-download
   }
 
   @override
@@ -115,6 +121,128 @@ class _BooksTabState extends State<BooksTab> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading books: $e')),
       );
+    }
+  }
+
+  Future<void> _loadAvailableBooksFromConfig() async {
+    setState(() {
+      _isLoadingAvailableBooks = true;
+    });
+
+    try {
+      final booksMetadata = await BookService.getBooksMetadataFromConfig();
+      setState(() {
+        _availableBooks = booksMetadata;
+        _isLoadingAvailableBooks = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingAvailableBooks = false;
+      });
+      print('Error loading available books: $e');
+    }
+  }
+
+  Future<void> _refreshBooksMetadata() async {
+    setState(() {
+      _isLoadingAvailableBooks = true;
+    });
+
+    try {
+      // Clear cache and reload
+      await BookService.clearBooksMetadataCache();
+      final booksMetadata = await BookService.getBooksMetadataFromConfig();
+
+      setState(() {
+        _availableBooks = booksMetadata;
+        _isLoadingAvailableBooks = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✓ Book list refreshed!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isLoadingAvailableBooks = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error refreshing: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  // NEW: Download a book from available books metadata
+  Future<void> _downloadBookFromMetadata(BookMetadata metadata) async {
+    // Check if already downloading
+    if (_downloadingBooks[metadata.id] == true) {
+      return;
+    }
+
+    // Check if already downloaded
+    final isDownloaded = await BookService.bookExistsByTitle(metadata.title, metadata.author);
+    if (isDownloaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${metadata.title} is already in your library')),
+      );
+      return;
+    }
+
+    setState(() {
+      _downloadingBooks[metadata.id] = true;
+      _bookDownloadProgress[metadata.id] = 0.0;
+    });
+
+    try {
+      await BookService.downloadBookFromUrl(
+        metadata.url,
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() {
+              _bookDownloadProgress[metadata.id] = progress;
+            });
+          }
+        },
+      );
+
+      // Reload books list
+      await _loadBooks();
+
+      if (mounted) {
+        setState(() {
+          _downloadingBooks[metadata.id] = false;
+          _bookDownloadProgress.remove(metadata.id);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ ${metadata.title} downloaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _downloadingBooks[metadata.id] = false;
+          _bookDownloadProgress.remove(metadata.id);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download ${metadata.title}: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 
@@ -542,6 +670,132 @@ class _BooksTabState extends State<BooksTab> {
     );
   }
 
+  // NEW: Widget to display available books from config with download buttons
+  Widget _buildAvailableBookCard(BookMetadata metadata, bool isDownloaded) {
+    final isDownloading = _downloadingBooks[metadata.id] == true;
+    final downloadProgress = _bookDownloadProgress[metadata.id] ?? 0.0;
+
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Book icon
+            Container(
+              width: 50,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.orange.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade300),
+              ),
+              child: Icon(Icons.menu_book, size: 28, color: Colors.deepOrange),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    metadata.title,
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    metadata.author,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  if (metadata.description.isNotEmpty) ...[
+                    SizedBox(height: 4),
+                    Text(
+                      metadata.description,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  if (isDownloading) ...[
+                    SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: downloadProgress,
+                      backgroundColor: Colors.grey.shade300,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Downloading... ${(downloadProgress * 100).toInt()}%',
+                      style: TextStyle(fontSize: 11, color: Colors.deepOrange),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            SizedBox(width: 12),
+            if (isDownloaded)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade300),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      'Downloaded',
+                      style: TextStyle(
+                        color: Colors.green.shade700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (isDownloading)
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
+                ),
+              )
+            else
+              ElevatedButton.icon(
+                onPressed: () => _downloadBookFromMetadata(metadata),
+                icon: Icon(Icons.download, size: 18),
+                label: Text('Download', style: TextStyle(fontSize: 13)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -676,68 +930,142 @@ class _BooksTabState extends State<BooksTab> {
               ],
             ),
           ),
-          // Books list
+          // Scrollable content with books list and available books
           Expanded(
-            child: _books.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade50,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.library_books,
-                            size: 64,
-                            color: Colors.orange.shade300,
+            child: RefreshIndicator(
+              onRefresh: _loadBooks,
+              child: SingleChildScrollView(
+                physics: AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    // My Library section
+                    if (_books.isEmpty)
+                      Container(
+                        height: 400,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade50,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.library_books,
+                                  size: 64,
+                                  color: Colors.orange.shade300,
+                                ),
+                              ),
+                              SizedBox(height: 24),
+                              Text(
+                                'No books yet',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'Add your first book by tapping "Add Book" above',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey.shade500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 24),
+                              ElevatedButton.icon(
+                                onPressed: _showAddBookDialog,
+                                icon: Icon(Icons.add),
+                                label: Text('Add Your First Book'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepOrange,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 24),
-                        Text(
-                          'No books yet',
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
-                          ),
+                      )
+                    else
+                      // Books list
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.only(bottom: 16),
+                        itemCount: _books.length,
+                        itemBuilder: (context, index) {
+                          return _buildBookCard(_books[index]);
+                        },
+                      ),
+
+                    // Available books section
+                    if (_availableBooks.isNotEmpty) ...[
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 12),
-                        Text(
-                          'Add your first book by tapping "Add Book" above',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade500,
-                          ),
-                          textAlign: TextAlign.center,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Available Books',
+                                    style: GoogleFonts.playfairDisplay(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.deepOrange.shade800,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.refresh, color: Colors.deepOrange),
+                                  onPressed: _isLoadingAvailableBooks ? null : _refreshBooksMetadata,
+                                  tooltip: 'Refresh book list',
+                                ),
+                              ],
+                            ),
+                            if (_isLoadingAvailableBooks)
+                              Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            else
+                              Column(
+                                children: _availableBooks.map((metadata) {
+                                  final isDownloaded = _books.any((book) =>
+                                    book.title == metadata.title && book.author == metadata.author);
+                                  return _buildAvailableBookCard(metadata, isDownloaded);
+                                }).toList(),
+                              ),
+                          ],
                         ),
-                        SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: _showAddBookDialog,
-                          icon: Icon(Icons.add),
-                          label: Text('Add Your First Book'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.deepOrange,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadBooks,
-                    child: ListView.builder(
-                      padding: EdgeInsets.only(bottom: 16),
-                      itemCount: _books.length,
-                      itemBuilder: (context, index) {
-                        return _buildBookCard(_books[index]);
-                      },
-                    ),
-                  ),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),

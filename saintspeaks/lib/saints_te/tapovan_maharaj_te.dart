@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final tapovanMaharajSaintTe = Saint(
   'tapovan_maharaj',
-  'Tapovan Maharaj',
+  'తపోవన్ మహారాజ్',
   'assets/images/tapovan_maharaj.jpg',
   [
     'మానవ జీవితంలో అత్యున్నత లక్ష్యం ఆత్మసాక్షాత్కారం, మిగతావన్నీ ద్వితీయమైనవి.',

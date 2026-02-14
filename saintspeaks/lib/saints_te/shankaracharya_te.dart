@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final shankaracharyaSaintTe = Saint(
   'Shankaracharya',
-  'Shankaracharya',
+  'శంకరాచార్య',
   'assets/images/shankaracharya.jpg',
   [
     'బ్రహ్మమే నిజం, ప్రపంచం మాయ.',

@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final ramanaSaintTe = Saint(
   'raman',
-  'Maharishi Ramana',
+  'మహర్షి రమణ',
   'assets/images/raman.jpg',
   [
     'మీ స్వీయాత్మ సాక్షాత్కారం ప్రపంచానికి మీరు అందించగలిగే అత్యున్నత సేవ.',

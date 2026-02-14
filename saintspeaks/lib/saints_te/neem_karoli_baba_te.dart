@@ -5,7 +5,7 @@ import '../articlesquotes_te.dart';
 
 final neemKaroliBabaSaintTe = Saint(
   'baba_neeb_karori',
-  'Neem Karoli Baba',
+  'నీమ్ కరోలి బాబా',
   'assets/images/baba_neeb_karori.jpg',
   [
     'ప్రతివారిని ప్రేమించండి, ప్రతివారికి సేవ చేయండి, భగవంతుని స్మరించండి.',

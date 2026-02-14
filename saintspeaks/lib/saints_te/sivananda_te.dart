@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final sivanandaSaintTe = Saint(
   'sivananda',
-  'Swami Sivananda',
+  'స్వామి శివానంద',
   'assets/images/sivananda.jpg',
   [
     'చేసే సాధన కొంచెం అయినా, సిద్ధాంతం ఎంతైనా మించినది!',

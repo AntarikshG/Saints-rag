@@ -5,7 +5,7 @@ import '../articlesquotes.dart';
 
 final vivekanandaSaintTe = Saint(
   'vivekananda',
-  'Swami Vivekananda',
+  'స్వామి వివేకానంద',
   'assets/images/vivekananda.jpg',
   [
     'ఎదురు నిలబడి, మేల్కొని, లక్ష్యాన్ని చేరేవరకు ఆగకండి.',

@@ -5,7 +5,7 @@ import '../articlesquotes_te.dart';
 
 final anandmoyimaSaintTe = Saint(
   'anandmoyima',
-  'Anandamayi Ma',
+  'ఆనందమయి మా',
   'assets/images/anandmoyima.jpg',
   [
     'ఈ శరీరం మానవ హృదయాలలో దైవిక ప్రేమను మేల్కొల్పడానికి మీ లోకానికి వచ్చింది.',

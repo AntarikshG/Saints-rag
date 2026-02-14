@@ -2,12 +2,53 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'meditation_service.dart';
 
+class BookMetadata {
+  final String id;
+  final String title;
+  final String author;
+  final String url;
+  final String category;
+  final String description;
+
+  BookMetadata({
+    required this.id,
+    required this.title,
+    required this.author,
+    required this.url,
+    required this.category,
+    required this.description,
+  });
+
+  factory BookMetadata.fromJson(Map<String, dynamic> json) {
+    return BookMetadata(
+      id: json['id'] ?? '',
+      title: json['title'] ?? 'Untitled Book',
+      author: json['author'] ?? 'Unknown Author',
+      url: json['url'] ?? '',
+      category: json['category'] ?? 'general',
+      description: json['description'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'author': author,
+      'url': url,
+      'category': category,
+      'description': description,
+    };
+  }
+}
+
 class AppConfig {
   final bool gradioServerRunning;
   final String gradioServerLink;
   final Map<String, String> ekadashiData;
   final String latestAppVersion;
   final List<Meditation> meditationData;
+  final List<BookMetadata> booksData;
 
   AppConfig({
     required this.gradioServerRunning,
@@ -15,6 +56,7 @@ class AppConfig {
     required this.ekadashiData,
     required this.latestAppVersion,
     required this.meditationData,
+    required this.booksData,
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -34,12 +76,20 @@ class AppConfig {
       meditationData = data.map((item) => Meditation.fromJson(item)).toList();
     }
 
+    // Parse books_data if available, otherwise use empty list
+    List<BookMetadata> booksData = [];
+    if (json['books_data'] != null) {
+      final data = json['books_data'] as List<dynamic>;
+      booksData = data.map((item) => BookMetadata.fromJson(item)).toList();
+    }
+
     return AppConfig(
       gradioServerRunning: json['gradio_server_running'] ?? false,
       gradioServerLink: json['gradio_server_link'] ?? '',
       ekadashiData: ekadashiData,
       latestAppVersion: json['latest_app_version'] ?? '2.2.0',
       meditationData: meditationData,
+      booksData: booksData,
     );
   }
 

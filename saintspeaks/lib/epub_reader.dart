@@ -7,6 +7,7 @@ import 'package:epubx/epubx.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'book_service.dart';
 
 class EpubReaderPage extends StatefulWidget {
@@ -20,7 +21,6 @@ class EpubReaderPage extends StatefulWidget {
 
 class _EpubReaderPageState extends State<EpubReaderPage> {
   EpubBook? _epubBook;
-  PageController _pageController = PageController();
   bool _isLoading = true;
   String _error = '';
 
@@ -35,6 +35,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   double _wordSpacing = 1.0;
   double _letterSpacing = 0.3;
   EdgeInsets _textPadding = const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0);
+  TextAlign _textAlign = TextAlign.left; // Default to left alignment for better readability
 
   // Theme presets
   Map<String, Map<String, dynamic>> _themePresets = {
@@ -72,6 +73,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   // Chapter-to-page mapping for accurate navigation
   Map<int, String> _chapterContent = {};
   List<String> _chapterTitles = [];
+  Map<String, int> _filenameToChapterIndex = {}; // Map filename to chapter index for link navigation
   ScrollController _scrollController = ScrollController();
   double _scrollPosition = 0.0;
 
@@ -160,6 +162,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     _loadBook();
     _currentChapterIndex = widget.book.currentChapter;
 
+
     // Set immersive mode for better reading experience
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
@@ -189,7 +192,6 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       _flutterTts!.stop();
       _flutterTts = null;
     }
-    _pageController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -252,6 +254,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       _chapters.clear();
       _chapterContent.clear();
       _chapterTitles.clear();
+      _filenameToChapterIndex.clear(); // Clear the filename to chapter index map
 
       if (_epubBook!.Chapters != null && _epubBook!.Chapters!.isNotEmpty) {
         _epubChapters = _epubBook!.Chapters!;
@@ -263,8 +266,47 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           _chapterTitles.add(title);
 
           final htmlContent = chapter.HtmlContent ?? '';
-          final cleanContent = _cleanAndFormatHtmlContent(htmlContent);
-          _chapterContent[i] = cleanContent;
+          final preparedContent = _prepareHtmlContent(htmlContent);
+          _chapterContent[i] = preparedContent;
+
+          // Map chapter filename to index for link navigation
+          // Try multiple approaches to get the filename
+          List<String> possibleFilenames = [];
+
+          // Approach 1: Try Anchor property if it exists
+          try {
+            if (chapter.Anchor != null && chapter.Anchor!.isNotEmpty) {
+              possibleFilenames.add(chapter.Anchor!);
+            }
+          } catch (e) {
+            // Anchor property might not exist
+          }
+
+          // Approach 2: Try to extract from SubChapters if they exist
+          try {
+            if (chapter.SubChapters != null && chapter.SubChapters!.isNotEmpty) {
+              for (var subChapter in chapter.SubChapters!) {
+                if (subChapter.Anchor != null && subChapter.Anchor!.isNotEmpty) {
+                  possibleFilenames.add(subChapter.Anchor!);
+                }
+              }
+            }
+          } catch (e) {
+            // SubChapters might not exist
+          }
+
+          // Approach 3: Default filename
+          possibleFilenames.add('chapter_${i + 1}');
+          possibleFilenames.add('Chapter${i + 1}');
+          possibleFilenames.add('ch${i + 1}');
+          possibleFilenames.add('chap${i + 1}');
+
+          // Map all possible filenames to this chapter index
+          for (String filename in possibleFilenames) {
+            _filenameToChapterIndex[filename] = i;
+          }
+
+          print('Mapped chapter $i with ${possibleFilenames.length} filename variations: ${possibleFilenames.join(", ")}');
         }
       } else {
         // Fallback: extract from HTML files
@@ -278,9 +320,12 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
               final htmlContent = htmlContentFile.Content ?? '';
               if (htmlContent.isNotEmpty) {
                 _chapterTitles.add('Chapter ${chapterIndex + 1}');
-                final cleanContent = _cleanAndFormatHtmlContent(htmlContent);
-                _chapterContent[chapterIndex] = cleanContent;
+                final preparedContent = _prepareHtmlContent(htmlContent);
+                _chapterContent[chapterIndex] = preparedContent;
                 chapterIndex++;
+
+                // Map chapter filename to index for link navigation
+                _filenameToChapterIndex[htmlFile.key] = chapterIndex - 1;
               }
             } catch (e) {
               print('Error processing HTML file ${htmlFile.key}: $e');
@@ -304,20 +349,55 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     }
   }
 
-  String _cleanAndFormatHtmlContent(String html) {
+  String _prepareHtmlContent(String html) {
+    if (html.isEmpty) return '<p>No content available</p>';
+
+    try {
+      // Only remove scripts and comments for security, preserve all formatting
+      String prepared = html
+          .replaceAll(RegExp(r'<script[^>]*>.*?</script>', caseSensitive: false, multiLine: true, dotAll: true), '')
+          .replaceAll(RegExp(r'<!--.*?-->', multiLine: true, dotAll: true), '');
+
+      // Wrap content in a div for proper styling if not already wrapped
+      if (!prepared.trim().startsWith('<')) {
+        prepared = '<div>$prepared</div>';
+      }
+
+      print('HTML content prepared: ${html.length} chars -> ${prepared.length} chars');
+      return prepared;
+
+    } catch (e) {
+      print('Error preparing HTML content: $e');
+      return '<p>Error processing content: ${e.toString()}</p>';
+    }
+  }
+
+  // Extract plain text from HTML for TTS
+  String _extractPlainTextFromHtml(String html) {
     if (html.isEmpty) return '';
 
     try {
-      // Remove scripts, styles, and other non-content elements
-      String cleaned = html
+      String text = html;
+
+      // Remove scripts, styles, and comments
+      text = text
           .replaceAll(RegExp(r'<script[^>]*>.*?</script>', caseSensitive: false, multiLine: true, dotAll: true), '')
           .replaceAll(RegExp(r'<style[^>]*>.*?</style>', caseSensitive: false, multiLine: true, dotAll: true), '')
-          .replaceAll(RegExp(r'<meta[^>]*>', caseSensitive: false), '')
-          .replaceAll(RegExp(r'<link[^>]*>', caseSensitive: false), '')
           .replaceAll(RegExp(r'<!--.*?-->', multiLine: true, dotAll: true), '');
 
-      // Clean up HTML entities first (more comprehensive)
-      cleaned = cleaned
+      // Handle block elements - replace with newlines
+      text = text
+          .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n\n')
+          .replaceAll(RegExp(r'<br[^>]*>', caseSensitive: false), '\n')
+          .replaceAll(RegExp(r'</div>', caseSensitive: false), '\n')
+          .replaceAll(RegExp(r'</h[1-6]>', caseSensitive: false), '\n\n')
+          .replaceAll(RegExp(r'</li>', caseSensitive: false), '\n');
+
+      // Remove ALL remaining HTML tags
+      text = text.replaceAll(RegExp(r'<[^>]+>'), '');
+
+      // Decode HTML entities
+      text = text
           .replaceAll('&nbsp;', ' ')
           .replaceAll('&amp;', '&')
           .replaceAll('&lt;', '<')
@@ -333,100 +413,17 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           .replaceAll('&ldquo;', '"')
           .replaceAll('&rdquo;', '"');
 
-      // Handle numeric HTML entities safely
-      cleaned = cleaned.replaceAllMapped(RegExp(r'&#(\d+);'), (match) {
-        try {
-          final code = int.parse(match.group(1)!);
-          // Only convert valid Unicode code points
-          if (code > 0 && code <= 0x10FFFF) {
-            return String.fromCharCode(code);
-          }
-          return ' '; // Replace invalid codes with space
-        } catch (e) {
-          return ' '; // Replace problematic entities with space
-        }
-      });
-
-      cleaned = cleaned.replaceAllMapped(RegExp(r'&#x([0-9A-Fa-f]+);'), (match) {
-        try {
-          final code = int.parse(match.group(1)!, radix: 16);
-          // Only convert valid Unicode code points
-          if (code > 0 && code <= 0x10FFFF) {
-            return String.fromCharCode(code);
-          }
-          return ' '; // Replace invalid codes with space
-        } catch (e) {
-          return ' '; // Replace problematic entities with space
-        }
-      });
-
-      // Handle block elements properly to preserve paragraph structure
-      cleaned = cleaned
-          .replaceAll(RegExp(r'\s*<br[^>]*>\s*', caseSensitive: false), '\n')
-          .replaceAll(RegExp(r'\s*</p>\s*<p[^>]*>\s*', caseSensitive: false), '\n\n')
-          .replaceAll(RegExp(r'<p[^>]*>', caseSensitive: false), '\n')
-          .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n')
-          .replaceAll(RegExp(r'<div[^>]*>', caseSensitive: false), '\n')
-          .replaceAll(RegExp(r'</div>', caseSensitive: false), '\n')
-          .replaceAll(RegExp(r'<h[1-6][^>]*>', caseSensitive: false), '\n\n')
-          .replaceAll(RegExp(r'</h[1-6]>', caseSensitive: false), '\n\n')
-          .replaceAll(RegExp(r'<li[^>]*>', caseSensitive: false), '\n• ')
-          .replaceAll(RegExp(r'</li>', caseSensitive: false), '\n');
-
-      // Remove remaining HTML tags
-      cleaned = cleaned.replaceAll(RegExp(r'<[^>]+>'), ' ');
-
-      // Normalize whitespace while preserving paragraph breaks
-      cleaned = cleaned
-          // Replace multiple spaces/tabs with single space
+      // Clean up whitespace
+      text = text
           .replaceAll(RegExp(r'[ \t]+'), ' ')
-          // Clean up spaces around newlines
           .replaceAll(RegExp(r' *\n *'), '\n')
-          // Replace multiple newlines with double newlines (paragraph breaks)
-          .replaceAll(RegExp(r'\n{3,}'), '\n\n');
-
-      // Split into lines for better processing
-      List<String> lines = cleaned.split('\n');
-
-      // Process each line to remove problematic characters
-      List<String> processedLines = [];
-      for (String line in lines) {
-        String processedLine = line
-            .trim()
-            // Remove zero-width characters that can cause display issues
-            .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
-            // Remove control characters except newlines and tabs
-            .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '')
-            // Remove any remaining invisible characters that might cause issues
-            .replaceAll(RegExp(r'[\u180E\u2000-\u200A\u2028\u2029\u205F\u3000]'), ' ');
-
-        // Only add non-empty lines
-        if (processedLine.isNotEmpty) {
-          processedLines.add(processedLine);
-        }
-      }
-
-      // Rejoin lines with proper spacing
-      cleaned = processedLines.join('\n')
-          .replaceAll(RegExp(r'\n\n+'), '\n\n') // Normalize paragraph spacing
+          .replaceAll(RegExp(r'\n{3,}'), '\n\n')
           .trim();
 
-      // Final validation - ensure we don't return corrupted content
-      if (cleaned.isEmpty || cleaned.length < 3) {
-        return 'Content could not be processed properly. Please try a different chapter.';
-      }
-
-      // Check for potential encoding issues that might cause single character display
-      if (cleaned.split(' ').length < 3 && cleaned.length < 50) {
-        return 'Content appears corrupted. Raw length: ${html.length} characters. Please try refreshing or check the EPUB file.';
-      }
-
-      print('Content processing: Original ${html.length} chars -> Cleaned ${cleaned.length} chars');
-      return cleaned;
-
+      return text;
     } catch (e) {
-      print('Error cleaning HTML content: $e');
-      return 'Error processing content: ${e.toString()}. Original content length: ${html.length} characters.';
+      print('Error extracting plain text from HTML: $e');
+      return '';
     }
   }
 
@@ -441,6 +438,10 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       _wordSpacing = prefs.getDouble('epub_word_spacing') ?? 1.0;
       _letterSpacing = prefs.getDouble('epub_letter_spacing') ?? 0.3;
       _currentTheme = prefs.getString('epub_theme') ?? 'sepia';
+
+      // Load text alignment preference
+      final alignmentString = prefs.getString('epub_text_align') ?? 'left';
+      _textAlign = _parseTextAlign(alignmentString);
 
       // TTS settings - load from saved preferences
       _ttsRate = prefs.getDouble('epub_tts_rate') ?? 0.5;
@@ -470,6 +471,9 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     await prefs.setDouble('epub_word_spacing', _wordSpacing);
     await prefs.setDouble('epub_letter_spacing', _letterSpacing);
     await prefs.setString('epub_theme', _currentTheme);
+
+    // Save text alignment preference
+    await prefs.setString('epub_text_align', _textAlignToString(_textAlign));
 
     // TTS settings - save to preferences
     await prefs.setDouble('epub_tts_rate', _ttsRate);
@@ -542,20 +546,40 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
 
   void _nextChapter() {
     if (_currentChapterIndex < _chapterContent.length - 1) {
+      // Stop TTS if playing and clear highlighting
+      if (_isTtsPlaying || _isTtsPaused) {
+        _stopTtsReading();
+      }
+
       setState(() {
         _currentChapterIndex++;
       });
-      _scrollController.jumpTo(0);
+      // Scroll to top of new chapter
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(0);
+        }
+      });
       _saveReadingProgressDebounced();
     }
   }
 
   void _previousChapter() {
     if (_currentChapterIndex > 0) {
+      // Stop TTS if playing and clear highlighting
+      if (_isTtsPlaying || _isTtsPaused) {
+        _stopTtsReading();
+      }
+
       setState(() {
         _currentChapterIndex--;
       });
-      _scrollController.jumpTo(0);
+      // Scroll to top of new chapter
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(0);
+        }
+      });
       _saveReadingProgressDebounced();
     }
   }
@@ -589,36 +613,60 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
+        height: MediaQuery.of(context).size.height * 0.75,
         decoration: BoxDecoration(
           color: _backgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: Column(
           children: [
+            // Header with gradient
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _isDarkTheme ? Colors.grey[800] : Colors.orange,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                gradient: _isDarkTheme
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.orange.shade800, Colors.orange.shade900],
+                      )
+                    : LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.orange.shade400, Colors.orange.shade600],
+                      ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.bookmarks, color: Colors.white),
+                  const Icon(Icons.bookmarks, color: Colors.white, size: 28),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Bookmarks',
-                      style: TextStyle(
-                        fontSize: 20,
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                   ),
                 ],
               ),
@@ -629,72 +677,101 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.bookmark_border,
-                            size: 64,
-                            color: _textColor.withAlpha((0.5 * 255).round()),
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: (_isDarkTheme ? Colors.orange : Colors.orange.shade100).withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.bookmark_border,
+                              size: 64,
+                              color: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                            ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 24),
                           Text(
                             'No bookmarks yet',
-                            style: TextStyle(
-                              fontSize: 18,
+                            style: _getTextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                               color: _textColor.withAlpha((0.7 * 255).round()),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap the bookmark button to save your current position',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: _textColor.withAlpha((0.5 * 255).round()),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 48),
+                            child: Text(
+                              'Tap the bookmark button to save your current reading position',
+                              textAlign: TextAlign.center,
+                              style: _getTextStyle(
+                                fontSize: 14,
+                                color: _textColor.withAlpha((0.5 * 255).round()),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(12),
                       itemCount: _bookmarks.length,
                       itemBuilder: (context, index) {
                         final bookmark = _bookmarks[index];
                         final isCurrentPosition = bookmark.chapterIndex == _currentChapterIndex;
 
                         return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isCurrentPosition
-                                ? (_isDarkTheme ? Colors.orange[900]?.withAlpha((0.3 * 255).round()) : Colors.orange[50])
+                            gradient: isCurrentPosition
+                                ? LinearGradient(
+                                    colors: _isDarkTheme
+                                        ? [Colors.orange.shade900.withOpacity(0.3), Colors.orange.shade800.withOpacity(0.2)]
+                                        : [Colors.orange.shade50, Colors.orange.shade100],
+                                  )
                                 : null,
+                            color: isCurrentPosition ? null : (_isDarkTheme ? Colors.grey[850] : Colors.white),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _textColor.withAlpha((0.1 * 255).round()),
-                              width: 1,
+                              color: isCurrentPosition
+                                  ? Colors.orange
+                                  : _textColor.withOpacity(0.1),
+                              width: isCurrentPosition ? 2 : 1,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: isCurrentPosition
+                                    ? Colors.orange.withOpacity(0.2)
+                                    : Colors.black.withOpacity(0.05),
+                                blurRadius: isCurrentPosition ? 8 : 4,
+                                offset: Offset(0, isCurrentPosition ? 4 : 2),
+                              ),
+                            ],
                           ),
                           child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             leading: Container(
-                              width: 40,
-                              height: 40,
+                              width: 48,
+                              height: 48,
                               decoration: BoxDecoration(
-                                color: isCurrentPosition
-                                    ? Colors.orange
-                                    : (_isDarkTheme ? Colors.grey[600] : Colors.grey[400]),
-                                borderRadius: BorderRadius.circular(8),
+                                gradient: isCurrentPosition
+                                    ? LinearGradient(
+                                        colors: [Colors.orange.shade400, Colors.orange.shade600],
+                                      )
+                                    : null,
+                                color: isCurrentPosition ? null : (_isDarkTheme ? Colors.grey[700] : Colors.grey[300]),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 Icons.bookmark,
-                                color: Colors.white,
-                                size: 20,
+                                color: isCurrentPosition ? Colors.white : _textColor.withOpacity(0.7),
+                                size: 24,
                               ),
                             ),
                             title: Text(
                               bookmark.chapterTitle,
-                              style: TextStyle(
+                              style: _getTextStyle(
                                 fontWeight: isCurrentPosition ? FontWeight.bold : FontWeight.w500,
-                                color: _textColor,
                                 fontSize: 16,
                               ),
                               maxLines: 2,
@@ -703,21 +780,37 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Chapter ${bookmark.chapterIndex + 1}',
-                                  style: TextStyle(
-                                    color: _textColor.withAlpha((0.7 * 255).round()),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Added: ${_formatDate(bookmark.createdAt)}',
-                                  style: TextStyle(
-                                    color: _textColor.withAlpha((0.5 * 255).round()),
-                                    fontSize: 11,
-                                  ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.menu_book,
+                                      size: 14,
+                                      color: _textColor.withAlpha((0.6 * 255).round()),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Chapter ${bookmark.chapterIndex + 1}',
+                                      style: _getTextStyle(
+                                        fontSize: 12,
+                                        color: _textColor.withAlpha((0.7 * 255).round()),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: _textColor.withAlpha((0.6 * 255).round()),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _formatDate(bookmark.createdAt),
+                                      style: _getTextStyle(
+                                        fontSize: 12,
+                                        color: _textColor.withAlpha((0.6 * 255).round()),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -775,6 +868,11 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   }
 
   void _jumpToBookmark(Bookmark bookmark) {
+    // Stop TTS if playing and clear highlighting
+    if (_isTtsPlaying || _isTtsPaused) {
+      _stopTtsReading();
+    }
+
     setState(() {
       _currentChapterIndex = bookmark.chapterIndex.clamp(0, _chapterContent.length - 1);
     });
@@ -823,73 +921,145 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
+        height: MediaQuery.of(context).size.height * 0.75,
         decoration: BoxDecoration(
           color: _backgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: Column(
           children: [
+            // Header with gradient
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _isDarkTheme ? Colors.grey[800] : Colors.blue,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                gradient: _isDarkTheme
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.grey.shade800, Colors.grey.shade900],
+                      )
+                    : LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
+                      ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.list, color: Colors.white),
+                  const Icon(Icons.list, color: Colors.white, size: 28),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Table of Contents',
-                      style: TextStyle(
-                        fontSize: 20,
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                   ),
                 ],
               ),
             ),
             Expanded(
               child: ListView.builder(
+                padding: const EdgeInsets.all(12),
                 itemCount: _chapterTitles.length,
                 itemBuilder: (context, index) {
                   final isCurrentChapter = index == _currentChapterIndex;
                   return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isCurrentChapter ? (_isDarkTheme ? Colors.grey[700] : Colors.blue[50]) : null,
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: isCurrentChapter
+                          ? LinearGradient(
+                              colors: _isDarkTheme
+                                  ? [Colors.orange.shade900.withOpacity(0.3), Colors.orange.shade800.withOpacity(0.2)]
+                                  : [Colors.deepOrange.shade50, Colors.orange.shade50],
+                            )
+                          : null,
+                      color: isCurrentChapter ? null : (_isDarkTheme ? Colors.grey[850] : Colors.white),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isCurrentChapter
+                            ? (_isDarkTheme ? Colors.orange : Colors.deepOrange)
+                            : _textColor.withOpacity(0.1),
+                        width: isCurrentChapter ? 2 : 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isCurrentChapter
+                              ? (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.2)
+                              : Colors.black.withOpacity(0.05),
+                          blurRadius: isCurrentChapter ? 8 : 4,
+                          offset: Offset(0, isCurrentChapter ? 4 : 2),
+                        ),
+                      ],
                     ),
                     child: ListTile(
-                      leading: CircleAvatar(
-                        radius: 16,
-                        backgroundColor: isCurrentChapter ? Colors.blue : Colors.grey,
-                        child: Text(
-                          '${index + 1}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: isCurrentChapter
+                              ? LinearGradient(
+                                  colors: _isDarkTheme
+                                      ? [Colors.orange.shade700, Colors.orange.shade900]
+                                      : [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
+                                )
+                              : null,
+                          color: isCurrentChapter ? null : (_isDarkTheme ? Colors.grey[700] : Colors.grey[300]),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: TextStyle(
+                              color: isCurrentChapter ? Colors.white : _textColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
                       title: Text(
                         _chapterTitles[index],
                         style: TextStyle(
-                          fontWeight: isCurrentChapter ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isCurrentChapter ? FontWeight.bold : FontWeight.w500,
                           color: _textColor,
+                          fontSize: 15,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      trailing: isCurrentChapter
+                          ? Icon(
+                              Icons.play_circle_filled,
+                              color: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                              size: 24,
+                            )
+                          : Icon(
+                              Icons.chevron_right,
+                              color: _textColor.withOpacity(0.5),
+                            ),
                       onTap: () {
                         Navigator.of(context).pop();
                         _jumpToChapter(index);
@@ -906,10 +1076,24 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   }
 
   void _jumpToChapter(int chapterIndex) {
+    final targetIndex = chapterIndex.clamp(0, _chapterContent.length - 1);
+
+    // Stop TTS if playing and clear highlighting
+    if (_isTtsPlaying || _isTtsPaused) {
+      _stopTtsReading();
+    }
+
     setState(() {
-      _currentChapterIndex = chapterIndex.clamp(0, _chapterContent.length - 1);
+      _currentChapterIndex = targetIndex;
     });
-    _scrollController.jumpTo(0);
+
+    // Scroll to top of new chapter
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    });
+
     _saveReadingProgressDebounced();
   }
 
@@ -950,6 +1134,103 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       _searchResults = results;
       _showSearchResults = true;
     });
+  }
+
+  // Handle EPUB internal link navigation
+  void _handleLinkTap(String? url) {
+    if (url == null || url.isEmpty) {
+      print('Link tap: empty URL');
+      return;
+    }
+
+    print('Link tapped: $url');
+
+    try {
+      // Parse the URL to extract filename and anchor
+      String filename = url;
+      String? anchor;
+
+      // Remove any leading slash or path
+      if (filename.contains('/')) {
+        filename = filename.split('/').last;
+      }
+
+      // Split filename and anchor if present
+      if (filename.contains('#')) {
+        final parts = filename.split('#');
+        filename = parts[0];
+        if (parts.length > 1) {
+          anchor = parts[1];
+        }
+      }
+
+      print('Parsed - Filename: $filename, Anchor: $anchor');
+
+      // Try to find the chapter by exact filename match
+      int? targetChapterIndex = _filenameToChapterIndex[filename];
+
+      // If no exact match, try partial matching (some EPUBs have different extensions or versions)
+      if (targetChapterIndex == null) {
+        // Try without extension
+        final filenameWithoutExt = filename.replaceAll(RegExp(r'\.(html?|xhtml)$'), '');
+
+        for (var entry in _filenameToChapterIndex.entries) {
+          final key = entry.key;
+          final keyWithoutExt = key.replaceAll(RegExp(r'\.(html?|xhtml)$'), '');
+
+          if (key == filename ||
+              keyWithoutExt == filenameWithoutExt ||
+              key.contains(filenameWithoutExt) ||
+              filenameWithoutExt.contains(keyWithoutExt)) {
+            targetChapterIndex = entry.value;
+            print('Found partial match: $key -> Chapter $targetChapterIndex');
+            break;
+          }
+        }
+      }
+
+      if (targetChapterIndex != null &&
+          targetChapterIndex >= 0 &&
+          targetChapterIndex < _chapterContent.length) {
+        // Navigate to the chapter using page flip animation
+        _jumpToChapter(targetChapterIndex);
+
+        // Show feedback
+        final chapterTitle = _chapterTitles.isNotEmpty && targetChapterIndex < _chapterTitles.length
+            ? _chapterTitles[targetChapterIndex]
+            : 'Chapter ${targetChapterIndex + 1}';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('📖 Jumped to: $chapterTitle'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        print('✅ Successfully navigated to chapter $targetChapterIndex');
+      } else {
+        print('❌ Chapter not found for filename: $filename');
+        print('Available filenames: ${_filenameToChapterIndex.keys.join(", ")}');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not find linked chapter: $filename'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error handling link: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error following link'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _saveReadingProgressImmediate() async {
@@ -1019,6 +1300,37 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           letterSpacing: letterSpacing ?? _letterSpacing,
         );
       }
+    }
+  }
+
+  // Helper methods to convert TextAlign to/from String for SharedPreferences
+  String _textAlignToString(TextAlign align) {
+    switch (align) {
+      case TextAlign.left:
+        return 'left';
+      case TextAlign.right:
+        return 'right';
+      case TextAlign.center:
+        return 'center';
+      case TextAlign.justify:
+        return 'justify';
+      default:
+        return 'left';
+    }
+  }
+
+  TextAlign _parseTextAlign(String alignString) {
+    switch (alignString) {
+      case 'left':
+        return TextAlign.left;
+      case 'right':
+        return TextAlign.right;
+      case 'center':
+        return TextAlign.center;
+      case 'justify':
+        return TextAlign.justify;
+      default:
+        return TextAlign.left;
     }
   }
 
@@ -1095,6 +1407,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
               _isTtsPaused = false;
               _isReadingChunks = false;
               _currentChunkIndex = 0;
+              _highlightedTextSpans.clear(); // Clear highlighting when finished
             });
 
             // Show completion message
@@ -1115,6 +1428,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           setState(() {
             _isTtsPlaying = false;
             _isTtsPaused = false;
+            _highlightedTextSpans.clear(); // Clear highlighting when cancelled
           });
         }
       });
@@ -1145,6 +1459,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           setState(() {
             _isTtsPlaying = false;
             _isTtsPaused = false;
+            _highlightedTextSpans.clear(); // Clear highlighting on error
           });
 
           String errorMessage = 'Text-to-Speech Error';
@@ -1359,6 +1674,10 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     try {
       final chunk = _textChunks[_currentChunkIndex];
       print('TTS: Speaking chunk ${_currentChunkIndex + 1}/${_textChunks.length}');
+
+      // Update highlighting to show current chunk
+      _updateTextHighlighting();
+
       await _flutterTts!.speak(chunk);
     } catch (e) {
       print('TTS: Error speaking chunk: $e');
@@ -1415,6 +1734,12 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     if (_flutterTts != null && _isTtsPlaying) {
       try {
         await _flutterTts!.pause();
+
+        // Keep highlighting visible when paused
+        // setState(() {
+        //   _highlightedTextSpans.clear();
+        // });
+
         print('TTS: Paused reading');
       } catch (e) {
         print('TTS: Error pausing: $e');
@@ -1425,6 +1750,9 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   Future<void> _resumeTtsReading() async {
     if (_flutterTts != null && _isTtsPaused) {
       try {
+        // Update highlighting before resuming
+        _updateTextHighlighting();
+
         // For some TTS engines, we need to speak again instead of resume
         if (_isReadingChunks && _currentChunkIndex < _textChunks.length) {
           await _speakCurrentChunk();
@@ -1455,8 +1783,8 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     }
 
     // Prepare text chunks from current chapter
-    final currentContent = _chapterContent[_currentChapterIndex] ?? '';
-    if (currentContent.isEmpty) {
+    final currentHtmlContent = _chapterContent[_currentChapterIndex] ?? '';
+    if (currentHtmlContent.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('No text available to read'),
@@ -1466,8 +1794,20 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       return;
     }
 
+    // Extract plain text from HTML for TTS
+    final plainText = _extractPlainTextFromHtml(currentHtmlContent);
+    if (plainText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No readable text found in chapter'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     // Split content into chunks (by sentences or paragraphs)
-    _textChunks = _splitTextIntoChunks(currentContent);
+    _textChunks = _splitTextIntoChunks(plainText);
     _currentChunkIndex = 0;
 
     setState(() {
@@ -1491,6 +1831,7 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           _isTtsPaused = false;
           _isReadingChunks = false;
           _currentChunkIndex = 0;
+          _highlightedTextSpans.clear(); // Clear highlighting when stopping
         });
 
         print('TTS: Stopped reading');
@@ -1498,6 +1839,114 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
         print('TTS: Error stopping: $e');
       }
     }
+  }
+
+  // Method to update text highlighting for current chunk being read
+  void _updateTextHighlighting() {
+    if (!_isReadingChunks || _textChunks.isEmpty || _currentChunkIndex >= _textChunks.length) {
+      setState(() {
+        _highlightedTextSpans.clear();
+      });
+      return;
+    }
+
+    // Get the full text content
+    final currentHtmlContent = _chapterContent[_currentChapterIndex] ?? '';
+    final plainText = _extractPlainTextFromHtml(currentHtmlContent);
+
+    if (plainText.isEmpty) {
+      return;
+    }
+
+    // Create text spans with highlighting for current chunk
+    List<TextSpan> spans = [];
+
+    // Build the full text by iterating through chunks and marking the current one
+    int textPosition = 0;
+
+    for (int i = 0; i < _textChunks.length; i++) {
+      final chunk = _textChunks[i].trim();
+      if (chunk.isEmpty) continue;
+
+      // Find the chunk in the remaining text
+      final searchStart = textPosition;
+      final chunkIndex = plainText.indexOf(chunk, searchStart);
+
+      if (chunkIndex >= 0) {
+        // Add any text before this chunk (if not already added)
+        if (chunkIndex > textPosition) {
+          final beforeText = plainText.substring(textPosition, chunkIndex);
+          if (beforeText.trim().isNotEmpty) {
+            spans.add(TextSpan(
+              text: beforeText,
+              style: _getTextStyle(fontSize: _fontSize),
+            ));
+          }
+        }
+
+        // Add the chunk with highlighting if it's the current one being read
+        if (i == _currentChunkIndex) {
+          spans.add(TextSpan(
+            text: chunk,
+            style: _getTextStyle(
+              fontSize: _fontSize,
+              color: _isDarkTheme ? Colors.black : Colors.white,
+            ).copyWith(
+              backgroundColor: _isDarkTheme ? Colors.yellow.shade400 : Colors.orange.shade300,
+              fontWeight: FontWeight.w600,
+              height: 1.8, // Increased line height for better visibility
+            ),
+          ));
+        } else {
+          spans.add(TextSpan(
+            text: chunk,
+            style: _getTextStyle(fontSize: _fontSize),
+          ));
+        }
+
+        textPosition = chunkIndex + chunk.length;
+      } else {
+        // If chunk not found, skip it
+        print('TTS: Warning - chunk $i not found in text');
+      }
+    }
+
+    // Add any remaining text after all chunks
+    if (textPosition < plainText.length) {
+      final remainingText = plainText.substring(textPosition);
+      if (remainingText.trim().isNotEmpty) {
+        spans.add(TextSpan(
+          text: remainingText,
+          style: _getTextStyle(fontSize: _fontSize),
+        ));
+      }
+    }
+
+    // If we couldn't build proper spans, fall back to simple highlighting
+    if (spans.isEmpty && _currentChunkIndex < _textChunks.length) {
+      final currentChunk = _textChunks[_currentChunkIndex];
+      spans = [
+        TextSpan(
+          text: plainText,
+          style: _getTextStyle(fontSize: _fontSize),
+          children: [
+            TextSpan(
+              text: '\n\n[Currently reading: ${currentChunk.substring(0, math.min(50, currentChunk.length))}...]',
+              style: _getTextStyle(
+                fontSize: _fontSize * 0.9,
+                color: _isDarkTheme ? Colors.yellow : Colors.orange,
+              ).copyWith(
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ];
+    }
+
+    setState(() {
+      _highlightedTextSpans = spans;
+    });
   }
 
   void _nextTtsChunk() {
@@ -1586,19 +2035,55 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: _backgroundColor,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                color: _isDarkTheme ? Colors.orange : Colors.blue,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Loading EPUB...',
-                style: _getTextStyle(fontSize: 16, color: _textColor),
-              ),
-            ],
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: _isDarkTheme
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.grey.shade900, Colors.grey.shade800, Colors.black],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.deepOrange.shade50, Colors.orange.shade50, Colors.white],
+                  ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: _isDarkTheme ? Colors.grey[850] : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Loading EPUB...',
+                        style: _getTextStyle(fontSize: 16, color: _textColor),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -1608,46 +2093,109 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       return Scaffold(
         backgroundColor: _backgroundColor,
         appBar: AppBar(
-          backgroundColor: _backgroundColor,
+          backgroundColor: Colors.transparent,
           elevation: 0,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: _isDarkTheme
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.grey.shade900, Colors.grey.shade800],
+                    )
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.deepOrange.shade100.withOpacity(0.9),
+                        Colors.orange.shade50.withOpacity(0.9),
+                      ],
+                    ),
+            ),
+          ),
           iconTheme: IconThemeData(color: _textColor),
           title: Text(
             'Error',
             style: _getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: Colors.red,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Failed to load book',
-                  style: _getTextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: _isDarkTheme
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.grey.shade900, Colors.grey.shade800, Colors.black],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.deepOrange.shade50, Colors.orange.shade50, Colors.white],
                   ),
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: _isDarkTheme ? Colors.grey[850] : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  _error,
-                  textAlign: TextAlign.center,
-                  style: _getTextStyle(fontSize: 14, color: _textColor.withAlpha((0.7 * 255).round())),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Failed to load book',
+                      style: _getTextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _error,
+                      textAlign: TextAlign.center,
+                      style: _getTextStyle(fontSize: 14, color: _textColor.withAlpha((0.7 * 255).round())),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 4,
+                      ),
+                      child: const Text('Go Back', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text('Go Back'),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -1854,30 +2402,127 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
   }
 
   // Separate method for building the actual text widget
-  Widget _buildTextWidget(String content) {
+  Widget _buildTextWidget(String htmlContent) {
     // Use a stable key that doesn't change during TTS playback
-    const stableKey = ValueKey('stable_text_content');
+    const stableKey = ValueKey('stable_html_content');
 
-    // Check if we have TTS highlighting active
-    if (_highlightedTextSpans.isNotEmpty && _isTtsPlaying) {
-      return RichText(
-        key: stableKey,
-        text: TextSpan(children: _highlightedTextSpans),
-        textAlign: TextAlign.justify,
-        softWrap: true,
-        overflow: TextOverflow.visible,
+    // Check if we have TTS highlighting active (show during both playing and paused states)
+    if (_highlightedTextSpans.isNotEmpty && (_isTtsPlaying || _isTtsPaused)) {
+      // For TTS, we still use SelectableText.rich for highlighting
+      return SelectableText.rich(
+        TextSpan(children: _highlightedTextSpans),
+        key: ValueKey('tts_highlighted_content'),
+        textAlign: _textAlign,
+        style: _getTextStyle(fontSize: _fontSize),
       );
     }
 
-    // Regular text rendering with stable key
-    return Text(
-      content,
+    // Regular HTML rendering with proper formatting preserved
+    return Html(
       key: stableKey,
-      style: _getTextStyle(fontSize: _fontSize),
-      textAlign: TextAlign.justify,
-      softWrap: true,
-      overflow: TextOverflow.visible,
+      data: htmlContent,
+      style: {
+        // Apply user's font settings to all text
+        "body": Style(
+          fontSize: FontSize(_fontSize),
+          color: _textColor,
+          lineHeight: LineHeight(_lineHeight),
+          fontFamily: _getFontFamily(),
+          letterSpacing: _letterSpacing,
+          wordSpacing: _wordSpacing,
+          textAlign: _getTextAlignForHtml(),
+          padding: HtmlPaddings.zero,
+          margin: Margins.zero,
+        ),
+        "p": Style(
+          margin: Margins(bottom: Margin(_fontSize * 0.8)),
+          textAlign: _getTextAlignForHtml(),
+        ),
+        "h1": Style(
+          fontSize: FontSize(_fontSize * 1.8),
+          fontWeight: FontWeight.bold,
+          margin: Margins(top: Margin(_fontSize), bottom: Margin(_fontSize * 0.5)),
+        ),
+        "h2": Style(
+          fontSize: FontSize(_fontSize * 1.6),
+          fontWeight: FontWeight.bold,
+          margin: Margins(top: Margin(_fontSize * 0.8), bottom: Margin(_fontSize * 0.4)),
+        ),
+        "h3": Style(
+          fontSize: FontSize(_fontSize * 1.4),
+          fontWeight: FontWeight.bold,
+          margin: Margins(top: Margin(_fontSize * 0.6), bottom: Margin(_fontSize * 0.3)),
+        ),
+        "h4": Style(
+          fontSize: FontSize(_fontSize * 1.2),
+          fontWeight: FontWeight.bold,
+        ),
+        "h5": Style(
+          fontSize: FontSize(_fontSize * 1.1),
+          fontWeight: FontWeight.bold,
+        ),
+        "h6": Style(
+          fontSize: FontSize(_fontSize),
+          fontWeight: FontWeight.bold,
+        ),
+        "em": Style(fontStyle: FontStyle.italic),
+        "i": Style(fontStyle: FontStyle.italic),
+        "strong": Style(fontWeight: FontWeight.bold),
+        "b": Style(fontWeight: FontWeight.bold),
+        "a": Style(
+          color: _isDarkTheme ? Colors.lightBlue.shade300 : Colors.blue.shade700,
+          textDecoration: TextDecoration.underline,
+        ),
+        "blockquote": Style(
+          margin: Margins(left: Margin(_fontSize), right: Margin(_fontSize)),
+          padding: HtmlPaddings.only(left: _fontSize * 0.8),
+          border: Border(left: BorderSide(color: _textColor.withOpacity(0.3), width: 3)),
+          fontStyle: FontStyle.italic,
+        ),
+        "code": Style(
+          fontFamily: 'monospace',
+          backgroundColor: _textColor.withOpacity(0.1),
+          padding: HtmlPaddings.symmetric(horizontal: 4, vertical: 2),
+        ),
+        "pre": Style(
+          fontFamily: 'monospace',
+          backgroundColor: _textColor.withOpacity(0.05),
+          padding: HtmlPaddings.all(_fontSize * 0.8),
+          margin: Margins(top: Margin(_fontSize * 0.5), bottom: Margin(_fontSize * 0.5)),
+        ),
+        "ul": Style(
+          margin: Margins(left: Margin(_fontSize * 1.5)),
+          padding: HtmlPaddings.zero,
+        ),
+        "ol": Style(
+          margin: Margins(left: Margin(_fontSize * 1.5)),
+          padding: HtmlPaddings.zero,
+        ),
+        "li": Style(
+          margin: Margins(bottom: Margin(_fontSize * 0.3)),
+        ),
+      },
+      // Handle link taps for internal EPUB navigation
+      onLinkTap: (url, attributes, element) {
+        _handleLinkTap(url);
+      },
     );
+  }
+
+  // Helper method to get text align for Html widget
+  TextAlign _getTextAlignForHtml() {
+    return _textAlign;
+  }
+
+  // Helper method to get font family string
+  String? _getFontFamily() {
+    final fontOption = _fontOptions[_fontFamily];
+    if (fontOption == null || fontOption['isSystemFont'] == true) {
+      return fontOption?['fontFamily'];
+    } else {
+      // For Google Fonts, return the family name
+      return fontOption['fontFamily'];
+    }
   }
 
   Widget _buildTtsControlsPanel() {
@@ -1885,14 +2530,31 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
+          gradient: _isDarkTheme
+              ? LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.grey.shade800.withOpacity(0.95), Colors.grey.shade900.withOpacity(0.95)],
+                )
+              : LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.white.withOpacity(0.95), Colors.grey.shade50.withOpacity(0.95)],
+                ),
           border: Border(top: BorderSide(color: _textColor.withAlpha((0.1 * 255).round()))),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((0.15 * 255).round()),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.info_outline, color: _textColor.withAlpha((0.7 * 255).round()), size: 20),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text('TTS is initializing...', style: _getTextStyle(fontSize: 14)),
           ],
         ),
@@ -1902,13 +2564,23 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
+        gradient: _isDarkTheme
+            ? LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.grey.shade800.withOpacity(0.95), Colors.grey.shade900.withOpacity(0.95)],
+              )
+            : LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.white.withOpacity(0.95), Colors.grey.shade50.withOpacity(0.95)],
+              ),
         border: Border(top: BorderSide(color: _textColor.withAlpha((0.1 * 255).round()))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha((0.1 * 255).round()),
-            blurRadius: 4,
-            offset: Offset(0, -2),
+            color: Colors.black.withAlpha((0.15 * 255).round()),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -1917,16 +2589,46 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
         children: [
           // TTS Status and Progress
           if (_isReadingChunks && _textChunks.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: _isDarkTheme
+                      ? [Colors.orange.shade900.withOpacity(0.3), Colors.orange.shade800.withOpacity(0.2)]
+                      : [Colors.deepOrange.shade50, Colors.orange.shade50],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
               child: Row(
                 children: [
-                  Icon(Icons.volume_up, color: _textColor, size: 16),
-                  SizedBox(width: 8),
+                  Icon(Icons.volume_up, color: _isDarkTheme ? Colors.orange : Colors.deepOrange, size: 18),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      'Reading ${_currentChunkIndex + 1} of ${_textChunks.length} segments',
-                      style: _getTextStyle(fontSize: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Reading ${_currentChunkIndex + 1} of ${_textChunks.length} segments',
+                          style: _getTextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 4),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: (_currentChunkIndex + 1) / _textChunks.length,
+                            backgroundColor: _textColor.withOpacity(0.1),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                            ),
+                            minHeight: 4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1938,49 +2640,71 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               // Previous chunk
-              IconButton(
-                icon: Icon(Icons.skip_previous, color: _textColor),
+              _buildTtsIconButton(
+                icon: Icons.skip_previous,
                 onPressed: _isReadingChunks ? _previousTtsChunk : null,
                 tooltip: 'Previous segment',
               ),
 
               // Play/Pause button
-              IconButton(
-                icon: Icon(
-                  _isTtsPlaying ? Icons.pause_circle_filled :
-                  _isTtsPaused ? Icons.play_circle_filled : Icons.play_circle_outline,
-                  color: _isTtsPlaying ? Colors.orange : _textColor,
-                  size: 32,
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: _isTtsPlaying
+                      ? LinearGradient(
+                          colors: _isDarkTheme
+                              ? [Colors.orange.shade700, Colors.orange.shade900]
+                              : [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
+                        )
+                      : null,
+                  boxShadow: _isTtsPlaying
+                      ? [
+                          BoxShadow(
+                            color: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
                 ),
-                onPressed: () {
-                  if (_isTtsPlaying) {
-                    _pauseTtsReading();
-                  } else if (_isTtsPaused) {
-                    _resumeTtsReading();
-                  } else {
-                    _startTtsReading();
-                  }
-                },
-                tooltip: _isTtsPlaying ? 'Pause' : 'Play',
+                child: IconButton(
+                  icon: Icon(
+                    _isTtsPlaying ? Icons.pause_circle_filled :
+                    _isTtsPaused ? Icons.play_circle_filled : Icons.play_circle_outline,
+                    color: _isTtsPlaying ? Colors.white : (_isDarkTheme ? Colors.orange : Colors.deepOrange),
+                    size: 40,
+                  ),
+                  onPressed: () {
+                    if (_isTtsPlaying) {
+                      _pauseTtsReading();
+                    } else if (_isTtsPaused) {
+                      _resumeTtsReading();
+                    } else {
+                      _startTtsReading();
+                    }
+                  },
+                  tooltip: _isTtsPlaying ? 'Pause' : 'Play',
+                ),
               ),
 
               // Stop button
-              IconButton(
-                icon: Icon(Icons.stop_circle, color: Colors.red),
+              _buildTtsIconButton(
+                icon: Icons.stop_circle,
                 onPressed: _isTtsPlaying || _isTtsPaused ? _stopTtsReading : null,
                 tooltip: 'Stop',
+                color: Colors.red,
               ),
 
               // Next chunk
-              IconButton(
-                icon: Icon(Icons.skip_next, color: _textColor),
+              _buildTtsIconButton(
+                icon: Icons.skip_next,
                 onPressed: _isReadingChunks ? _nextTtsChunk : null,
                 tooltip: 'Next segment',
               ),
 
               // Hide TTS controls
-              IconButton(
-                icon: Icon(Icons.keyboard_arrow_down, color: _textColor),
+              _buildTtsIconButton(
+                icon: Icons.keyboard_arrow_down,
                 onPressed: () {
                   setState(() {
                     _showTtsControls = false;
@@ -1995,10 +2719,35 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     );
   }
 
+  // Helper method to build TTS icon buttons with consistent styling
+  Widget _buildTtsIconButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+    required String tooltip,
+    Color? color,
+  }) {
+    final buttonColor = color ?? (_isDarkTheme ? Colors.orange : Colors.deepOrange);
+    return Container(
+      decoration: BoxDecoration(
+        color: onPressed != null ? buttonColor.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: onPressed != null ? buttonColor.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: onPressed != null ? buttonColor : Colors.grey),
+        onPressed: onPressed,
+        tooltip: tooltip,
+      ),
+    );
+  }
+
   Widget _buildControlsOverlay() {
     return Column(
       children: [
-        // Top controls
+        // Top controls with gradient
         Container(
           padding: EdgeInsets.only(
             top: MediaQuery.of(context).padding.top + 8,
@@ -2007,21 +2756,38 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
             bottom: 8,
           ),
           decoration: BoxDecoration(
-            color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
+            gradient: _isDarkTheme
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.grey.shade900.withOpacity(0.95), Colors.grey.shade800.withOpacity(0.95)],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white.withOpacity(0.95), Colors.white.withOpacity(0.90)],
+                  ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha((0.1 * 255).round()),
-                blurRadius: 4,
-                offset: Offset(0, 2),
+                color: Colors.black.withAlpha((0.15 * 255).round()),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Row(
             children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back, color: _textColor),
-                onPressed: () => Navigator.of(context).pop(),
+              Container(
+                decoration: BoxDecoration(
+                  color: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back, color: _isDarkTheme ? Colors.orange : Colors.deepOrange),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   widget.book.title,
@@ -2058,18 +2824,29 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
 
         Spacer(),
 
-        // Bottom controls
+        // Bottom controls with gradient
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: (_isDarkTheme ? Colors.grey[900] : Colors.white)?.withAlpha((0.95 * 255).round()),
+            gradient: _isDarkTheme
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.grey.shade800.withOpacity(0.95), Colors.grey.shade900.withOpacity(0.95)],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white.withOpacity(0.90), Colors.white.withOpacity(0.95)],
+                  ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha((0.1 * 255).round()),
-                blurRadius: 4,
-                offset: Offset(0, -2),
+                color: Colors.black.withAlpha((0.15 * 255).round()),
+                blurRadius: 12,
+                offset: const Offset(0, -4),
               ),
             ],
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -2078,24 +2855,24 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.record_voice_over, color: _textColor),
+                  _buildControlButton(
+                    icon: Icons.record_voice_over,
+                    label: 'TTS',
                     onPressed: () {
                       setState(() {
                         _showTtsControls = !_showTtsControls;
                       });
                     },
-                    tooltip: 'Text-to-Speech',
                   ),
-                  IconButton(
-                    icon: Icon(Icons.list, color: _textColor),
+                  _buildControlButton(
+                    icon: Icons.list,
+                    label: 'Contents',
                     onPressed: _showTableOfContents,
-                    tooltip: 'Table of Contents',
                   ),
-                  IconButton(
-                    icon: Icon(Icons.bookmarks, color: _textColor),
+                  _buildControlButton(
+                    icon: Icons.bookmarks,
+                    label: 'Bookmarks',
                     onPressed: _showBookmarks,
-                    tooltip: 'Bookmarks',
                   ),
                 ],
               ),
@@ -2113,6 +2890,11 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.grey[300],
                         foregroundColor: _textColor,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
@@ -2134,6 +2916,11 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isDarkTheme ? Colors.grey[700] : Colors.grey[300],
                         foregroundColor: _textColor,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
@@ -2145,17 +2932,33 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
               if (_chapterContent.isNotEmpty)
                 Column(
                   children: [
-                    LinearProgressIndicator(
-                      value: (_currentChapterIndex + 1) / _chapterContent.length,
-                      backgroundColor: _textColor.withAlpha((0.2 * 255).round()),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _isDarkTheme ? Colors.orange : Colors.blue,
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          value: (_currentChapterIndex + 1) / _chapterContent.length,
+                          backgroundColor: _textColor.withAlpha((0.2 * 255).round()),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                          ),
+                          minHeight: 8,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Text(
                       '${((_currentChapterIndex + 1) / _chapterContent.length * 100).round()}% complete',
-                      style: _getTextStyle(fontSize: 12),
+                      style: _getTextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -2166,181 +2969,384 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
     );
   }
 
+  // Helper method to build control buttons with consistent styling
+  Widget _buildControlButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: IconButton(
+            icon: Icon(icon, color: _isDarkTheme ? Colors.orange : Colors.deepOrange),
+            onPressed: onPressed,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: _getTextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSettingsPanel() {
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withAlpha((0.5 * 255).round()),
+        color: Colors.black.withAlpha((0.6 * 255).round()),
         child: Center(
           child: Container(
             margin: const EdgeInsets.all(20),
-            padding: const EdgeInsets.all(20),
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
             decoration: BoxDecoration(
               color: _backgroundColor,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withAlpha((0.3 * 255).round()),
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with gradient
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: _isDarkTheme
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Colors.orange.shade800, Colors.orange.shade900],
+                          )
+                        : LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
+                          ),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: Row(
                     children: [
-                      Icon(Icons.settings, color: _textColor),
+                      const Icon(Icons.settings, color: Colors.white, size: 28),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Reading Settings',
-                          style: _getTextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: _textColor),
-                        onPressed: () {
-                          setState(() {
-                            _showSettings = false;
-                          });
-                        },
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () {
+                            setState(() {
+                              _showSettings = false;
+                            });
+                          },
+                        ),
                       ),
                     ],
                   ),
+                ),
 
-                  const SizedBox(height: 20),
+                // Scrollable content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Theme selection
+                        Text(
+                          'Theme',
+                          style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: _themePresets.entries.map((entry) {
+                            final themeName = entry.key;
+                            final themeData = entry.value;
+                            final isSelected = _currentTheme == themeName;
 
-                  // Theme selection
-                  Text(
-                    'Theme',
-                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _themePresets.entries.map((entry) {
-                      final themeName = entry.key;
-                      final themeData = entry.value;
-                      final isSelected = _currentTheme == themeName;
+                            return GestureDetector(
+                              onTap: () => _applyTheme(themeName),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: themeData['backgroundColor'] as Color,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? (_isDarkTheme ? Colors.orange : Colors.deepOrange)
+                                        : Colors.grey.shade400,
+                                    width: isSelected ? 3 : 1,
+                                  ),
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.4),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ]
+                                      : [],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isSelected)
+                                      Icon(
+                                        Icons.check_circle,
+                                        size: 18,
+                                        color: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                                      ),
+                                    if (isSelected) const SizedBox(width: 6),
+                                    Text(
+                                      themeData['name'] as String,
+                                      style: TextStyle(
+                                        color: themeData['textColor'] as Color,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
 
-                      return GestureDetector(
-                        onTap: () => _applyTheme(themeName),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: themeData['backgroundColor'] as Color,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isSelected ? Colors.blue : Colors.grey,
-                              width: isSelected ? 2 : 1,
+                        const SizedBox(height: 24),
+                        const Divider(),
+                        const SizedBox(height: 16),
+
+                        // Font size
+                        _buildSettingCard(
+                          title: 'Font Size',
+                          value: '${_fontSize.round()}px',
+                          child: SliderTheme(
+                            data: SliderThemeData(
+                              activeTrackColor: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                              inactiveTrackColor: _textColor.withOpacity(0.2),
+                              thumbColor: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                              overlayColor: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.2),
+                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
                             ),
-                          ),
-                          child: Text(
-                            themeData['name'] as String,
-                            style: TextStyle(
-                              color: themeData['textColor'] as Color,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            child: Slider(
+                              value: _fontSize,
+                              min: 12,
+                              max: 32,
+                              divisions: 20,
+                              onChanged: (value) {
+                                setState(() {
+                                  _fontSize = value;
+                                });
+                              },
+                              onChangeEnd: (value) => _saveSettings(),
                             ),
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
 
-                  const SizedBox(height: 20),
+                        const SizedBox(height: 16),
 
-                  // Font size
-                  Text(
-                    'Font Size: ${_fontSize.round()}px',
-                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  Slider(
-                    value: _fontSize,
-                    min: 12,
-                    max: 32,
-                    divisions: 20,
-                    onChanged: (value) {
-                      setState(() {
-                        _fontSize = value;
-                      });
-                    },
-                    onChangeEnd: (value) => _saveSettings(),
-                  ),
+                        // Font family
+                        _buildSettingCard(
+                          title: 'Font Family',
+                          child: DropdownButtonFormField<String>(
+                            value: _fontFamily,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _textColor.withOpacity(0.3)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                            items: _fontOptions.keys.map((fontName) {
+                              return DropdownMenuItem(
+                                value: fontName,
+                                child: Text(fontName, style: _getTextStyle(fontSize: 14)),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _fontFamily = value;
+                                });
+                                _saveSettings();
+                              }
+                            },
+                          ),
+                        ),
 
-                  const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                  // Font family
-                  Text(
-                    'Font Family',
-                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _fontFamily,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: _fontOptions.keys.map((fontName) {
-                      return DropdownMenuItem(
-                        value: fontName,
-                        child: Text(fontName, style: _getTextStyle(fontSize: 14)),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _fontFamily = value;
-                        });
-                        _saveSettings();
-                      }
-                    },
-                  ),
+                        // Line height
+                        _buildSettingCard(
+                          title: 'Line Height',
+                          value: _lineHeight.toStringAsFixed(1),
+                          child: SliderTheme(
+                            data: SliderThemeData(
+                              activeTrackColor: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                              inactiveTrackColor: _textColor.withOpacity(0.2),
+                              thumbColor: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                              overlayColor: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.2),
+                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                            ),
+                            child: Slider(
+                              value: _lineHeight,
+                              min: 1.0,
+                              max: 2.5,
+                              divisions: 15,
+                              onChanged: (value) {
+                                setState(() {
+                                  _lineHeight = value;
+                                });
+                              },
+                              onChangeEnd: (value) => _saveSettings(),
+                            ),
+                          ),
+                        ),
 
-                  const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                  // Line height
-                  Text(
-                    'Line Height: ${_lineHeight.toStringAsFixed(1)}',
-                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  Slider(
-                    value: _lineHeight,
-                    min: 1.0,
-                    max: 2.5,
-                    divisions: 15,
-                    onChanged: (value) {
-                      setState(() {
-                        _lineHeight = value;
-                      });
-                    },
-                    onChangeEnd: (value) => _saveSettings(),
-                  ),
+                        // Brightness
+                        _buildSettingCard(
+                          title: 'Brightness',
+                          value: '${(_brightness * 100).round()}%',
+                          child: SliderTheme(
+                            data: SliderThemeData(
+                              activeTrackColor: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                              inactiveTrackColor: _textColor.withOpacity(0.2),
+                              thumbColor: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                              overlayColor: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.2),
+                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                            ),
+                            child: Slider(
+                              value: _brightness,
+                              min: 0.3,
+                              max: 1.0,
+                              onChanged: (value) {
+                                setState(() {
+                                  _brightness = value;
+                                });
+                              },
+                              onChangeEnd: (value) => _saveSettings(),
+                            ),
+                          ),
+                        ),
 
-                  const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                  // Brightness
-                  Text(
-                    'Brightness: ${(_brightness * 100).round()}%',
-                    style: _getTextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  Slider(
-                    value: _brightness,
-                    min: 0.3,
-                    max: 1.0,
-                    onChanged: (value) {
-                      setState(() {
-                        _brightness = value;
-                      });
-                    },
-                    onChangeEnd: (value) => _saveSettings(),
-                  ),
+                        // Text Alignment
+                        _buildSettingCard(
+                          title: 'Text Alignment',
+                          child: DropdownButtonFormField<TextAlign>(
+                            value: _textAlign,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _textColor.withOpacity(0.3)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: TextAlign.left,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.format_align_left, size: 18, color: _textColor),
+                                    const SizedBox(width: 8),
+                                    Text('Left', style: _getTextStyle(fontSize: 14)),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: TextAlign.center,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.format_align_center, size: 18, color: _textColor),
+                                    const SizedBox(width: 8),
+                                    Text('Center', style: _getTextStyle(fontSize: 14)),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: TextAlign.right,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.format_align_right, size: 18, color: _textColor),
+                                    const SizedBox(width: 8),
+                                    Text('Right', style: _getTextStyle(fontSize: 14)),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: TextAlign.justify,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.format_align_justify, size: 18, color: _textColor),
+                                    const SizedBox(width: 8),
+                                    Text('Justify', style: _getTextStyle(fontSize: 14)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _textAlign = value;
+                                });
+                                _saveSettings();
+                              }
+                            },
+                          ),
+                        ),
 
-                  const SizedBox(height: 24),
+                        const SizedBox(height: 24),
+                        const Divider(),
+                        const SizedBox(height: 16),
 
                   // TTS Settings Section
                   Container(
@@ -2551,9 +3557,13 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
               ),
             ),
           ),
-        ),
-      ),);
-  }
+        ],
+      ),
+    ),
+      ),
+    ),
+  );
+}
 
   Widget _buildSearchResults() {
     return Positioned.fill(
@@ -2675,6 +3685,57 @@ class _EpubReaderPageState extends State<EpubReaderPage> {
           ),
         ),
       ));
+  }
+
+  // Helper method to build setting cards with consistent styling
+  Widget _buildSettingCard({
+    required String title,
+    String? value,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: (_isDarkTheme ? Colors.grey[800] : Colors.grey[50])?.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _textColor.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: _getTextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              if (value != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (_isDarkTheme ? Colors.orange : Colors.deepOrange).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    value,
+                    style: _getTextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _isDarkTheme ? Colors.orange : Colors.deepOrange,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
   }
 }
 
