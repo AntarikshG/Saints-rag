@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:epubx/epubx.dart';
 import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'config_service.dart';
 
 class Book {
   final int? id;
@@ -160,6 +161,11 @@ class BookService {
   static Database? _database;
   static const String _databaseName = 'books.db';
   static const int _databaseVersion = 1;
+
+  // Cache keys for books metadata from config
+  static const String _cacheDataKey = 'cached_books_metadata';
+  static const String _lastFetchKey = 'last_books_fetch';
+  static List<BookMetadata>? _cachedBooksMetadata;
 
   // Streams to notify UI of sample-download state and progress
   static final StreamController<bool> _sampleDownloadInProgressController = StreamController<bool>.broadcast();
@@ -428,6 +434,88 @@ class BookService {
       orderBy: 'lastRead DESC, dateAdded DESC',
     );
     return List.generate(maps.length, (i) => Book.fromMap(maps[i]));
+  }
+
+  // NEW: Get books metadata from config (similar to MeditationService)
+  static Future<List<BookMetadata>> getBooksMetadataFromConfig() async {
+    if (_cachedBooksMetadata != null && _cachedBooksMetadata!.isNotEmpty) {
+      return _cachedBooksMetadata!;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString(_cacheDataKey);
+      final lastFetch = prefs.getString(_lastFetchKey);
+
+      // Use cached data if less than 7 days old
+      if (cachedData != null && lastFetch != null) {
+        final lastFetchDate = DateTime.parse(lastFetch);
+        final daysSinceLastFetch = DateTime.now().difference(lastFetchDate).inDays;
+
+        if (daysSinceLastFetch < 7) {
+          final List<dynamic> dataList = json.decode(cachedData);
+          _cachedBooksMetadata = dataList.map((json) => BookMetadata.fromJson(json)).toList();
+          print('[BookService] Loaded ${_cachedBooksMetadata!.length} books from cache');
+          return _cachedBooksMetadata!;
+        }
+      }
+
+      // Fetch fresh data from config
+      print('[BookService] Fetching books metadata from config...');
+      final config = await ConfigService.fetchConfig();
+
+      if (config.booksData.isNotEmpty) {
+        _cachedBooksMetadata = config.booksData;
+
+        // Cache the data
+        final jsonData = json.encode(_cachedBooksMetadata!.map((m) => m.toJson()).toList());
+        await prefs.setString(_cacheDataKey, jsonData);
+        await prefs.setString(_lastFetchKey, DateTime.now().toIso8601String());
+
+        print('[BookService] Loaded ${_cachedBooksMetadata!.length} books from config');
+        return _cachedBooksMetadata!;
+      } else {
+        print('[BookService] No books_data in config, using fallback');
+        // Fallback to hardcoded data if config doesn't have books_data
+        return _getFallbackBooksMetadata();
+      }
+    } catch (e) {
+      print('[BookService] Error fetching books metadata: $e');
+      // Return fallback data on error
+      return _getFallbackBooksMetadata();
+    }
+  }
+
+  // Fallback to hardcoded books if config is not available
+  static List<BookMetadata> _getFallbackBooksMetadata() {
+    return _sampleBooksData.map((bookData) => BookMetadata(
+      id: bookData['title']!.toLowerCase().replaceAll(' ', '-'),
+      title: bookData['title']!,
+      author: bookData['author']!,
+      url: bookData['url']!,
+      category: 'general',
+      description: '',
+    )).toList();
+  }
+
+  // Clear books metadata cache (similar to MeditationService.clearCache)
+  static Future<void> clearBooksMetadataCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cacheDataKey);
+    await prefs.remove(_lastFetchKey);
+    _cachedBooksMetadata = null;
+    print('[BookService] Books metadata cache cleared');
+  }
+
+  // Check if a book is already downloaded by URL
+  static Future<bool> isBookDownloadedByUrl(String url) async {
+    final db = await database;
+    final result = await db.query(
+      'books',
+      where: 'filePath LIKE ?',
+      whereArgs: ['%${url.split('/').last}%'],
+    );
+    return result.isNotEmpty;
   }
 
   // Helper method to find author from sample books based on title or URL

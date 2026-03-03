@@ -86,6 +86,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chooseSpiritualGuide => 'अपना आध्यात्मिक गुरु चुनें';
 
   @override
+  String get saintsOfBharat => 'भारत के संत';
+
+  @override
   String get askDisclaimer =>
       'संतों की बुद्धि से आध्यात्मिक मार्गदर्शन प्राप्त करें। जीवन, आध्यात्म, और आंतरिक शांति पाने के बारे में प्रश्न पूछें।';
 
@@ -121,6 +124,33 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get hindi => 'हिंदी';
+
+  @override
+  String get german => 'जर्मन';
+
+  @override
+  String get kannada => 'कन्नड़';
+
+  @override
+  String get bengali => 'बांग्ला';
+
+  @override
+  String get odia => 'ओड़िया';
+
+  @override
+  String get sanskrit => 'संस्कृत';
+
+  @override
+  String get tamil => 'तमिल';
+
+  @override
+  String get telugu => 'तेलुगु';
+
+  @override
+  String get malayalam => 'मलयालम';
+
+  @override
+  String get marathi => 'मराठी';
 
   @override
   String get supportTextHi =>
@@ -279,4 +309,39 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get shareSubject => 'Saints Speak खोजें - आध्यात्मिक ज्ञान ऐप 🙏';
+
+  @override
+  String get notificationPermissionTitle => 'दैनिक आध्यात्मिक ज्ञान';
+
+  @override
+  String get notificationPermissionMessage =>
+      'संतों से प्रेरणादायक उद्धरण दिन में दो बार प्राप्त करें - सुबह एक बार ज्ञान के साथ अपना दिन शुरू करने के लिए, और शाम को एक बार आत्म-चिंतन के लिए।\n\n🌅 सुबह का ज्ञान आपके दिन का मार्गदर्शन करे\n🌙 शाम का चिंतन आंतरिक शांति के लिए\n\nयह सुविधा आपकी आध्यात्मिक यात्रा को समृद्ध करती है और अत्यधिक अनुशंसित है!';
+
+  @override
+  String get enableNotifications => 'सूचनाएं सक्षम करें';
+
+  @override
+  String get maybeLater => 'शायद बाद में';
+
+  @override
+  String get wisdomSharingTitle => '📖 ज्ञान साझा करें';
+
+  @override
+  String get wisdomSharingVivekanandaQuote =>
+      'सबसे बड़ा धर्म अपनी प्रकृति के प्रति सच्चे रहना है। अपने आप पर विश्वास रखें!';
+
+  @override
+  String get wisdomSharingMessage =>
+      'आप गहन आध्यात्मिक ज्ञान की खोज कर रहे हैं। क्या आप इस परिवर्तनकारी अनुभव को दूसरों के साथ साझा करना चाहेंगे?';
+
+  @override
+  String get wisdomSharingGyaanaDana =>
+      'ज्ञान साझा करना सेवा का सर्वोच्च रूप है (ज्ञान दान 📚)';
+
+  @override
+  String get wisdomSharingCallToAction =>
+      'दूसरों को इन कालजयी शिक्षाओं की खोज करने में मदद करें';
+
+  @override
+  String get wisdomSharingGotIt => 'समझ गया!';
 }

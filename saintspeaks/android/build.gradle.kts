@@ -2,6 +2,10 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // JitPack for FFmpeg Kit and other libraries
+        maven {
+            url = uri("https://jitpack.io")
+        }
     }
 }
 

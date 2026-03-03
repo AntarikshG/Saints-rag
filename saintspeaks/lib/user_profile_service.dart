@@ -61,6 +61,8 @@ class UserProfileService {
 
     final loc = AppLocalizations.of(context)!;
     final controller = TextEditingController();
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
 
     showDialog(
       context: context,
@@ -68,6 +70,7 @@ class UserProfileService {
       builder: (_) => PopScope(
         canPop: false, // Prevent back button dismiss
         child: AlertDialog(
+          backgroundColor: isDark ? Colors.grey.shade900 : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Column(
             children: [
@@ -75,7 +78,7 @@ class UserProfileService {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.deepOrange.shade50,
+                  color: isDark ? Colors.deepOrange.shade900.withOpacity(0.3) : Colors.deepOrange.shade50,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -90,6 +93,7 @@ class UserProfileService {
                 style: GoogleFonts.playfairDisplay(
                   fontWeight: FontWeight.bold,
                   fontSize: 22,
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -102,7 +106,7 @@ class UserProfileService {
                 'Help the spiritual saints personalize their wisdom just for you',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey.shade600,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -111,17 +115,27 @@ class UserProfileService {
                 controller: controller,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: loc.name,
+                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                   hintText: 'Enter your name',
+                  hintStyle: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400),
                   prefixIcon: Icon(Icons.person, color: Colors.deepOrange),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(color: Colors.deepOrange, width: 2),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
                 ),
               ),
             ],
@@ -134,7 +148,7 @@ class UserProfileService {
               },
               child: Text(
                 'Skip for now',
-                style: TextStyle(color: Colors.grey.shade600),
+                style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
               ),
             ),
             ElevatedButton(

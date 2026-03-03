@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'articlesquotes.dart';
+import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
+import 'articlesquotes_bn.dart';
+import 'articlesquotes_or.dart';
+import 'articlesquotes_de.dart';
+import 'articlesquotes_kn.dart';
+import 'articlesquotes_sa.dart';
+import 'articlesquotes_ta.dart';
+import 'articlesquotes_te.dart';
+import 'articlesquotes_ml.dart';
+import 'articlesquotes_mr.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,6 +33,7 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'meditation_service.dart';
 // Book reading imports
 import 'books_library.dart';
 import 'books_tab.dart';
@@ -28,12 +41,24 @@ import 'rating_share_service.dart';
 import 'ekadashi_service.dart';
 import 'ask_ai_page.dart';
 import 'user_profile_service.dart';
+import 'bookmarked_quotes_page.dart';
+import 'quote_of_the_day_page.dart';
+import 'spiritual_diary_page.dart';
+import 'notification_settings_page.dart';
+import 'badge_service.dart';
+import 'badge_widget.dart';
+import 'wisdom_sharing_service.dart';
+import 'app_version_service.dart';
+import 'all_saints_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Track app usage for rating/share service
   await RatingShareService.trackAppUsage();
+
+  // Initialize wisdom sharing service to track first use date
+  await WisdomSharingService.initializeFirstUseDate();
 
   // Configure system UI overlay style for edge-to-edge display
   SystemChrome.setSystemUIOverlayStyle(
@@ -76,12 +101,21 @@ class _ArticlePageState extends State<ArticlePage> {
   List<dynamic> _availableLanguages = [];
   List<dynamic> _availableVoices = [];
 
-  // Supported TTS languages map for Article
+  // Supported TTS languages map for Article - English, Hindi, Kannada, Sanskrit, German, Tamil, Telugu, Malayalam, and Marathi
   final Map<String, String> _supportedTtsLanguages = {
     'en-US': 'English (US)',
     'en-GB': 'English (UK)',
     'en-IN': 'English (India)',
     'hi-IN': 'Hindi (India)',
+    'kn-IN': 'Kannada (India)',
+    'sa-IN': 'Sanskrit (India)',
+    'ta-IN': 'Tamil (India)',
+    'te-IN': 'Telugu (India)',
+    'ml-IN': 'Malayalam (India)',
+    'mr-IN': 'Marathi (India)',
+    'de-DE': 'German (Germany)',
+    'de-AT': 'German (Austria)',
+    'de-CH': 'German (Switzerland)',
   };
 
   // Filtered voices based on supported languages
@@ -846,9 +880,20 @@ class _ArticlePageState extends State<ArticlePage> {
               child: ElevatedButton.icon(
                 onPressed: () async {
                   try {
-                    final testText = _selectedLanguage.startsWith('hi')
-                        ? 'यह एक परीक्षण है।'
-                        : 'This is a test of text-to-speech.';
+                    String testText;
+                    if (_selectedLanguage.startsWith('hi')) {
+                      testText = 'यह एक परीक्षण है।';
+                    } else if (_selectedLanguage.startsWith('kn')) {
+                      testText = 'ಇದು ಒಂದು ಪರೀಕ್ಷೆಯಾಗಿದೆ.';
+                    } else if (_selectedLanguage.startsWith('ta')) {
+                      testText = 'இது ஒரு சோதனை.';
+                    } else if (_selectedLanguage.startsWith('te')) {
+                      testText = 'ఇది ఒక పరీక్ష.';
+                    } else if (_selectedLanguage.startsWith('de')) {
+                      testText = 'Dies ist ein Test der Sprachausgabe.';
+                    } else {
+                      testText = 'This is a test of text-to-speech.';
+                    }
                     await _flutterTts!.speak(testText);
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -937,7 +982,58 @@ class SaintImagePlaceholder extends StatelessWidget {
       );
 }
 
+// Fallback Material Localizations Delegate for unsupported locales
+class FallbackMaterialLocalizationsDelegate extends LocalizationsDelegate<MaterialLocalizations> {
+  const FallbackMaterialLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => true;
+
+  @override
+  Future<MaterialLocalizations> load(Locale locale) async {
+    // For unsupported locales (sa, kn, bn, or), use English
+    if (locale.languageCode == 'sa' ||
+        locale.languageCode == 'kn' ||
+        locale.languageCode == 'bn' ||
+        locale.languageCode == 'or') {
+      return DefaultMaterialLocalizations();
+    }
+    // For other locales, delegate to the default
+    return DefaultMaterialLocalizations();
+  }
+
+  @override
+  bool shouldReload(FallbackMaterialLocalizationsDelegate old) => false;
+}
+
+// Fallback Cupertino Localizations Delegate for unsupported locales
+class FallbackCupertinoLocalizationsDelegate extends LocalizationsDelegate<CupertinoLocalizations> {
+  const FallbackCupertinoLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => true;
+
+  @override
+  Future<CupertinoLocalizations> load(Locale locale) async {
+    // For unsupported locales (sa, kn, bn, or), use English
+    if (locale.languageCode == 'sa' ||
+        locale.languageCode == 'kn' ||
+        locale.languageCode == 'bn' ||
+        locale.languageCode == 'or') {
+      return DefaultCupertinoLocalizations();
+    }
+    // For other locales, delegate to the default
+    return DefaultCupertinoLocalizations();
+  }
+
+  @override
+  bool shouldReload(FallbackCupertinoLocalizationsDelegate old) => false;
+}
+
 class MyApp extends StatefulWidget {
+  // Add global navigator key to enable navigation from notifications
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   State<MyApp> createState() => _MyAppState();
 }
@@ -955,23 +1051,23 @@ class _MyAppState extends State<MyApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         print('🚀 Initializing app notifications...');
-        await NotificationService.initialize(context);
+        // Pass the navigator key for notification tap handling
+        // Just initialize, don't request permissions or schedule yet
+        await NotificationService.initialize(context, navigatorKey: MyApp.navigatorKey);
 
-        // Check and auto-reschedule if needed instead of always scheduling
-        await NotificationService.checkAndRescheduleIfNeeded(_locale);
+        // Don't auto-reschedule here - let HomePage handle permission flow first
+        // If user has already granted permissions previously, HomePage will handle rescheduling
+
+        // Check for app updates (once per week)
+        await AppVersionService.checkAndNotifyUpdate();
 
         print('✅ App notification setup complete');
       } catch (e) {
         print('❌ Error setting up notifications: $e');
-        // Still try to schedule notifications as fallback
-        try {
-          await NotificationService.scheduleDailyQuoteNotifications(_locale);
-        } catch (e2) {
-          print('❌ Fallback notification scheduling failed: $e2');
-        }
       }
     });
   }
+
 
   Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -1068,6 +1164,7 @@ class _MyAppState extends State<MyApp> {
       );
     }
     return MaterialApp(
+      navigatorKey: MyApp.navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Motivational Saints',
       themeMode: _themeMode,
@@ -1169,11 +1266,13 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       locale: _locale,
-      supportedLocales: const [Locale('en'), Locale('hi')],
+      supportedLocales: const [Locale('en'), Locale('hi'), Locale('de'), Locale('kn'), Locale('bn'), Locale('or'), Locale('sa'), Locale('ta'), Locale('te'), Locale('ml'), Locale('mr')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
+        FallbackMaterialLocalizationsDelegate(),
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
+        FallbackCupertinoLocalizationsDelegate(),
         GlobalCupertinoLocalizations.delegate,
       ],
       home: HomePage(
@@ -1210,23 +1309,113 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final GlobalKey<BadgeWidgetState> _badgeKey = GlobalKey<BadgeWidgetState>();
+
+  // Helper method to get saints list based on language
+  List<dynamic> _getSaintsForLanguage(String languageCode) {
+    switch (languageCode) {
+      case 'hi':
+        return saintsHi;
+      case 'de':
+        return saintsDe;
+      case 'kn':
+        return saintsKn;
+      case 'bn':
+        return saintsBn;
+      case 'or':
+        return saintsOr;
+      case 'sa':
+        return saintsSa;
+      case 'ta':
+        return saintsTa;
+      case 'te':
+        return saintsTe;
+      case 'ml':
+        return saintsMl;
+      case 'mr':
+        return saintsMr;
+      default:
+        return saintsEn;
+    }
+  }
+
+  void _refreshBadge() {
+    _badgeKey.currentState?.refresh();
+  }
+
   @override
   void initState() {
     super.initState();
     // Show first-time name dialog after the UI is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      UserProfileService.showFirstTimeNameDialog(context, widget.onSetUserName);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Check if app was launched from notification tap - do this FIRST before showing dialogs
+      await NotificationService.handleAppLaunchFromNotification();
+
+      // First show the name dialog
+      await UserProfileService.showFirstTimeNameDialog(context, widget.onSetUserName);
+
+      // Then check for notification permission
+      if (context.mounted) {
+        print('🔔 Checking if notification permission dialog was shown before...');
+        final hasAsked = await NotificationService.hasAskedForNotificationPermission();
+        print('🔔 Has asked before: $hasAsked');
+
+        if (!hasAsked) {
+          // First time user - show our custom dialog
+          // Add a small delay so dialogs don't overlap
+          await Future.delayed(Duration(milliseconds: 500));
+
+          if (context.mounted) {
+            print('🔔 Showing notification permission dialog...');
+            // Show the pre-permission dialog explaining the benefits
+            final userAccepted = await NotificationService.showNotificationPermissionDialog(context);
+
+            // Mark as asked regardless of user's choice
+            await NotificationService.markNotificationPermissionAsAsked();
+            print('🔔 Marked as asked');
+
+            if (userAccepted) {
+              print('✅ User accepted notification permissions, requesting system permissions...');
+
+              // Add a small delay so our dialog fully closes before system dialog appears
+              await Future.delayed(Duration(milliseconds: 300));
+
+              // User accepted, now request permissions and schedule notifications
+              await NotificationService.scheduleDailyQuoteNotifications(widget.locale);
+              print('✅ Notification scheduling complete');
+            } else {
+              print('ℹ️ User declined notification permissions for now');
+            }
+          }
+        } else {
+          // User was asked before - check if permissions are granted and reschedule if needed
+          print('🔔 Dialog was already shown before, checking existing permissions...');
+          await NotificationService.checkAndRescheduleIfNeeded(widget.locale);
+        }
+      }
+
       // Check and show rating prompt if conditions are met
       RatingShareService.checkAndShowRatingPrompt(context);
+
+      // Check and show wisdom sharing prompt if conditions are met (weekly, after 7 days of usage)
+      WisdomSharingService.checkAndShowWisdomPrompt(context);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      // Return a loading widget if localizations aren't ready yet
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     final brightness = Theme.of(context).brightness;
-    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
-    final List<dynamic> saintList = isHindi ? saintsHi : saints;
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final List<dynamic> saintList = _getSaintsForLanguage(languageCode);
     // Theme-aware gradients
     final mainGradient = brightness == Brightness.dark
         ? LinearGradient(
@@ -1279,6 +1468,12 @@ class _HomePageState extends State<HomePage> {
           loc.inspiringSaints,
           style: Theme.of(context).textTheme.headlineMedium,
         ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: BadgeWidget(key: _badgeKey, showDetails: false),
+          ),
+        ],
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: appBarGradient,
@@ -1353,6 +1548,15 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
+                  // Badge display in drawer
+                  BadgeWidget(showDetails: true, userName: widget.userName),
+                  Divider(
+                    color: brightness == Brightness.dark
+                        ? Colors.white24
+                        : Colors.black12,
+                    thickness: 1,
+                    height: 1,
+                  ),
                   _buildDrawerItem(context, Icons.contact_page, loc.contact, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => ContactPage()));
@@ -1369,10 +1573,6 @@ class _HomePageState extends State<HomePage> {
                     Navigator.pop(context);
                     _showNameDialog(context);
                   }),
-                  _buildDrawerItem(context, Icons.note, loc.spiritualDiary, () {
-                    Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => SpiritualDiaryPage()));
-                  }),
                   _buildDrawerItem(context, Icons.bookmark, loc.bookmarkedQuotes, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => BookmarkedQuotesPage()));
@@ -1380,10 +1580,6 @@ class _HomePageState extends State<HomePage> {
                   _buildDrawerItem(context, Icons.brightness_2, loc.nextEkadashi, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => EkadashiPage()));
-                  }),
-                  _buildDrawerItem(context, Icons.library_books, loc.myBooksLibrary, () {
-                    Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => BooksLibraryPage()));
                   }),
                   _buildDrawerItem(context, Icons.info, loc.aboutApp, () {
                     Navigator.pop(context);
@@ -1393,27 +1589,11 @@ class _HomePageState extends State<HomePage> {
                     Navigator.pop(context);
                     RatingShareService.showRatingShareDialog(context);
                   }),
-                  _buildDrawerItem(context, Icons.notifications_active, loc.setDailyNotifications, () async {
+                  _buildDrawerItem(context, Icons.notifications_active, loc.setDailyNotifications, () {
                     Navigator.pop(context);
-
-                    // Show current notification configuration
-                    final configInfo = NotificationService.getNotificationConfigInfo();
-                    await NotificationService.showTestNotification();
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('✅ Test notification sent!'),
-                            SizedBox(height: 4),
-                            Text(configInfo, style: TextStyle(fontSize: 12)),
-                          ],
-                        ),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 5),
-                      ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => NotificationSettingsPage()),
                     );
                   }),
                   // Only show "Buy me a coffee" option on Android
@@ -1434,9 +1614,10 @@ class _HomePageState extends State<HomePage> {
           decoration: BoxDecoration(
             gradient: mainGradient,
           ),
-          child: Column(
-            children: [
-              SizedBox(height: 100), // Space for AppBar
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                SizedBox(height: 100), // Space for AppBar
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
@@ -1471,19 +1652,31 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               SizedBox(height: 16),
-              // Quote of the Day Card - Made smaller
+              // Quote of the Day Card - Enhanced with animations
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   gradient: brightness == Brightness.dark
-                      ? LinearGradient(colors: [Colors.grey.shade900, Colors.grey.shade800])
-                      : LinearGradient(colors: [Colors.white, Colors.orange.shade50]),
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.grey.shade900, Colors.grey.shade800, Colors.orange.shade900.withOpacity(0.3)])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.orange.shade50, Colors.orange.shade100.withOpacity(0.5)]),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.deepOrange.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+                      color: Colors.deepOrange.withOpacity(0.25),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
                 ),
@@ -1494,32 +1687,41 @@ class _HomePageState extends State<HomePage> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => QuoteOfTheDayPage()),
-                    ),
+                    ).then((_) => _refreshBadge()),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: Colors.deepOrange.shade50,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.orange.shade800, Colors.orange.shade900]
+                                    : [Colors.deepOrange.shade300, Colors.deepOrange.shade500],
+                              ),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.deepOrange.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+                                  color: Colors.deepOrange.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
                                 ),
                               ],
                             ),
                             child: Icon(
                               Icons.format_quote,
-                              color: Colors.deepOrange.shade700,
-                              size: 20,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          ),
-                          SizedBox(width: 12),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .shimmer(duration: 2000.ms, delay: 1000.ms, color: Colors.white.withOpacity(0.3))
+                            .then()
+                            .shake(duration: 500.ms, hz: 2, curve: Curves.easeInOut),
+                          SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1527,16 +1729,17 @@ class _HomePageState extends State<HomePage> {
                                 Text(
                                   loc.quoteOfTheDay,
                                   style: GoogleFonts.playfairDisplay(
-                                    fontSize: 14,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: brightness == Brightness.dark
                                         ? Colors.orange.shade300
                                         : Colors.deepOrange.shade800,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                SizedBox(height: 3),
                                 Text(
-                                  'Daily wisdom',
+                                  'Daily wisdom ✨',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: brightness == Brightness.dark
@@ -1549,90 +1752,301 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.all(6),
+                            padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.deepOrange.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                              color: brightness == Brightness.dark
+                                  ? Colors.orange.shade900.withOpacity(0.5)
+                                  : Colors.deepOrange.shade100,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.arrow_forward_ios,
-                              color: Colors.deepOrange.shade700,
-                              size: 14,
+                              color: brightness == Brightness.dark
+                                  ? Colors.orange.shade300
+                                  : Colors.deepOrange.shade700,
+                              size: 16,
                             ),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .moveX(begin: -2, end: 2, duration: 1000.ms, curve: Curves.easeInOut)
+                            .then()
+                            .moveX(begin: 2, end: -2, duration: 1000.ms, curve: Curves.easeInOut),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 100.ms)
+                .slideX(begin: -0.2, end: 0, duration: 400.ms, delay: 100.ms, curve: Curves.easeOutCubic),
+              SizedBox(height: 18),
+              // Saints of Bharat Button - Enhanced Featured Card
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.deepOrange.shade900,
+                            Colors.deepOrange.shade800,
+                            Colors.orange.shade900,
+                          ],
+                        )
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white,
+                            Colors.deepOrange.shade50,
+                            Colors.orange.shade100,
+                          ],
+                        ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepOrange.withOpacity(0.4),
+                      blurRadius: 16,
+                      offset: Offset(0, 8),
+                      spreadRadius: 2,
+                    ),
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.2),
+                      blurRadius: 24,
+                      offset: Offset(0, 12),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: brightness == Brightness.dark
+                        ? Colors.orange.shade700.withOpacity(0.5)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1.5,
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AllSaintsPage(
+                          userName: widget.userName,
+                          onBadgeRefresh: _refreshBadge,
+                        ),
+                      ),
+                    ).then((_) => _refreshBadge()),
+                    child: Padding(
+                      padding: EdgeInsets.all(22),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Title and subtitle
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.stars_rounded,
+                                          color: brightness == Brightness.dark
+                                              ? Colors.orange.shade300
+                                              : Colors.deepOrange.shade700,
+                                          size: 20,
+                                        ).animate(onPlay: (controller) => controller.repeat())
+                                          .rotate(duration: 3000.ms, curve: Curves.easeInOut)
+                                          .then()
+                                          .rotate(begin: 1, end: 0, duration: 3000.ms, curve: Curves.easeInOut),
+                                        SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            loc.saintsOfBharat,
+                                            style: GoogleFonts.playfairDisplay(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                              color: brightness == Brightness.dark
+                                                  ? Colors.orange.shade200
+                                                  : Colors.deepOrange.shade900,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      '🕉️ Explore wisdom from 11 spiritual masters',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: brightness == Brightness.dark
+                                            ? Colors.orange.shade100
+                                            : Colors.deepOrange.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: brightness == Brightness.dark
+                                        ? [Colors.orange.shade700, Colors.orange.shade800]
+                                        : [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.deepOrange.withOpacity(0.4),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.arrow_forward,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                              ).animate(onPlay: (controller) => controller.repeat())
+                                .scale(begin: Offset(1, 1), end: Offset(1.1, 1.1), duration: 800.ms, curve: Curves.easeInOut)
+                                .then()
+                                .scale(begin: Offset(1.1, 1.1), end: Offset(1, 1), duration: 800.ms, curve: Curves.easeInOut),
+                            ],
+                          ),
+                          SizedBox(height: 18),
+                          // Row of 6 saint circular images
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildSaintAvatar('assets/images/vivekananda.jpg', brightness, 0),
+                              _buildSaintAvatar('assets/images/sivananda.jpg', brightness, 1),
+                              _buildSaintAvatar('assets/images/paramhansa.jpg', brightness, 2),
+                              _buildSaintAvatar('assets/images/raman.jpg', brightness, 3),
+                              _buildSaintAvatar('assets/images/shankaracharya.jpg', brightness, 4),
+                              _buildSaintAvatar('assets/images/ramkrishna.jpg', brightness, 5),
+                            ],
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 12),
-              // Ask AI Button - New addition
+              ).animate()
+                .fadeIn(duration: 500.ms, delay: 200.ms)
+                .slideY(begin: 0.3, end: 0, duration: 500.ms, delay: 200.ms, curve: Curves.easeOutCubic)
+                .shimmer(duration: 1500.ms, delay: 800.ms, color: Colors.white.withOpacity(0.2)),
+              SizedBox(height: 18),
+              // Ask AI Button - Enhanced with animations
               Container(
                 margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   gradient: brightness == Brightness.dark
-                      ? LinearGradient(colors: [Colors.purple.shade900, Colors.purple.shade800])
-                      : LinearGradient(colors: [Colors.white, Colors.purple.shade50]),
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.purple.shade900, Colors.purple.shade800, Colors.deepPurple.shade900])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.purple.shade50, Colors.purple.shade100.withOpacity(0.5)]),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.purple.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+                      color: Colors.purple.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.deepPurple.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
+                  border: Border.all(
+                    color: brightness == Brightness.dark
+                        ? Colors.purple.shade700.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1,
+                  ),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => AskAIPage(userName: widget.userName)),
                     ),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: Colors.purple.shade50,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.purple.shade600, Colors.purple.shade800]
+                                    : [Colors.purple.shade300, Colors.purple.shade500],
+                              ),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.purple.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+                                  color: Colors.purple.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
                                 ),
                               ],
                             ),
                             child: Icon(
                               Icons.psychology,
-                              color: Colors.purple.shade700,
-                              size: 20,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                          ),
-                          SizedBox(width: 12),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .shimmer(duration: 2000.ms, delay: 500.ms, color: Colors.white.withOpacity(0.3))
+                            .then()
+                            .scale(begin: Offset(1, 1), end: Offset(1.05, 1.05), duration: 800.ms)
+                            .then()
+                            .scale(begin: Offset(1.05, 1.05), end: Offset(1, 1), duration: 800.ms),
+                          SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  loc.talkToSpiritualAIFriend,
-                                  style: GoogleFonts.playfairDisplay(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: brightness == Brightness.dark
-                                        ? Colors.purple.shade300
-                                        : Colors.purple.shade800,
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      loc.talkToSpiritualAIFriend,
+                                      style: GoogleFonts.playfairDisplay(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: brightness == Brightness.dark
+                                            ? Colors.purple.shade300
+                                            : Colors.purple.shade800,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                    SizedBox(width: 4),
+                                    Icon(Icons.auto_awesome, size: 14, color: Colors.purple.shade400)
+                                      .animate(onPlay: (controller) => controller.repeat())
+                                      .fadeIn(duration: 600.ms)
+                                      .then()
+                                      .fadeOut(duration: 600.ms),
+                                  ],
                                 ),
-                                SizedBox(height: 2),
+                                SizedBox(height: 3),
                                 Text(
-                                  'Get wisdom from all saints',
+                                  'Get wisdom from all saints 🙏',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: brightness == Brightness.dark
@@ -1645,15 +2059,19 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.all(6),
+                            padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.purple.shade100,
-                              borderRadius: BorderRadius.circular(8),
+                              color: brightness == Brightness.dark
+                                  ? Colors.purple.shade800.withOpacity(0.5)
+                                  : Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               Icons.arrow_forward_ios,
-                              color: Colors.purple.shade700,
-                              size: 14,
+                              color: brightness == Brightness.dark
+                                  ? Colors.purple.shade300
+                                  : Colors.purple.shade700,
+                              size: 16,
                             ),
                           ),
                         ],
@@ -1661,117 +2079,406 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 12),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  AppLocalizations.of(context)!.chooseSpiritualGuide,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 300.ms)
+                .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms, curve: Curves.easeOutCubic),
+              SizedBox(height: 18),
+              // Meditate Deeply Button - Enhanced with calming animations
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.indigo.shade900, Colors.indigo.shade800, Colors.blue.shade900])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.indigo.shade50, Colors.blue.shade50]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.indigo.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                  border: Border.all(
                     color: brightness == Brightness.dark
-                        ? Colors.orange.shade300
-                        : Colors.deepOrange.shade800,
-                    fontSize: 20,
+                        ? Colors.indigo.shade700.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ),
-              SizedBox(height: 12),
-              Expanded(
-                child: GridView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.0, // Changed from 0.85 to 1.0 to make boxes smaller
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: saintList.length,
-                  itemBuilder: (context, i) => Material(
-                    elevation: 6,
-                    borderRadius: BorderRadius.circular(20),
-                    shadowColor: Colors.deepOrange.withOpacity(0.25),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: brightness == Brightness.dark
-                              ? [
-                                  Colors.grey.shade800,
-                                  Colors.grey.shade900,
-                                ]
-                              : [
-                                  Colors.white,
-                                  Colors.deepOrange.shade50,
-                                ],
-                        ),
-                      ),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SaintPage(
-                              saint: saintList[i],
-                              userName: widget.userName,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => MeditationPage()),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.indigo.shade600, Colors.indigo.shade800]
+                                    : [Colors.indigo.shade300, Colors.indigo.shade500],
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.indigo.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.self_improvement,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .scale(begin: Offset(1, 1), end: Offset(1.08, 1.08), duration: 1500.ms, curve: Curves.easeInOut)
+                            .then()
+                            .scale(begin: Offset(1.08, 1.08), end: Offset(1, 1), duration: 1500.ms, curve: Curves.easeInOut),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Meditate Deeply',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.indigo.shade300
+                                        : Colors.indigo.shade800,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                SizedBox(height: 3),
+                                Text(
+                                  'Guided meditation sessions 🧘',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.all(10), // Reduced from 12 to 10
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Hero(
-                                tag: 'saint_${saintList[i].id}',
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.deepOrange.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: CircleAvatar(
-                                    radius: 30, // Reduced from 35 to 30
-                                    backgroundColor: Colors.white,
-                                    child: CircleAvatar(
-                                      radius: 27, // Reduced from 32 to 27
-                                      backgroundImage: saintList[i].image.startsWith('assets/')
-                                          ? AssetImage(saintList[i].image) as ImageProvider
-                                          : NetworkImage(saintList[i].image),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 8), // Reduced from 12 to 8
-                              Text(
-                                saintList[i].name,
-                                style: GoogleFonts.playfairDisplay(
-                                  fontSize: 14, // Reduced from 16 to 14
-                                  fontWeight: FontWeight.bold,
-                                  color: brightness == Brightness.dark
-                                      ? Colors.orange.shade300
-                                      : Colors.deepOrange.shade800,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: brightness == Brightness.dark
+                                  ? Colors.indigo.shade800.withOpacity(0.5)
+                                  : Colors.indigo.shade100,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              color: brightness == Brightness.dark
+                                  ? Colors.indigo.shade300
+                                  : Colors.indigo.shade700,
+                              size: 16,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ),
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 400.ms)
+                .slideX(begin: -0.2, end: 0, duration: 400.ms, delay: 400.ms, curve: Curves.easeOutCubic),
+              SizedBox(height: 18),
+              // Spiritual Diary Button - Enhanced with elegant animations
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.teal.shade900, Colors.teal.shade800, Colors.cyan.shade900])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.teal.shade50, Colors.cyan.shade50.withOpacity(0.5)]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.teal.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.cyan.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: brightness == Brightness.dark
+                        ? Colors.teal.shade700.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1,
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => SpiritualDiaryPage()),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.teal.shade600, Colors.teal.shade800]
+                                    : [Colors.teal.shade300, Colors.teal.shade500],
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.teal.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.book,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .shimmer(duration: 2000.ms, delay: 700.ms, color: Colors.white.withOpacity(0.3))
+                            .then(delay: 1000.ms)
+                            .shake(duration: 400.ms, hz: 1, curve: Curves.easeInOut),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  loc.spiritualDiary,
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.teal.shade300
+                                        : Colors.teal.shade800,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                SizedBox(height: 3),
+                                Text(
+                                  'Write your spiritual journey ✍️',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: brightness == Brightness.dark
+                                  ? Colors.teal.shade800.withOpacity(0.5)
+                                  : Colors.teal.shade100,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              color: brightness == Brightness.dark
+                                  ? Colors.teal.shade300
+                                  : Colors.teal.shade700,
+                              size: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 500.ms)
+                .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 500.ms, curve: Curves.easeOutCubic),
+              SizedBox(height: 18),
+              // My Books Library Button - Enhanced with warm animations
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: brightness == Brightness.dark
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.amber.shade900, Colors.amber.shade800, Colors.orange.shade900])
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.white, Colors.amber.shade50, Colors.orange.shade50.withOpacity(0.5)]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.amber.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: brightness == Brightness.dark
+                        ? Colors.amber.shade700.withOpacity(0.3)
+                        : Colors.white.withOpacity(0.8),
+                    width: 1,
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => BooksLibraryPage()),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: brightness == Brightness.dark
+                                    ? [Colors.amber.shade600, Colors.amber.shade800]
+                                    : [Colors.amber.shade300, Colors.amber.shade500],
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.amber.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.library_books,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ).animate(onPlay: (controller) => controller.repeat())
+                            .shimmer(duration: 2000.ms, delay: 900.ms, color: Colors.white.withOpacity(0.3))
+                            .then(delay: 1000.ms)
+                            .rotate(begin: 0, end: 0.05, duration: 300.ms)
+                            .then()
+                            .rotate(begin: 0.05, end: -0.05, duration: 600.ms)
+                            .then()
+                            .rotate(begin: -0.05, end: 0, duration: 300.ms),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  loc.myBooksLibrary,
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.amber.shade300
+                                        : Colors.amber.shade800,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                SizedBox(height: 3),
+                                Text(
+                                  'Sacred texts and teachings 📚',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: brightness == Brightness.dark
+                                  ? Colors.amber.shade800.withOpacity(0.5)
+                                  : Colors.amber.shade100,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              color: brightness == Brightness.dark
+                                  ? Colors.amber.shade300
+                                  : Colors.amber.shade700,
+                              size: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ).animate()
+                .fadeIn(duration: 400.ms, delay: 600.ms)
+                .slideX(begin: -0.2, end: 0, duration: 400.ms, delay: 600.ms, curve: Curves.easeOutCubic),
+              SizedBox(height: 20),
             ],
+          ),
           ),
         ),
       ),
@@ -1809,7 +2516,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showThemeDialog(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) return;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -1851,8 +2559,71 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildSaintAvatar(String imagePath, Brightness brightness, int index) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: brightness == Brightness.dark
+              ? Colors.orange.shade300
+              : Colors.deepOrange.shade700,
+          width: 2.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.deepOrange.withOpacity(0.5),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: 22,
+        backgroundColor: Colors.white,
+        backgroundImage: AssetImage(imagePath),
+      ),
+    ).animate(onPlay: (controller) => controller.repeat())
+      .moveY(
+        begin: -3,
+        end: 3,
+        duration: (1500 + (index * 200)).ms,
+        curve: Curves.easeInOut,
+      )
+      .then()
+      .moveY(
+        begin: 3,
+        end: -3,
+        duration: (1500 + (index * 200)).ms,
+        curve: Curves.easeInOut,
+      )
+      .animate(delay: (100 * index).ms)
+      .fadeIn(duration: 500.ms)
+      .scale(begin: Offset(0.5, 0.5), end: Offset(1, 1), duration: 500.ms, curve: Curves.easeOutBack);
+  }
+
   void _showLanguageDialog(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) return;
+
+    final brightness = Theme.of(context).brightness;
+
+    // Define languages with their native script samples for visual identification
+    final languages = [
+      {'name': loc.english, 'locale': Locale('en'), 'script': 'A'},
+      {'name': loc.hindi, 'locale': Locale('hi'), 'script': 'अ'},
+      {'name': loc.german, 'locale': Locale('de'), 'script': 'Ä'},
+      {'name': loc.kannada, 'locale': Locale('kn'), 'script': 'ಅ'},
+      {'name': loc.bengali, 'locale': Locale('bn'), 'script': 'অ'},
+      {'name': loc.odia, 'locale': Locale('or'), 'script': 'ଅ'},
+      {'name': loc.tamil, 'locale': Locale('ta'), 'script': 'அ'},
+      {'name': loc.telugu, 'locale': Locale('te'), 'script': 'అ'},
+      {'name': loc.malayalam, 'locale': Locale('ml'), 'script': 'അ'},
+      {'name': loc.marathi, 'locale': Locale('mr'), 'script': 'अ'},
+      {'name': loc.sanskrit, 'locale': Locale('sa'), 'script': 'ॐ'},
+    ];
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -1861,40 +2632,130 @@ class _HomePageState extends State<HomePage> {
           loc.language,
           style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+        contentPadding: EdgeInsets.fromLTRB(16, 20, 16, 16),
+        content: Container(
+          width: double.maxFinite,
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+          child: SingleChildScrollView(
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.8,
+              ),
+              itemCount: languages.length,
+              itemBuilder: (context, index) {
+                final lang = languages[index];
+                return _buildLanguageOption(
+                  lang['name'] as String,
+                  lang['locale'] as Locale,
+                  lang['script'] as String,
+                  context,
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(String title, Locale localeOption, String script, BuildContext context) {
+    final isSelected = widget.locale == localeOption;
+    final brightness = Theme.of(context).brightness;
+
+    return InkWell(
+      onTap: () {
+        widget.onLocaleChange(localeOption);
+        Navigator.pop(context);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? Colors.deepOrange
+                : (brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade300),
+            width: isSelected ? 2 : 1,
+          ),
+          color: isSelected
+              ? (brightness == Brightness.dark ? Colors.deepOrange.shade900.withOpacity(0.3) : Colors.deepOrange.shade50)
+              : (brightness == Brightness.dark ? Colors.grey.shade800 : Colors.white),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: Colors.deepOrange.withOpacity(0.3),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ] : null,
+        ),
+        child: Stack(
           children: [
-            _buildLanguageOption(loc.english, Locale('en'), context),
-            _buildLanguageOption(loc.hindi, Locale('hi'), context),
+          // Main content
+          Padding(
+            padding: const EdgeInsets.all(6.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Native script indicator
+                Text(
+                  script,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.deepOrange : Colors.grey.shade600,
+                  ),
+                ),
+                SizedBox(height: 2),
+                // Language name
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: brightness == Brightness.dark
+                        ? (isSelected ? Colors.deepOrange.shade200 : Colors.white)
+                        : (isSelected ? Colors.deepOrange.shade700 : Colors.grey.shade800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+            // Checkmark for selected language
+            if (isSelected)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                  padding: EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.deepOrange,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLanguageOption(String title, Locale localeOption, BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: widget.locale == localeOption ? Colors.deepOrange.shade50 : null,
-      ),
-      child: RadioListTile<Locale>(
-        title: Text(title),
-        value: localeOption,
-        groupValue: widget.locale,
-        activeColor: Colors.deepOrange,
-        onChanged: (val) {
-          widget.onLocaleChange(localeOption);
-          Navigator.pop(context);
-        },
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
   void _showNameDialog(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) return;
     final controller = TextEditingController(text: widget.userName);
     showDialog(
       context: context,
@@ -1941,6 +2802,66 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// Custom painter for mindmap connecting lines
+class MindMapLinesPainter extends CustomPainter {
+  final bool isDark;
+
+  MindMapLinesPainter({this.isDark = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = isDark
+          ? Colors.deepOrange.withOpacity(0.5)
+          : Colors.deepOrange.withOpacity(0.3)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+
+    // Draw lines from center to top options (Quotes and Articles)
+    // Top left (Quotes)
+    canvas.drawLine(
+      Offset(centerX, centerY - 30),
+      Offset(centerX - 80, 40),
+      paint,
+    );
+
+    // Top right (Articles)
+    canvas.drawLine(
+      Offset(centerX, centerY - 30),
+      Offset(centerX + 80, 40),
+      paint,
+    );
+
+    // Draw lines from center to bottom options (Ask AI, History, Books)
+    // Bottom left (Ask AI)
+    canvas.drawLine(
+      Offset(centerX, centerY + 30),
+      Offset(centerX - 110, size.height - 40),
+      paint,
+    );
+
+    // Bottom center (History)
+    canvas.drawLine(
+      Offset(centerX, centerY + 30),
+      Offset(centerX, size.height - 40),
+      paint,
+    );
+
+    // Bottom right (Books)
+    canvas.drawLine(
+      Offset(centerX, centerY + 30),
+      Offset(centerX + 110, size.height - 40),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class SaintPage extends StatefulWidget {
   final dynamic saint; // Accept both Saint and SaintHi
   final String userName;
@@ -1983,6 +2904,22 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
     _pageController = PageController(initialPage: widget.initialIndex);
     _loadReadQuotes();
     _loadBookmarkedQuotes();
+    _markInitialQuoteAsRead();
+  }
+
+  Future<void> _markInitialQuoteAsRead() async {
+    // Mark the initial quote as read when the page opens
+    final quote = widget.quotes[widget.initialIndex];
+    final id = _quoteId(quote);
+    final wasAlreadyRead = await ReadStatusService.wasQuoteRead(id);
+    await ReadStatusService.markQuoteRead(id);
+    setState(() {
+      _readQuotes.add(id);
+    });
+    // Award points only if this is the first time reading
+    if (!wasAlreadyRead) {
+      await BadgeService.awardQuotePoints();
+    }
   }
 
   @override
@@ -2006,12 +2943,49 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
   }
 
   String _quoteId(String quote) {
-    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final languageCode = Localizations.localeOf(context).languageCode;
     String saintNameForId;
 
-    if (isHindi) {
-      final hindiSaint = saintsHi.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsHi[0]);
-      saintNameForId = hindiSaint.name;
+    // Get saint name from appropriate language list
+    List<dynamic> saintsList;
+    switch (languageCode) {
+      case 'hi':
+        saintsList = saintsHi;
+        break;
+      case 'de':
+        saintsList = saintsDe;
+        break;
+      case 'kn':
+        saintsList = saintsKn;
+        break;
+      case 'bn':
+        saintsList = saintsBn;
+        break;
+      case 'od':
+        saintsList = saintsOr;
+        break;
+      case 'sa':
+        saintsList = saintsSa;
+        break;
+      case 'ta':
+        saintsList = saintsTa;
+        break;
+      case 'te':
+        saintsList = saintsTe;
+        break;
+      case 'ml':
+        saintsList = saintsMl;
+        break;
+      case 'mr':
+        saintsList = saintsMr;
+        break;
+      default:
+        saintsList = saintsEn;
+    }
+
+    if (languageCode != 'en') {
+      final saint = saintsList.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsList[0] as Saint);
+      saintNameForId = saint.name;
     } else {
       saintNameForId = widget.saintName;
     }
@@ -2167,9 +3141,87 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
         text: '"$quote"\n\n— ${widget.saintName}\n\n✨ Shared from Talk with Saints App\nDownload now for daily spiritual wisdom!',
         sharePositionOrigin: sharePositionOrigin,
       );
+
+      // Award points for sharing (distribution of knowledge)
+      await BadgeService.awardSharePoints();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.stars, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('Quote shared! +${BadgeService.POINTS_SHARE_QUOTE} points earned! 🎉'),
+              ],
+            ),
+            backgroundColor: Colors.green.shade600,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to share quote')),
+      );
+    }
+  }
+
+  Future<void> _copyQuote(String quote) async {
+    final textToCopy = '"$quote"\n\n— ${widget.saintName}';
+
+    try {
+      await Clipboard.setData(ClipboardData(text: textToCopy));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Quote copied to clipboard!'),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to copy quote'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _navigateToEnglishQuote() async {
+    try {
+      // Find the English saint with the same ID
+      final englishSaint = saintsEn.firstWhere(
+        (s) => s.id == widget.saintId,
+        orElse: () => throw Exception('English saint not found'),
+      );
+
+      // Navigate to the same quote index in English
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SingleQuoteViewPage(
+            quotes: englishSaint.quotes,
+            initialIndex: _currentIndex,
+            saintName: englishSaint.name,
+            saintId: englishSaint.id,
+            image: englishSaint.image,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('English translation not available'),
+          backgroundColor: Colors.orange,
+        ),
       );
     }
   }
@@ -2218,10 +3270,15 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
             // Mark quote as read when viewed
             final quote = widget.quotes[index];
             final id = _quoteId(quote);
+            final wasAlreadyRead = await ReadStatusService.wasQuoteRead(id);
             await ReadStatusService.markQuoteRead(id);
             setState(() {
               _readQuotes.add(id);
             });
+            // Award points only if this is the first time reading
+            if (!wasAlreadyRead) {
+              await BadgeService.awardQuotePoints();
+            }
           },
           itemCount: widget.quotes.length,
           itemBuilder: (context, index) {
@@ -2318,8 +3375,10 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
                     ),
                     SizedBox(height: 40),
                     // Action Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 12,
+                      runSpacing: 12,
                       children: [
                         _buildActionButton(
                           icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
@@ -2327,13 +3386,26 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
                           onPressed: () => _toggleBookmark(quote),
                           color: isBookmarked ? Colors.orange : Colors.grey,
                         ),
-                        SizedBox(width: 20),
+                        _buildActionButton(
+                          icon: Icons.copy,
+                          label: 'Copy',
+                          onPressed: () => _copyQuote(quote),
+                          color: Colors.green,
+                        ),
                         _buildActionButton(
                           icon: Icons.share,
                           label: 'Share',
                           onPressed: () => _shareQuote(quote),
                           color: Colors.blue,
                         ),
+                        // Show "English Meaning" button only for non-English languages
+                        if (Localizations.localeOf(context).languageCode != 'en')
+                          _buildActionButton(
+                            icon: Icons.translate,
+                            label: 'English Meaning',
+                            onPressed: () => _navigateToEnglishQuote(),
+                            color: Colors.purple,
+                          ),
                       ],
                     ),
                     SizedBox(height: 40),
@@ -2408,8 +3480,7 @@ class _SingleQuoteViewPageState extends State<SingleQuoteViewPage> {
   }
 }
 
-class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _SaintPageState extends State<SaintPage> {
   late Database db;
   List<Map<String, dynamic>> history = [];
   bool _useHindi = false;
@@ -2421,9 +3492,9 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
       return "All";
     }
 
-    final englishSaint = saints.firstWhere(
+    final englishSaint = saintsEn.firstWhere(
       (saint) => saint.id == saintId,
-      orElse: () => saints[0], // fallback to first saint if not found
+      orElse: () => saintsEn[0] as Saint, // fallback to first saint if not found
     );
     return englishSaint.name;
   }
@@ -2440,7 +3511,6 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this); // Changed from 4 to 5 for Books tab
     _initDb();
   }
 
@@ -2480,56 +3550,326 @@ class _SaintPageState extends State<SaintPage> with SingleTickerProviderStateMix
 
   @override
   void dispose() {
-    _tabController.dispose();
     db.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     final isHindi = Localizations.localeOf(context).languageCode == 'hi';
     final saintId = widget.saint.id;
     final saintName = widget.saint.name;
     final saintImage = widget.saint.image;
     final saintQuotes = widget.saint.quotes;
     final saintArticles = widget.saint.articles;
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(saintName),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: loc.quotes),
-            Tab(text: loc.articles),
-            Tab(text: loc.ask),
-            Tab(text: loc.history),
-            Tab(text: 'Books'), // New Books tab
+        centerTitle: true,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [
+                    Colors.grey.shade900,
+                    Colors.grey.shade800,
+                    Colors.grey.shade900,
+                  ]
+                : [
+                    Colors.orange.shade50,
+                    Colors.white,
+                    Colors.orange.shade50,
+                  ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              children: [
+                SizedBox(height: 20),
+
+                // Top row - 2 options (Quotes and Articles)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 30),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.format_quote,
+                        label: loc.quotes,
+                        color: isDark ? Colors.deepPurple.shade300 : Colors.deepPurple,
+                        onTap: () => _navigateToTab(context, 0, loc),
+                      ),
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.article,
+                        label: loc.articles,
+                        color: isDark ? Colors.blue.shade300 : Colors.blue,
+                        onTap: () => _navigateToTab(context, 1, loc),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 30),
+
+                // Center - Saint Image with decorative lines
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Connecting lines
+                    CustomPaint(
+                      size: Size(MediaQuery.of(context).size.width, 280),
+                      painter: MindMapLinesPainter(isDark: isDark),
+                    ),
+
+                    // Saint Image
+                    Hero(
+                      tag: 'saint_${saintId}',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.deepOrange.withOpacity(isDark ? 0.6 : 0.4),
+                              blurRadius: 30,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                          border: Border.all(
+                            color: isDark ? Colors.grey.shade700 : Colors.white,
+                            width: 5,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 80,
+                          backgroundImage: AssetImage(saintImage),
+                          backgroundColor: isDark ? Colors.grey.shade800 : Colors.white,
+                        ),
+                      ),
+                    ),
+
+                    // Saint name badge below image
+                    Positioned(
+                      bottom: 20,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isDark
+                                ? [Colors.deepOrange.shade400, Colors.orange.shade300]
+                                : [Colors.deepOrange, Colors.orange],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.deepOrange.withOpacity(isDark ? 0.5 : 0.4),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          saintName,
+                          style: GoogleFonts.playfairDisplay(
+                            color: isDark ? Colors.grey.shade900 : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 30),
+
+                // Bottom row - 3 options (Ask AI, History, Books)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.chat_bubble_outline,
+                        label: loc.ask,
+                        color: isDark ? Colors.green.shade300 : Colors.green,
+                        onTap: () => _navigateToTab(context, 2, loc),
+                      ),
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.history,
+                        label: loc.history,
+                        color: isDark ? Colors.orange.shade300 : Colors.orange,
+                        onTap: () => _navigateToTab(context, 3, loc),
+                      ),
+                      _buildMindMapOption(
+                        context: context,
+                        icon: Icons.menu_book,
+                        label: 'Books',
+                        color: isDark ? Colors.red.shade300 : Colors.red,
+                        onTap: () => _navigateToTab(context, 4, loc),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 30),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMindMapOption({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 100,
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey.shade900 : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(isDark ? 0.4 : 0.3),
+              blurRadius: 15,
+              offset: Offset(0, 5),
+            ),
+          ],
+          border: Border.all(
+            color: color.withOpacity(isDark ? 0.5 : 0.3),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [color.withOpacity(0.7), color.withOpacity(0.9)]
+                      : [color.withOpacity(0.8), color],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(isDark ? 0.5 : 0.4),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              label,
+              style: GoogleFonts.notoSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.grey.shade200 : Colors.grey.shade800,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          QuotesTab(
-            quotes: saintQuotes,
-            image: saintImage,
-            saintName: saintName,
-            saintId: saintId, // Pass saint ID to QuotesTab
+    );
+  }
+
+  void _navigateToTab(BuildContext context, int tabIndex, AppLocalizations loc) {
+    final saintId = widget.saint.id;
+    final saintName = widget.saint.name;
+    final saintImage = widget.saint.image;
+    final saintQuotes = widget.saint.quotes;
+    final saintArticles = widget.saint.articles;
+
+    Widget page;
+    String title;
+
+    switch (tabIndex) {
+      case 0:
+        page = QuotesTab(
+          quotes: saintQuotes,
+          image: saintImage,
+          saintName: saintName,
+          saintId: saintId,
+        );
+        title = loc.quotes;
+        break;
+      case 1:
+        page = ArticlesTab(
+          articles: saintArticles as List<Article>,
+        );
+        title = loc.articles;
+        break;
+      case 2:
+        page = AskTab(
+          onSubmit: (q, a) => _addQnA(q, a),
+          saintId: saintId,
+          userName: widget.userName,
+        );
+        title = loc.ask;
+        break;
+      case 3:
+        page = HistoryTab(history: history);
+        title = loc.history;
+        break;
+      case 4:
+        page = BooksTab(saintId: saintId, saintName: saintName);
+        title = 'Books';
+        break;
+      default:
+        return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text('$saintName - $title'),
           ),
-          ArticlesTab(
-            articles: isHindi
-                ? (saintArticles as List).map<Article>((a) => Article(heading: a.heading, body: a.body)).toList()
-                : saintArticles as List<Article>,
-          ),
-          AskTab(
-            onSubmit: (q, a) => _addQnA(q, a),
-            saintId: saintId, // Pass saint ID instead of saint name
-            userName: widget.userName,
-          ),
-          HistoryTab(history: history),
-          BooksTab(saintId: saintId, saintName: saintName), // Pass both saint ID and name to BooksTab
-        ],
+          body: page,
+        ),
       ),
     );
   }
@@ -2572,13 +3912,50 @@ class _QuotesTabState extends State<QuotesTab> {
 
   String _quoteId(String quote) {
     // Use the correct saint name based on current language
-    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final languageCode = Localizations.localeOf(context).languageCode;
     String saintNameForId;
 
-    if (isHindi) {
-      // Find the Hindi saint name using the saint ID
-      final hindiSaint = saintsHi.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsHi[0]);
-      saintNameForId = hindiSaint.name;
+    // Get saint name from appropriate language list
+    List<dynamic> saintsList;
+    switch (languageCode) {
+      case 'hi':
+        saintsList = saintsHi;
+        break;
+      case 'de':
+        saintsList = saintsDe;
+        break;
+      case 'kn':
+        saintsList = saintsKn;
+        break;
+      case 'bn':
+        saintsList = saintsBn;
+        break;
+      case 'od':
+        saintsList = saintsOr;
+        break;
+      case 'sa':
+        saintsList = saintsSa;
+        break;
+      case 'ta':
+        saintsList = saintsTa;
+        break;
+      case 'te':
+        saintsList = saintsTe;
+        break;
+      case 'ml':
+        saintsList = saintsMl;
+        break;
+      case 'mr':
+        saintsList = saintsMr;
+        break;
+      default:
+        saintsList = saintsEn;
+    }
+
+    if (languageCode != 'en') {
+      // Find the saint name in the current language using the saint ID
+      final saint = saintsList.firstWhere((s) => s.id == widget.saintId, orElse: () => saintsList[0] as Saint);
+      saintNameForId = saint.name;
     } else {
       saintNameForId = widget.saintName;
     }
@@ -2851,10 +4228,15 @@ class _ArticlesTabState extends State<ArticlesTab> {
             ),
             trailing: Icon(Icons.article, color: Colors.blueGrey[300]),
             onTap: () async {
+              final wasAlreadyRead = await ReadStatusService.wasArticleRead(id);
               await ReadStatusService.markArticleRead(id);
               setState(() {
                 _readArticles.add(id);
               });
+              // Award points only if this is the first time reading
+              if (!wasAlreadyRead) {
+                await BadgeService.awardArticlePoints();
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -2869,302 +4251,6 @@ class _ArticlesTabState extends State<ArticlesTab> {
   }
 }
 
-
-class SpiritualDiaryPage extends StatefulWidget {
-  @override
-  _SpiritualDiaryPageState createState() => _SpiritualDiaryPageState();
-}
-
-class _SpiritualDiaryPageState extends State<SpiritualDiaryPage> {
-  final TextEditingController _controller = TextEditingController();
-  bool _loading = true;
-  Database? _db;
-  List<Map<String, dynamic>> _entries = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _initDbAndLoadEntries();
-  }
-
-  Future<void> _initDbAndLoadEntries() async {
-    final db = await openDatabase(
-      p.join(await getDatabasesPath(), 'spiritual_diary.db'),
-      onCreate: (db, version) async {
-        await db.execute(
-          'CREATE TABLE IF NOT EXISTS diary_entries(id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT, created_at TEXT, title TEXT)'
-        );
-      },
-      version: 1,
-    );
-    _db = db;
-    await _loadEntries();
-    setState(() {
-      _loading = false;
-    });
-  }
-
-  Future<void> _loadEntries() async {
-    if (_db == null) return;
-    final List<Map<String, dynamic>> entries = await _db!.query(
-      'diary_entries',
-      orderBy: 'created_at DESC',
-    );
-    setState(() {
-      _entries = entries;
-    });
-  }
-
-  Future<void> _saveEntry() async {
-    if (_db == null || _controller.text.trim().isEmpty) return;
-
-    final now = DateTime.now();
-    final title = _controller.text.trim().length > 50
-        ? _controller.text.trim().substring(0, 50) + '...'
-        : _controller.text.trim();
-
-    await _db!.insert('diary_entries', {
-      'content': _controller.text.trim(),
-      'created_at': now.toIso8601String(),
-      'title': title,
-    });
-
-    _controller.clear();
-    await _loadEntries();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Entry saved successfully!')),
-    );
-  }
-
-  Future<void> _exportDiary() async {
-    if (_entries.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No entries to export')),
-      );
-      return;
-    }
-
-    try {
-      final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/spiritual_diary_export.txt');
-
-      String exportContent = 'Spiritual Diary Export\n';
-      exportContent += '=' * 30 + '\n\n';
-
-      for (var entry in _entries.reversed) {
-        final date = DateTime.parse(entry['created_at']);
-        exportContent += 'Date: ${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}\n';
-        exportContent += '-' * 40 + '\n';
-        exportContent += '${entry['content']}\n\n';
-        exportContent += '=' * 40 + '\n\n';
-      }
-
-      await file.writeAsString(exportContent);
-
-      // Get share position origin for iOS
-      final box = context.findRenderObject() as RenderBox?;
-      final sharePositionOrigin = box != null
-          ? box.localToGlobal(Offset.zero) & box.size
-          : null;
-
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'My Spiritual Diary Export',
-        subject: 'Spiritual Diary',
-        sharePositionOrigin: sharePositionOrigin,
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error exporting diary: $e')),
-      );
-    }
-  }
-
-  Future<void> _deleteEntry(int id) async {
-    if (_db == null) return;
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Delete Entry'),
-        content: Text('Are you sure you want to delete this entry?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await _db!.delete('diary_entries', where: 'id = ?', whereArgs: [id]);
-      await _loadEntries();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Entry deleted')),
-      );
-    }
-  }
-
-  String _formatDate(String dateString) {
-    final date = DateTime.parse(dateString);
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final entryDate = DateTime(date.year, date.month, date.day);
-
-    if (entryDate == today) {
-      return 'Today at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    } else if (entryDate == today.subtract(Duration(days: 1))) {
-      return 'Yesterday at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    } else {
-      return '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _db?.close();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(loc.spiritualDiary),
-        actions: [
-          if (_entries.isNotEmpty)
-            IconButton(
-              icon: Icon(Icons.share),
-              onPressed: _exportDiary,
-              tooltip: 'Export Diary',
-            ),
-        ],
-      ),
-      body: _loading
-          ? Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // New entry section
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Write a new entry',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      SizedBox(height: 8),
-                      TextField(
-                        controller: _controller,
-                        maxLines: 4,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Share your thoughts, reflections, and spiritual insights...',
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        onPressed: _saveEntry,
-                        icon: Icon(Icons.add),
-                        label: Text('Add Entry'),
-                      ),
-                    ],
-                  ),
-                ),
-                // Entries list
-                Expanded(
-                  child: _entries.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.book,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'No entries yet',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Start writing your spiritual journey',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.all(16),
-                          itemCount: _entries.length,
-                          itemBuilder: (context, index) {
-                            final entry = _entries[index];
-                            return Card(
-                              margin: EdgeInsets.only(bottom: 12),
-                              child: Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          _formatDate(entry['created_at']),
-                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                            color: Colors.grey[600],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: Icon(Icons.delete, size: 20),
-                                          onPressed: () => _deleteEntry(entry['id']),
-                                          padding: EdgeInsets.zero,
-                                          constraints: BoxConstraints(),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      entry['content'],
-                                      style: Theme.of(context).textTheme.bodyMedium,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-    );
-  }
-}
 
 class AboutAppPage extends StatefulWidget {
   @override
@@ -3187,8 +4273,9 @@ class _AboutAppPageState extends State<AboutAppPage> {
 
     // Get the current locale to determine which video to show
     final locale = Localizations.localeOf(context);
-    final isHindi = locale.languageCode == 'hi';
-    final expectedVideoId = isHindi ? '-xgEbJzLs5k' : '7OXjZOvLW0Y';
+    final languageCode = locale.languageCode;
+    // Hindi has its own video, others use English video
+    final expectedVideoId = languageCode == 'hi' ? '-xgEbJzLs5k' : '7OXjZOvLW0Y';
 
     // Initialize controller only once
     if (!_isInitialized) {
@@ -3217,7 +4304,12 @@ class _AboutAppPageState extends State<AboutAppPage> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     // Show loading indicator until controller is initialized
     if (!_isInitialized) {
@@ -3306,289 +4398,16 @@ class _AboutAppPageState extends State<AboutAppPage> {
   }
 }
 
-class BookmarkedQuotesPage extends StatefulWidget {
-  @override
-  _BookmarkedQuotesPageState createState() => _BookmarkedQuotesPageState();
-}
-
-class _BookmarkedQuotesPageState extends State<BookmarkedQuotesPage> {
-  Set<String> _bookmarkedQuotes = {};
-  List<Map<String, String>> _allQuotes = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBookmarkedQuotes();
-  }
-
-  Future<void> _loadBookmarkedQuotes() async {
-    final bookmarked = await ReadStatusService.getBookmarkedQuotes();
-    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
-
-    // Get all quotes from all saints
-    final allQuotes = <Map<String, String>>[];
-
-    if (isHindi) {
-      for (final saint in saintsHi) {
-        for (final quote in saint.quotes) {
-          final quoteId = '${saint.name}|||$quote';
-          if (bookmarked.contains(quoteId)) {
-            allQuotes.add({
-              'quote': quote,
-              'saint': saint.name,
-              'image': saint.image,
-              'id': quoteId,
-            });
-          }
-        }
-      }
-    } else {
-      for (final saint in saints) {
-        for (final quote in saint.quotes) {
-          final quoteId = '${saint.name}|||$quote';
-          if (bookmarked.contains(quoteId)) {
-            allQuotes.add({
-              'quote': quote,
-              'saint': saint.name,
-              'image': saint.image,
-              'id': quoteId,
-            });
-          }
-        }
-      }
-    }
-
-    setState(() {
-      _bookmarkedQuotes = bookmarked;
-      _allQuotes = allQuotes;
-      _loading = false;
-    });
-  }
-
-  Future<void> _removeBookmark(String quoteId) async {
-    await ReadStatusService.removeBookmark(quoteId);
-    setState(() {
-      _bookmarkedQuotes.remove(quoteId);
-      _allQuotes.removeWhere((quote) => quote['id'] == quoteId);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Quote removed from bookmarks')),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text(
-          'Bookmarked Quotes',
-          style: GoogleFonts.playfairDisplay(
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
-        ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.orange.shade100.withOpacity(0.9),
-                Colors.deepOrange.shade50.withOpacity(0.9),
-              ],
-            ),
-          ),
-        ),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.orange.shade50,
-              Colors.white,
-            ],
-          ),
-        ),
-        child: _loading
-          ? Center(
-              child: Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.orange.withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
-                  strokeWidth: 3,
-                ),
-              ),
-            )
-          : _allQuotes.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(30),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.bookmark_border,
-                          size: 60,
-                          color: Colors.orange.shade300,
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                      Text(
-                        'No bookmarked quotes yet',
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'Start bookmarking your favorite quotes!',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : Column(
-                  children: [
-                    SizedBox(height: 100), // Space for AppBar
-                    Expanded(
-                      child: ListView.separated(
-                        padding: EdgeInsets.all(16),
-                        itemCount: _allQuotes.length,
-                        separatorBuilder: (context, index) => SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final quote = _allQuotes[index];
-                          return Container(
-                            margin: EdgeInsets.symmetric(horizontal: 4),
-                            child: Material(
-                              elevation: 6,
-                              borderRadius: BorderRadius.circular(20),
-                              shadowColor: Colors.orange.withOpacity(0.3),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [Colors.white, Colors.orange.shade50],
-                                  ),
-                                ),
-                                child: Padding(
-                                  padding: EdgeInsets.all(20),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.orange.withOpacity(0.3),
-                                                  blurRadius: 8,
-                                                  offset: Offset(0, 3),
-                                                ),
-                                              ],
-                                            ),
-                                            child: CircleAvatar(
-                                              radius: 25,
-                                              backgroundColor: Colors.white,
-                                              child: CircleAvatar(
-                                                radius: 22,
-                                                backgroundImage: quote['image']!.startsWith('assets/')
-                                                    ? AssetImage(quote['image']!) as ImageProvider
-                                                    : NetworkImage(quote['image']!),
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(width: 16),
-                                          Expanded(
-                                            child: Text(
-                                              quote['saint']!,
-                                              style: GoogleFonts.playfairDisplay(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 18,
-                                                color: Colors.orange.shade800,
-                                              ),
-                                            ),
-                                          ),
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange.shade100,
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: IconButton(
-                                              icon: Icon(
-                                                Icons.bookmark,
-                                                color: Colors.orange.shade700,
-                                                size: 22,
-                                              ),
-                                              onPressed: () => _removeBookmark(quote['id']!),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 16),
-                                      Container(
-                                        padding: EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.7),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.orange.shade100),
-                                        ),
-                                        child: Text(
-                                          '"${quote['quote']!}"',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontStyle: FontStyle.italic,
-                                            height: 1.5,
-                                            color: Colors.grey.shade800,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-      ),
-    );
-  }
-}
 
 class ContactPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -3752,9 +4571,9 @@ class ContactPage extends StatelessWidget {
                     content: Text('Could not open email app. Email: $email'),
                     backgroundColor: Colors.red.shade400,
                     action: SnackBarAction(
-                      label: 'Copy',
-                      textColor: Colors.white,
+                      label: 'Copy URL',
                       onPressed: () {
+                        // Copy to clipboard
                         Clipboard.setData(ClipboardData(text: email));
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -3779,13 +4598,17 @@ class ContactPage extends StatelessWidget {
 class BuyMeACoffeePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    final isHindi = Localizations.localeOf(context).languageCode == 'hi';
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          isHindi ? 'मुझे कॉफी खरीदें' : 'Buy me a coffee',
+          loc.buyMeACoffee,
           style: GoogleFonts.playfairDisplay(
             fontWeight: FontWeight.bold,
             fontSize: 24,
@@ -3844,7 +4667,7 @@ class BuyMeACoffeePage extends StatelessWidget {
                       SizedBox(height: 24),
                       RichText(
                         text: TextSpan(
-                          text: isHindi ? '☕ मुझे कॉफी खरीदें' : '☕ Buy me a coffee',
+                          text: '☕ ${loc.buyMeACoffee}',
                           style: GoogleFonts.playfairDisplay(
                             color: Colors.deepOrange.shade700,
                             decoration: TextDecoration.underline,
@@ -3899,6 +4722,7 @@ class BuyMeACoffeePage extends StatelessWidget {
                                 }
 
                                 if (!launched) {
+                                  final isHindi = Localizations.localeOf(context).languageCode == 'hi';
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(isHindi
@@ -3926,6 +4750,7 @@ class BuyMeACoffeePage extends StatelessWidget {
                                 }
                               } catch (e) {
                                 print('General URL launch error: $e');
+                                final isHindi = Localizations.localeOf(context).languageCode == 'hi';
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text((isHindi
@@ -3941,7 +4766,7 @@ class BuyMeACoffeePage extends StatelessWidget {
                       ),
                       SizedBox(height: 32),
                       Text(
-                        isHindi ? loc.supportTextHi : loc.supportTextEn,
+                        Localizations.localeOf(context).languageCode == 'hi' ? loc.supportTextHi : loc.supportTextEn,
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey.shade700,
@@ -3961,369 +4786,6 @@ class BuyMeACoffeePage extends StatelessWidget {
   }
 }
 
-class QuoteOfTheDayPage extends StatefulWidget {
-  @override
-  _QuoteOfTheDayPageState createState() => _QuoteOfTheDayPageState();
-}
-
-class _QuoteOfTheDayPageState extends State<QuoteOfTheDayPage> {
-  String quote = '';
-  String saintName = '';
-  String saintImage = '';
-  bool isLoading = true;
-  final ScreenshotController screenshotController = ScreenshotController();
-
-  @override
-  void initState() {
-    super.initState();
-    // Use addPostFrameCallback to ensure context is ready for locale access
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadQuoteOfTheDay();
-    });
-  }
-
-  Future<void> _loadQuoteOfTheDay() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      // Ensure we have a valid context and locale
-      if (!mounted) return;
-
-      final locale = Localizations.localeOf(context);
-      // Use the new method to get a fresh random quote each time
-      final quoteData = NotificationService.getRandomQuoteNow(locale);
-
-      // Ensure we got valid quote data
-      if (quoteData['quote'] == null || quoteData['saint'] == null) {
-        throw Exception('Invalid quote data received');
-      }
-
-      // Get saint image from the quotes data
-      final isHindi = locale.languageCode == 'hi';
-
-      String image = 'assets/images/vivekananda.jpg'; // default
-
-      if (isHindi) {
-        // Cast to proper type for Hindi saints
-        for (final saint in saintsHi) {
-          if (saint.name == quoteData['saint']) {
-            image = saint.image;
-            break;
-          }
-        }
-      } else {
-        // Cast to proper type for English saints
-        for (final saint in saints) {
-          if (saint.name == quoteData['saint']) {
-            image = saint.image;
-            break;
-          }
-        }
-      }
-
-      if (!mounted) return;
-      setState(() {
-        quote = quoteData['quote']!;
-        saintName = quoteData['saint']!;
-        saintImage = image;
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error loading quote of the day: $e');
-      // Try again with a fallback approach if the first attempt failed
-      try {
-        // Use English as fallback locale if there was an issue
-        final fallbackQuoteData = NotificationService.getRandomQuoteNow(Locale('en'));
-
-        String image = 'assets/images/vivekananda.jpg';
-        for (final saint in saints) {
-          if (saint.name == fallbackQuoteData['saint']) {
-            image = saint.image;
-            break;
-          }
-        }
-
-        if (!mounted) return;
-        setState(() {
-          quote = fallbackQuoteData['quote'] ?? 'Stay inspired and blessed!';
-          saintName = fallbackQuoteData['saint'] ?? 'Talk with Saints';
-          saintImage = image;
-          isLoading = false;
-        });
-      } catch (e2) {
-        print('Fallback quote loading also failed: $e2');
-        if (!mounted) return;
-        setState(() {
-          quote = 'Stay inspired and blessed!';
-          saintName = 'Talk with Saints';
-          saintImage = 'assets/images/vivekananda.jpg';
-          isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _shareQuoteScreenshot() async {
-    try {
-      // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-              SizedBox(width: 16),
-              Text('Preparing quote image...'),
-            ],
-          ),
-          backgroundColor: Colors.blue,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      // Capture screenshot
-      final Uint8List? imageBytes = await screenshotController.capture(
-        pixelRatio: 3.0,
-      );
-
-      if (imageBytes != null) {
-        // Get temporary directory
-        final directory = await getTemporaryDirectory();
-        final imagePath = '${directory.path}/quote_of_the_day_${DateTime.now().millisecondsSinceEpoch}.png';
-
-        // Save image to file
-        final File imageFile = File(imagePath);
-        await imageFile.writeAsBytes(imageBytes);
-
-        // Get share position origin for iOS
-        final box = context.findRenderObject() as RenderBox?;
-        final sharePositionOrigin = box != null
-            ? box.localToGlobal(Offset.zero) & box.size
-            : null;
-
-        // Share the image with text
-        await Share.shareXFiles(
-          [XFile(imagePath)],
-          text: '"$quote"\n\n- $saintName\n\n✨ Shared from Talk with Saints App',
-          sharePositionOrigin: sharePositionOrigin,
-        );
-      } else {
-        throw Exception('Failed to capture screenshot');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error sharing quote: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text(
-          loc.quoteOfTheDay,
-          style: GoogleFonts.playfairDisplay(
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
-        ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.deepOrange.shade100.withOpacity(0.9),
-                Colors.orange.shade50.withOpacity(0.9),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          if (!isLoading)
-            IconButton(
-              icon: Icon(Icons.share, color: Colors.deepOrange.shade700),
-              onPressed: _shareQuoteScreenshot,
-              tooltip: 'Share Quote',
-            ),
-        ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.deepOrange.shade50,
-              Colors.white,
-            ],
-          ),
-        ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: isLoading
-              ? CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
-                )
-              : Screenshot(
-                  controller: screenshotController,
-                  child: Container(
-                    padding: EdgeInsets.all(35),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Colors.white, Colors.orange.shade50],
-                      ),
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Colors.orange.shade200, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.deepOrange.withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-
-                        // Saint image
-                        if (saintImage.isNotEmpty)
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.deepOrange.withOpacity(0.3),
-                                  blurRadius: 15,
-                                  offset: Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: CircleAvatar(
-                              backgroundImage: AssetImage(saintImage),
-                              radius: 55,
-                              backgroundColor: Colors.white,
-                            ),
-                          ),
-                        SizedBox(height: 28),
-
-                        // Quote container
-                        Container(
-                          padding: EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Colors.orange.shade100),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                blurRadius: 12,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.format_quote,
-                                color: Colors.deepOrange.shade400,
-                                size: 30,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                '"$quote"',
-                                style: GoogleFonts.playfairDisplay(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.5,
-                                  color: Colors.grey.shade800,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 22),
-
-                        // Saint attribution
-                        Text(
-                          '— $saintName',
-                          style: GoogleFonts.notoSans(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.deepOrange.shade700,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                        SizedBox(height: 25),
-
-                        // Bottom banner image
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.asset(
-                            'assets/images/quotesbanner.jpg',
-                            fit: BoxFit.contain,
-                            width: 400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-          ),
-        ),
-      ),
-      floatingActionButton: !isLoading
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                FloatingActionButton(
-                  onPressed: _loadQuoteOfTheDay,
-                  backgroundColor: Colors.orange.shade600,
-                  heroTag: "refresh",
-                  child: Icon(Icons.refresh, color: Colors.white),
-                  tooltip: 'Get New Quote',
-                ),
-                SizedBox(height: 16),
-                FloatingActionButton.extended(
-                  onPressed: _shareQuoteScreenshot,
-                  backgroundColor: Colors.deepOrange.shade600,
-                  heroTag: "share",
-                  icon: Icon(Icons.share, color: Colors.white),
-                  label: Text(
-                    'Share Quote',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : null,
-    );
-  }
-}
 
 class AskAIPage extends StatefulWidget {
   final String userName;
@@ -4372,7 +4834,12 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     final brightness = Theme.of(context).brightness;
 
     final gradient = brightness == Brightness.dark
@@ -4426,7 +4893,10 @@ class _AskAIPageState extends State<AskAIPage> with SingleTickerProviderStateMix
   }
 
   Widget _buildHistoryTab() {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) {
+      return Center(child: CircularProgressIndicator());
+    }
     if (_history.isEmpty) {
       return Center(
         child: Column(

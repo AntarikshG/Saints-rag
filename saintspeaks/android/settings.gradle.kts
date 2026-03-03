@@ -14,6 +14,10 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        // JitPack for FFmpeg Kit and other libraries
+        maven {
+            url = uri("https://jitpack.io")
+        }
     }
 }
 

@@ -1,17 +1,35 @@
 import 'dart:math';
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:permission_handler/permission_handler.dart';
-import 'articlesquotes.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'articlesquotes_en.dart';
 import 'articlesquotes_hi.dart';
+import 'articlesquotes_bn.dart';
+import 'articlesquotes_or.dart';
+import 'articlesquotes_de.dart';
+import 'articlesquotes_kn.dart';
+import 'articlesquotes_sa.dart';
+import 'articlesquotes_ta.dart';
+import 'articlesquotes_te.dart';
+import 'articlesquotes_ml.dart';
+import 'articlesquotes_mr.dart';
 import 'ekadashi_service.dart';
+import 'quote_of_the_day_page.dart';
+import 'l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static GlobalKey<NavigatorState>? _navigatorKey;
+
+  // SharedPreferences key for tracking if we've shown the permission dialog
+  static const String _hasAskedNotificationPermissionKey = 'hasAskedNotificationPermission';
 
   // Configurable notification settings - Changed from 60 to 2 for better reliability
   static const int NOTIFICATIONS_PER_DAY = 2; // Morning and evening notifications
@@ -19,6 +37,9 @@ class NotificationService {
 
   // Ekadashi notification IDs - separate range to avoid conflicts
   static const int EKADASHI_NOTIFICATION_ID_START = 5000;
+
+  // App update notification ID
+  static const int APP_UPDATE_NOTIFICATION_ID = 9000;
 
   // Calculate notification times based on notifications per day
   static List<int> get _notificationHours {
@@ -54,10 +75,121 @@ class NotificationService {
     return '✨ Night Contemplation';
   }
 
-  static Future<void> initialize(BuildContext? context) async {
+  /// Check if we've already asked for notification permission
+  static Future<bool> hasAskedForNotificationPermission() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_hasAskedNotificationPermissionKey) ?? false;
+  }
+
+  /// Mark that we've asked for notification permission
+  static Future<void> markNotificationPermissionAsAsked() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hasAskedNotificationPermissionKey, true);
+  }
+
+  /// Show pre-permission dialog explaining notification benefits
+  static Future<bool> showNotificationPermissionDialog(BuildContext context) async {
+    print('📱 Showing notification permission dialog...');
+    final loc = AppLocalizations.of(context)!;
+
+    bool userAccepted = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // User must interact with dialog
+      builder: (_) => PopScope(
+        canPop: false, // Prevent back button dismiss
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Column(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.deepOrange.shade300, Colors.deepOrange.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.notifications_active,
+                  size: 40,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                loc.notificationPermissionTitle,
+                style: GoogleFonts.playfairDisplay(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                loc.notificationPermissionMessage,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.5,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                print('👤 User clicked "Maybe Later"');
+                userAccepted = false;
+                Navigator.pop(context);
+              },
+              child: Text(
+                loc.maybeLater,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                print('✅ User clicked "Enable Notifications"');
+                userAccepted = true;
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: Text(
+                loc.enableNotifications,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    print('📱 Dialog closed. User accepted: $userAccepted');
+    return userAccepted;
+  }
+
+  static Future<void> initialize(BuildContext? context, {GlobalKey<NavigatorState>? navigatorKey}) async {
     if (_initialized) return;
 
     print('🚀 Initializing NotificationService...');
+
+    // Store the navigator key for handling notification taps
+    _navigatorKey = navigatorKey;
 
     // Initialize timezone database
     try {
@@ -101,10 +233,11 @@ class NotificationService {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
+    // iOS settings - don't auto-request permissions, we'll do it after showing dialog
     const DarwinInitializationSettings iOSSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     final InitializationSettings settings = InitializationSettings(
@@ -117,21 +250,54 @@ class NotificationService {
         settings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           print('Notification tapped: ${response.payload}');
+          _handleNotificationTap(response);
         },
       );
 
       if (initialized == true) {
         print('✓ Notifications initialized successfully');
-        _initialized = true;
+      } else if (initialized == false) {
+        print('⚠️ Notification initialization returned false (this is normal on some platforms)');
       } else {
-        print('✗ Notification initialization returned false');
+        print('⚠️ Notification initialization returned null');
       }
+
+      // Mark as initialized regardless - we can still use notifications
+      _initialized = true;
     } catch (e) {
       print('✗ Error initializing notifications: $e');
+      _initialized = true; // Still mark as initialized to allow scheduling
     }
 
-    // Request all necessary permissions
-    await _requestAllPermissions();
+    // Don't automatically request permissions here
+    // We'll show the pre-permission dialog first and request based on user's choice
+  }
+
+  /// Check if app was launched from a notification and handle it
+  static Future<void> handleAppLaunchFromNotification() async {
+    try {
+      final notificationAppLaunchDetails = await _notificationsPlugin.getNotificationAppLaunchDetails();
+
+      if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
+        final payload = notificationAppLaunchDetails!.notificationResponse?.payload;
+        print('🚀 App launched from notification with payload: $payload');
+
+        if (payload != null) {
+          // Give the app more time to fully initialize (especially on Android)
+          // This ensures MaterialApp and navigator are fully built
+          await Future.delayed(const Duration(milliseconds: 1500));
+
+          // Handle the notification response
+          if (notificationAppLaunchDetails.notificationResponse != null) {
+            _handleNotificationTap(notificationAppLaunchDetails.notificationResponse!);
+          }
+        }
+      } else {
+        print('📱 App launched normally (not from notification)');
+      }
+    } catch (e) {
+      print('⚠️ Error checking notification launch: $e');
+    }
   }
 
   static Future<void> _createNotificationChannels() async {
@@ -151,6 +317,14 @@ class NotificationService {
       importance: Importance.high,
     );
 
+    // App update notifications channel
+    const AndroidNotificationChannel updateChannel = AndroidNotificationChannel(
+      'app_update_notifications',
+      'App Updates',
+      description: 'Notifications about new app versions with new saints and features',
+      importance: Importance.high,
+    );
+
     // Create the notification channels
     final androidPlugin = _notificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -158,6 +332,7 @@ class NotificationService {
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(quotesChannel);
       await androidPlugin.createNotificationChannel(ekadashiChannel);
+      await androidPlugin.createNotificationChannel(updateChannel);
       print('✓ Created notification channels');
     }
   }
@@ -166,7 +341,25 @@ class NotificationService {
     bool allGranted = true;
 
     try {
-      // Request notification permission only
+      // For iOS, we need to request permissions through the plugin
+      if (Platform.isIOS) {
+        final bool? result = await _notificationsPlugin
+            .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+            ?.requestPermissions(
+              alert: true,
+              badge: true,
+              sound: true,
+            );
+
+        if (result == true) {
+          print('✓ iOS notification permissions granted');
+        } else {
+          print('✗ iOS notification permissions denied');
+          allGranted = false;
+        }
+      }
+
+      // For Android, use permission_handler
       final notificationStatus = await Permission.notification.status;
       if (!notificationStatus.isGranted) {
         final result = await Permission.notification.request();
@@ -486,26 +679,78 @@ class NotificationService {
     final random = Random();
 
     try {
+      final allQuotes = <Map<String, String>>[];
+
       if (locale.languageCode == 'hi') {
-        final allQuotes = <Map<String, String>>[];
         for (final s in saintsHi) {
           for (final q in s.quotes) {
             allQuotes.add({'quote': q, 'saint': s.name});
           }
         }
-        if (allQuotes.isNotEmpty) {
-          return allQuotes[random.nextInt(allQuotes.length)];
-        }
-      } else {
-        final allQuotes = <Map<String, String>>[];
-        for (final s in saints) {
+      } else if (locale.languageCode == 'bn') {
+        for (final s in saintsBn) {
           for (final q in s.quotes) {
             allQuotes.add({'quote': q, 'saint': s.name});
           }
         }
-        if (allQuotes.isNotEmpty) {
-          return allQuotes[random.nextInt(allQuotes.length)];
+      } else if (locale.languageCode == 'od') {
+        for (final s in saintsOr) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
         }
+      } else if (locale.languageCode == 'kn') {
+        for (final s in saintsKn) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else if (locale.languageCode == 'de') {
+        for (final s in saintsDe) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else if (locale.languageCode == 'sa') {
+        for (final s in saintsSa) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else if (locale.languageCode == 'ta') {
+        for (final s in saintsTa) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else if (locale.languageCode == 'te') {
+        for (final s in saintsTe) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else if (locale.languageCode == 'ml') {
+        for (final s in saintsMl) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else if (locale.languageCode == 'mr') {
+        for (final s in saintsMr) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      } else {
+        for (final s in saintsEn) {
+          for (final q in s.quotes) {
+            allQuotes.add({'quote': q, 'saint': s.name});
+          }
+        }
+      }
+
+      if (allQuotes.isNotEmpty) {
+        return allQuotes[random.nextInt(allQuotes.length)];
       }
     } catch (e) {
       print('Error getting random quote: $e');
@@ -603,6 +848,9 @@ class NotificationService {
           final title = _getNotificationTitle(hour);
 
           try {
+            // Create payload with quote data
+            final payload = 'daily_quote|${quote['quote']}|${quote['saint']}';
+
             await _notificationsPlugin.zonedSchedule(
               notificationId++,
               title,
@@ -633,6 +881,7 @@ class NotificationService {
                 ),
               ),
               androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+              payload: payload,
             );
 
             successCount++;
@@ -679,10 +928,13 @@ class NotificationService {
     }
   }
 
-  static Future<void> showTestNotification() async {
+  static Future<void> showTestNotification(Locale locale) async {
     try {
-      // Get the quote of the day for the test notification
-      final quote = await _getQuoteOfTheDay(const Locale('en')); // Default to English for test
+      // Get the quote of the day for the test notification using the provided locale
+      final quote = await _getQuoteOfTheDay(locale);
+
+      // Create payload with quote data
+      final payload = 'daily_quote|${quote['quote']}|${quote['saint']}';
 
       await _notificationsPlugin.show(
         999,
@@ -706,8 +958,9 @@ class NotificationService {
             sound: 'default',
           ),
         ),
+        payload: payload,
       );
-      print('✓ Test notification sent with Quote of the Day: ${quote['quote']}');
+      print('✓ Test notification sent with Quote of the Day (${locale.languageCode}): ${quote['quote']}');
     } catch (e) {
       print('✗ Error showing test notification: $e');
     }
@@ -718,22 +971,25 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final today = DateTime.now().toIso8601String().substring(0, 10); // YYYY-MM-DD format
+      final languageCode = locale.languageCode;
 
-      // Check if we already have a quote for today
+      // Check if we already have a quote for today in the current language
       final savedDate = prefs.getString('quote_of_day_date');
+      final savedLanguage = prefs.getString('quote_of_day_language');
       final savedQuote = prefs.getString('quote_of_day_quote');
       final savedSaint = prefs.getString('quote_of_day_saint');
 
-      if (savedDate == today && savedQuote != null && savedSaint != null) {
-        // Return today's already selected quote
+      if (savedDate == today && savedLanguage == languageCode && savedQuote != null && savedSaint != null) {
+        // Return today's already selected quote for this language
         return {'quote': savedQuote, 'saint': savedSaint};
       }
 
-      // Generate new quote for today
+      // Generate new quote for today in the current language
       final quote = _getRandomQuote(locale);
 
-      // Save today's quote
+      // Save today's quote with the language code
       await prefs.setString('quote_of_day_date', today);
+      await prefs.setString('quote_of_day_language', languageCode);
       await prefs.setString('quote_of_day_quote', quote['quote']!);
       await prefs.setString('quote_of_day_saint', quote['saint']!);
 
@@ -753,6 +1009,141 @@ class NotificationService {
   static Map<String, String> getRandomQuoteNow(Locale locale) {
     return _getRandomQuote(locale);
   }
+
+  // Handle notification tap - navigate to Quote of the Day page
+  static void _handleNotificationTap(NotificationResponse response) {
+    print('📱 Handling notification tap with payload: ${response.payload}');
+
+    // Handle app update notification
+    if (response.payload == 'app_update') {
+      print('🔄 Opening app store for update');
+      _openAppStoreForUpdate();
+      return;
+    }
+
+    // Handle Ekadashi notification
+    if (response.payload == 'ekadashi_test' || (response.payload?.startsWith('ekadashi') ?? false)) {
+      print('🌙 Ekadashi notification tapped - no specific action needed');
+      return;
+    }
+
+    // Try to navigate, with retry if context not available yet
+    _navigateToQuoteOfDay(response, retryCount: 0);
+  }
+
+  static void _navigateToQuoteOfDay(NotificationResponse response, {int retryCount = 0}) {
+    // Use the navigator key to navigate to the Quote of the Day page
+    if (_navigatorKey?.currentContext != null) {
+      final context = _navigatorKey!.currentContext!;
+
+      // Parse the payload to extract quote data
+      String? quoteText;
+      String? saintName;
+
+      if (response.payload != null && response.payload!.startsWith('daily_quote|')) {
+        try {
+          final parts = response.payload!.split('|');
+          if (parts.length >= 3) {
+            quoteText = parts[1];
+            saintName = parts[2];
+            print('📝 Parsed quote: "$quoteText" by $saintName');
+          }
+        } catch (e) {
+          print('⚠️ Error parsing payload: $e');
+        }
+      }
+
+      // Navigate to Quote of the Day page with the quote data
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => QuoteOfTheDayPage(
+            notificationQuote: quoteText,
+            notificationSaint: saintName,
+          ),
+        ),
+      );
+      print('✓ Navigated to Quote of the Day page');
+    } else {
+      // Context not available yet, retry up to 10 times with longer delays for Android
+      if (retryCount < 10) {
+        final delayMs = (retryCount + 1) * 500; // 500ms, 1000ms, 1500ms, 2000ms, etc.
+        print('⚠️ Navigator context not available yet, retrying in ${delayMs}ms (attempt ${retryCount + 1}/10)');
+        Future.delayed(Duration(milliseconds: delayMs), () {
+          _navigateToQuoteOfDay(response, retryCount: retryCount + 1);
+        });
+      } else {
+        print('❌ Navigator context not available after 10 retries. Cannot navigate.');
+      }
+    }
+  }
+
+  /// Open app store for update - called when update notification is tapped
+  static Future<void> _openAppStoreForUpdate() async {
+    try {
+      // App store URLs
+      const String androidUrl = 'https://play.google.com/store/apps/details?id=com.antarikshverse.talkwithsaints';
+      const String iosUrl = 'https://apps.apple.com/app/id6757002070';
+
+      final String storeUrl;
+
+      if (Platform.isIOS) {
+        storeUrl = iosUrl;
+      } else if (Platform.isAndroid) {
+        storeUrl = androidUrl;
+      } else {
+        print('[NotificationService] Unsupported platform for app store');
+        return;
+      }
+
+      final Uri url = Uri.parse(storeUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+        print('[NotificationService] ✓ Opened app store: $storeUrl');
+      } else {
+        print('[NotificationService] Cannot launch URL: $url');
+      }
+    } catch (e) {
+      print('[NotificationService] Error opening app store: $e');
+    }
+  }
+
+  /// Show app update notification
+  static Future<void> showUpdateNotification(String latestVersion) async {
+    try {
+      await _notificationsPlugin.show(
+        APP_UPDATE_NOTIFICATION_ID,
+        '🎉 New Version Available!',
+        'Version $latestVersion is now available with new saints and features. Tap to update now!',
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            'app_update_notifications',
+            'App Updates',
+            channelDescription: 'Notifications about new app versions with new saints and features',
+            importance: Importance.high,
+            priority: Priority.high,
+            showWhen: true,
+            icon: '@mipmap/ic_launcher',
+            enableVibration: true,
+            playSound: true,
+            autoCancel: true,
+            styleInformation: BigTextStyleInformation(''),
+            ticker: 'App Update Available',
+            visibility: NotificationVisibility.public,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+            sound: 'default',
+          ),
+        ),
+        payload: 'app_update',
+      );
+      print('✓ App update notification sent');
+    } catch (e) {
+      print('✗ Error showing app update notification: $e');
+    }
+  }
 }
 
 class ReadStatusService {
@@ -768,8 +1159,15 @@ class ReadStatusService {
   static Future<void> markArticleRead(String articleId) async {
     final prefs = await SharedPreferences.getInstance();
     final read = prefs.getStringList(_readArticlesKey)?.toSet() ?? <String>{};
+    final wasNew = !read.contains(articleId);
     read.add(articleId);
     await prefs.setStringList(_readArticlesKey, read.toList());
+
+    // Award points only if this is the first time reading this article
+    if (wasNew) {
+      // Import badge_service dynamically to avoid circular dependencies
+      // The calling code will handle points awarding
+    }
   }
 
   static Future<Set<String>> getReadQuotes() async {
@@ -780,8 +1178,26 @@ class ReadStatusService {
   static Future<void> markQuoteRead(String quoteId) async {
     final prefs = await SharedPreferences.getInstance();
     final read = prefs.getStringList(_readQuotesKey)?.toSet() ?? <String>{};
+    final wasNew = !read.contains(quoteId);
     read.add(quoteId);
     await prefs.setStringList(_readQuotesKey, read.toList());
+
+    // Award points only if this is the first time reading this quote
+    if (wasNew) {
+      // Import badge_service dynamically to avoid circular dependencies
+      // The calling code will handle points awarding
+    }
+  }
+
+  // Helper methods to check if quote/article was already read before marking
+  static Future<bool> wasQuoteRead(String quoteId) async {
+    final read = await getReadQuotes();
+    return read.contains(quoteId);
+  }
+
+  static Future<bool> wasArticleRead(String articleId) async {
+    final read = await getReadArticles();
+    return read.contains(articleId);
   }
 
   static Future<Set<String>> getBookmarkedQuotes() async {

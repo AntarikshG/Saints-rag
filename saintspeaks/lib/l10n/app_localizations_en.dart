@@ -86,6 +86,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseSpiritualGuide => 'Choose your spiritual guide';
 
   @override
+  String get saintsOfBharat => 'Saints of Bharat';
+
+  @override
   String get askDisclaimer =>
       'Get spiritual guidance from the wisdom of saints. Ask questions about life, spirituality, and finding inner peace.';
 
@@ -121,6 +124,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hindi => 'Hindi';
+
+  @override
+  String get german => 'German';
+
+  @override
+  String get kannada => 'Kannada';
+
+  @override
+  String get bengali => 'Bengali';
+
+  @override
+  String get odia => 'Odia';
+
+  @override
+  String get sanskrit => 'Sanskrit';
+
+  @override
+  String get tamil => 'Tamil';
+
+  @override
+  String get telugu => 'Telugu';
+
+  @override
+  String get malayalam => 'Malayalam';
+
+  @override
+  String get marathi => 'Marathi';
 
   @override
   String get supportTextHi =>
@@ -278,4 +308,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareSubject => 'Discover Saints Speak - Spiritual Wisdom App 🙏';
+
+  @override
+  String get notificationPermissionTitle => 'Daily Spiritual Wisdom';
+
+  @override
+  String get notificationPermissionMessage =>
+      'Receive inspiring quotes from saints twice daily - once in the morning to start your day with wisdom, and once in the evening for reflection.\n\n🌅 Morning wisdom to guide your day\n🌙 Evening reflection for inner peace\n\nThis feature enriches your spiritual journey and is highly recommended!';
+
+  @override
+  String get enableNotifications => 'Enable Notifications';
+
+  @override
+  String get maybeLater => 'Maybe Later';
+
+  @override
+  String get wisdomSharingTitle => '📖 Share the Wisdom';
+
+  @override
+  String get wisdomSharingVivekanandaQuote =>
+      'The greatest religion is to be true to your own nature. Have faith in yourselves!';
+
+  @override
+  String get wisdomSharingMessage =>
+      'You\'ve been exploring profound spiritual wisdom. Would you like to share this transformative experience with others?';
+
+  @override
+  String get wisdomSharingGyaanaDana =>
+      'Sharing knowledge is one of the highest forms of service (Gyaana Dana 📚)';
+
+  @override
+  String get wisdomSharingCallToAction =>
+      'Help others discover these timeless teachings';
+
+  @override
+  String get wisdomSharingGotIt => 'Got it!';
 }
